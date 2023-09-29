@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import './button.dart';
+import '../components/button.dart';
 
 class ButtonSection extends StatelessWidget {
   const ButtonSection({Key? key}) : super(key: key);
