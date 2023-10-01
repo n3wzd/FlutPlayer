@@ -12,7 +12,9 @@ class BottomSection extends StatelessWidget {
       decoration: const BoxDecoration(color: Color(0xFF36081B)),
       child: const Column(
         children: [
+          SizedBox(height: 10),
           ControlSection(),
+          SizedBox(height: 10),
           ButtonSection(),
         ],
       ),
