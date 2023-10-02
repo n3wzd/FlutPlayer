@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
 class SongTitle extends StatelessWidget {
-  const SongTitle({Key? key}) : super(key: key);
+  const SongTitle({Key? key, required this.title}) : super(key: key);
+  final String title;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      child: const Text(
-        'REAPER - BLACK FIRES',
-        style: TextStyle(
+      child: Text(
+        title,
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 28,
           fontFamily: 'Inter',

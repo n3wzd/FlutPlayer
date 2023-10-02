@@ -21,6 +21,7 @@ flutter:
   generate: true
   assets:
     - assets/audios/
+  # assets:
   # fonts:
   #   - family: Schyler
   #     fonts:

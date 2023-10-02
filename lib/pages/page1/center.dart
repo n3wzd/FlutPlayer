@@ -5,22 +5,23 @@ import './song_title.dart';
 import './top_menu.dart';
 
 class CenterSection extends StatelessWidget {
-  const CenterSection({Key? key}) : super(key: key);
+  const CenterSection({Key? key, required this.title}) : super(key: key);
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
-        SizedBox(
+        const SizedBox(
           height: 80,
           child: TopMenu(),
         ),
-        Expanded(
+        const Expanded(
           child: SongCover(),
         ),
         SizedBox(
           height: 80,
-          child: SongTitle(),
+          child: SongTitle(title: title),
         ),
       ],
     );

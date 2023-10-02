@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ControlBar extends StatelessWidget {
-  const ControlBar({Key? key}) : super(key: key);
+  const ControlBar({Key? key, required this.widthRate}) : super(key: key);
+  final double widthRate;
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +20,18 @@ class ControlBar extends StatelessWidget {
             ),
           ),
         ),
-        Container(
-          height: 1,
-          decoration: const ShapeDecoration(
-            shape: RoundedRectangleBorder(
-              side: BorderSide(
-                width: 4,
-                strokeAlign: BorderSide.strokeAlignCenter,
-                color: Color(0xFF5B2EC5),
+        FractionallySizedBox(
+          widthFactor: widthRate,
+          alignment: FractionalOffset.centerLeft,
+          child: Container(
+            height: 1,
+            decoration: const ShapeDecoration(
+              shape: RoundedRectangleBorder(
+                side: BorderSide(
+                  width: 4,
+                  strokeAlign: BorderSide.strokeAlignCenter,
+                  color: Color(0xFF5B2EC5),
+                ),
               ),
             ),
           ),
