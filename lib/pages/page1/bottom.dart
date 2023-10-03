@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:assets_audio_player/assets_audio_player.dart';
 
 import './control_section.dart';
 import './button_section.dart';
 
 class BottomSection extends StatelessWidget {
-  const BottomSection(
-      {Key? key,
-      required this.duration,
-      required this.currentPosition,
-      required this.onPlay})
+  const BottomSection({Key? key, required this.assetsAudioPlayer})
       : super(key: key);
-  final Duration duration;
-  final Duration currentPosition;
-  final VoidCallback onPlay;
+  final AssetsAudioPlayer assetsAudioPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +16,9 @@ class BottomSection extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          ControlSection(
-            duration: duration,
-            currentPosition: currentPosition,
-          ),
+          ControlSection(assetsAudioPlayer: assetsAudioPlayer),
           const SizedBox(height: 10),
-          ButtonSection(onPlay: onPlay),
+          ButtonSection(assetsAudioPlayer: assetsAudioPlayer),
         ],
       ),
     );

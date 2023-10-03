@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:assets_audio_player/assets_audio_player.dart';
 
 import '../components/button.dart';
 
 class ButtonSection extends StatelessWidget {
-  const ButtonSection({Key? key, required this.onPlay}) : super(key: key);
-  final VoidCallback onPlay;
+  const ButtonSection({Key? key, required this.assetsAudioPlayer})
+      : super(key: key);
+  final AssetsAudioPlayer assetsAudioPlayer;
+
+  void onPlay() {
+    assetsAudioPlayer.playOrPause();
+  }
 
   @override
   Widget build(BuildContext context) {
