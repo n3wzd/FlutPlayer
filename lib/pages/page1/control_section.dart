@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 
+import './control_slider.dart';
 import '../components/time_text.dart';
 
 class ControlSection extends StatefulWidget {
@@ -22,9 +23,6 @@ class ControlSection extends StatefulWidget {
 class _ControlSectionState extends State<ControlSection> {
   Duration trackDuration = const Duration();
   Duration trackCurrentPosition = const Duration();
-  double sliderValue = 0;
-  bool isChanging = false;
-  Duration currentTimeTextValue = const Duration();
 
   @override
   Widget build(BuildContext context) {
@@ -40,30 +38,19 @@ class _ControlSectionState extends State<ControlSection> {
             if (asyncSnapshot.data != null) {
               trackCurrentPosition = asyncSnapshot.data!;
             }
-            if (!isChanging) {
-              sliderValue = trackCurrentPosition.inMilliseconds.toDouble();
-              currentTimeTextValue = trackCurrentPosition;
-            }
             return Column(
               children: [
                 Container(
                   height: 24,
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Slider(
-                    value: sliderValue,
-                    max: trackDuration.inMilliseconds.toDouble(),
-                    onChanged: (double value) {
-                      sliderValue = value;
-                      currentTimeTextValue =
+                  child: ControlSlider(
+                    trackDuration: trackDuration,
+                    trackCurrentPosition: trackCurrentPosition,
+                    assetsAudioPlayer: widget.assetsAudioPlayer,
+                    onUpdated: (int value) {
+                      trackCurrentPosition =
                           Duration(milliseconds: value.toInt());
-                      isChanging = true;
-                    },
-                    onChangeEnd: (double value) {
-                      widget.assetsAudioPlayer
-                          .seek(Duration(milliseconds: value.toInt()));
-                      sliderValue = value;
-                      isChanging = false;
                     },
                   ),
                 ),
@@ -76,7 +63,7 @@ class _ControlSectionState extends State<ControlSection> {
                         child: Container(
                           alignment: Alignment.centerLeft,
                           child: TimeText(
-                              text: widget.getTimeFormat(currentTimeTextValue)),
+                              text: widget.getTimeFormat(trackCurrentPosition)),
                         ),
                       ),
                       Expanded(
