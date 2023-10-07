@@ -3,9 +3,8 @@ import 'package:assets_audio_player/assets_audio_player.dart';
 
 import '../components/button.dart';
 
-class ButtonSection extends StatelessWidget {
-  const ButtonSection({Key? key, required this.assetsAudioPlayer})
-      : super(key: key);
+class ButtonUI extends StatelessWidget {
+  const ButtonUI({Key? key, required this.assetsAudioPlayer}) : super(key: key);
   final AssetsAudioPlayer assetsAudioPlayer;
 
   void onPlay() {

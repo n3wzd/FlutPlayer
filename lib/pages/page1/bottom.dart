@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 
-import './control_section.dart';
-import './button_section.dart';
+import './control_stream.dart';
+import './button_ui.dart';
 
 class BottomSection extends StatelessWidget {
   const BottomSection({Key? key, required this.assetsAudioPlayer})
@@ -16,9 +16,9 @@ class BottomSection extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          ControlSection(assetsAudioPlayer: assetsAudioPlayer),
+          ControlStream(assetsAudioPlayer: assetsAudioPlayer),
           const SizedBox(height: 10),
-          ButtonSection(assetsAudioPlayer: assetsAudioPlayer),
+          ButtonUI(assetsAudioPlayer: assetsAudioPlayer),
         ],
       ),
     );
