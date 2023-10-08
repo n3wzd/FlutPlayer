@@ -15,10 +15,10 @@ class ControlUI extends StatefulWidget {
   final AssetsAudioPlayer assetsAudioPlayer;
 
   @override
-  State<ControlUI> createState() => _ControlSliderState();
+  State<ControlUI> createState() => _ControlUIState();
 }
 
-class _ControlSliderState extends State<ControlUI> {
+class _ControlUIState extends State<ControlUI> {
   double _sliderValue = 0;
   bool _isSliderChanging = false;
   int _afterChangedCount = 2;
@@ -46,19 +46,24 @@ class _ControlSliderState extends State<ControlUI> {
               setState(() {
                 _sliderValue = value;
                 _isSliderChanging = true;
-                _afterChangedCount = 2;
               });
             },
             onChangeEnd: (double value) {
               widget.assetsAudioPlayer
                   .seek(Duration(milliseconds: value.toInt()));
-              _sliderValue = value;
               _isSliderChanging = false;
               _afterChangedCount = 2;
             },
-            thumbColor: const Color(0xFFD9D9D9),
+            thumbColor: const Color(0xFF5B2EC5),
             activeColor: const Color(0xFF5B2EC5),
             inactiveColor: const Color(0xCCD9D9D9),
+            overlayColor:
+                MaterialStateProperty.resolveWith((Set<MaterialState> states) {
+              if (states.contains(MaterialState.hovered)) {
+                return const Color(0x445B2EC5);
+              }
+              return Colors.transparent;
+            }),
           ),
         ),
         Container(

@@ -13,17 +13,18 @@ class Page1 extends StatefulWidget {
 
 class _Page1State extends State<Page1> {
   final assetsAudioPlayer = AssetsAudioPlayer.newPlayer();
-  String title = '';
+  Playlist audioList = Playlist(audios: [
+    Audio("assets/audios/Carola-BeatItUp.mp3",
+        metas: Metas(title: 'Carola - Beat It Up')),
+    Audio("assets/audios/Savoy-LetYouGo.mp3",
+        metas: Metas(title: 'Savoy - Let You Go')),
+    Audio("assets/audios/ColBreakz-10.000.mp3",
+        metas: Metas(title: 'ColBreakz - 10.000')),
+  ]);
 
   void openPlayer() async {
-    await assetsAudioPlayer.open(
-      Audio(
-        "assets/audios/abc.mp3",
-      ),
-    );
-    setState(() {
-      title = 'ColBreakz - 10.000';
-    });
+    await assetsAudioPlayer.open(audioList);
+    setState(() {});
   }
 
   @override
@@ -49,7 +50,7 @@ class _Page1State extends State<Page1> {
               Expanded(
                 flex: 2,
                 child: CenterSection(
-                  title: title,
+                  assetsAudioPlayer: assetsAudioPlayer,
                 ),
               ),
               Expanded(

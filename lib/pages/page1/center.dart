@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-
-import './song_cover.dart';
-import './song_title.dart';
-import './top_menu.dart';
+import 'package:assets_audio_player/assets_audio_player.dart';
 
 class CenterSection extends StatelessWidget {
-  const CenterSection({Key? key, required this.title}) : super(key: key);
-  final String title;
+  const CenterSection({Key? key, required this.assetsAudioPlayer})
+      : super(key: key);
+  final AssetsAudioPlayer assetsAudioPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -14,14 +12,32 @@ class CenterSection extends StatelessWidget {
       children: [
         const SizedBox(
           height: 80,
-          child: TopMenu(),
+          child: SizedBox(height: 1),
         ),
-        const Expanded(
-          child: SongCover(),
+        Expanded(
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 35.0, vertical: 10.0),
+            child: Container(
+              decoration: const BoxDecoration(color: Color(0xFF1D1D1D)),
+            ),
+          ),
         ),
         SizedBox(
           height: 80,
-          child: SongTitle(title: title),
+          child: Container(
+            alignment: Alignment.center,
+            child: Text(
+              'Carola - Beat It Up', // assetsAudioPlayer.getCurrentAudioTitle,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                height: 0,
+              ),
+            ),
+          ),
         ),
       ],
     );

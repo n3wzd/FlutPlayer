@@ -4,7 +4,7 @@ class TimeText extends StatelessWidget {
   const TimeText({Key? key, required this.timeValue}) : super(key: key);
   final Duration timeValue;
 
-  String getTimeFormat(Duration d) {
+  static String getTimeFormat(Duration d) {
     int minutes = d.inMinutes % 60, seconds = d.inSeconds % 60;
     String minutesPadding = minutes < 10 ? '0' : '';
     String secondsPadding = seconds < 10 ? '0' : '';
