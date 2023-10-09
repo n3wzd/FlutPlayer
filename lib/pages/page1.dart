@@ -20,6 +20,8 @@ class _Page1State extends State<Page1> {
         metas: Metas(title: 'Savoy - Let You Go')),
     Audio("assets/audios/ColBreakz-10.000.mp3",
         metas: Metas(title: 'ColBreakz - 10.000')),
+    Audio("assets/audios/RomeinSilver-Inferno.mp3",
+        metas: Metas(title: 'Rome in Silver - Inferno')),
   ]);
 
   void openPlayer() async {
@@ -43,23 +45,29 @@ class _Page1State extends State<Page1> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: Container(
-          color: Colors.black,
-          child: Column(
-            children: [
-              Expanded(
-                flex: 2,
-                child: CenterSection(
-                  assetsAudioPlayer: assetsAudioPlayer,
-                ),
+        body: SafeArea(
+          child: PlayerBuilder.current(
+            player: assetsAudioPlayer,
+            builder: (context, playing) => Container(
+              color: Colors.black,
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: CenterSection(
+                      assetsAudioPlayer: assetsAudioPlayer,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: BottomSection(
+                      assetsAudioPlayer: assetsAudioPlayer,
+                      playing: playing,
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                flex: 1,
-                child: BottomSection(
-                  assetsAudioPlayer: assetsAudioPlayer,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

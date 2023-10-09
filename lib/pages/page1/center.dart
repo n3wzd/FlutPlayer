@@ -28,7 +28,7 @@ class CenterSection extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             child: Text(
-              'Carola - Beat It Up', // assetsAudioPlayer.getCurrentAudioTitle,
+              assetsAudioPlayer.getCurrentAudioTitle,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,

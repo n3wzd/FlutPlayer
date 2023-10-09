@@ -25,6 +25,11 @@ class _ControlUIState extends State<ControlUI> {
 
   @override
   Widget build(BuildContext context) {
+    double silderMax = widget.trackDuration.inMilliseconds.toDouble();
+    if (_sliderValue > silderMax) {
+      _sliderValue = silderMax;
+    }
+
     if (!_isSliderChanging) {
       if (_afterChangedCount <= 0) {
         _sliderValue = widget.trackCurrentPosition.inMilliseconds.toDouble();
@@ -41,7 +46,7 @@ class _ControlUIState extends State<ControlUI> {
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Slider(
             value: _sliderValue,
-            max: widget.trackDuration.inMilliseconds.toDouble(),
+            max: silderMax,
             onChanged: (double value) {
               setState(() {
                 _sliderValue = value;
