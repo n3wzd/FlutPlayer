@@ -3,6 +3,7 @@ import 'package:assets_audio_player/assets_audio_player.dart';
 
 import './page1/center.dart';
 import './page1/bottom.dart';
+import './page1/list_sheet.dart';
 
 class Page1 extends StatefulWidget {
   const Page1({super.key});
@@ -46,28 +47,33 @@ class _Page1State extends State<Page1> {
     return MaterialApp(
       home: Scaffold(
         body: SafeArea(
-          child: PlayerBuilder.current(
-            player: assetsAudioPlayer,
-            builder: (context, playing) => Container(
-              color: Colors.black,
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: CenterSection(
-                      assetsAudioPlayer: assetsAudioPlayer,
-                    ),
+          child: Stack(
+            children: [
+              PlayerBuilder.current(
+                player: assetsAudioPlayer,
+                builder: (context, playing) => Container(
+                  color: Colors.black,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: CenterSection(
+                          assetsAudioPlayer: assetsAudioPlayer,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: BottomSection(
+                          assetsAudioPlayer: assetsAudioPlayer,
+                          playing: playing,
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    flex: 1,
-                    child: BottomSection(
-                      assetsAudioPlayer: assetsAudioPlayer,
-                      playing: playing,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              ListSheet(assetsAudioPlayer: assetsAudioPlayer),
+            ],
           ),
         ),
       ),
