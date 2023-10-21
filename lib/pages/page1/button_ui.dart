@@ -33,17 +33,14 @@ class ButtonUI extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          StreamBuilder<bool>(
-            stream: assetsAudioPlayer.isShuffling,
-            builder: (context, isShuffling) => IconButton(
-              isSelected: isShuffling.data,
-              icon: const Icon(Icons.moving),
-              selectedIcon: const Icon(Icons.shuffle),
-              iconSize: 35,
-              onPressed: () {
-                assetsAudioPlayer.toggleShuffle();
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.shuffle),
+            iconSize: 35,
+            onPressed: () async {
+              List<Audio> list = assetsAudioPlayer.playlist!.audios;
+              list.shuffle();
+              await assetsAudioPlayer.open(Playlist(audios: list));
+            },
           ),
           const SizedBox(width: 20),
           IconButton(
@@ -78,11 +75,12 @@ class ButtonUI extends StatelessWidget {
           PlayerBuilder.loopMode(
             player: assetsAudioPlayer,
             builder: (context, loopMode) => IconButton(
-              icon: loopMode == LoopMode.playlist
-                  ? const Icon(Icons.repeat)
-                  : (loopMode == LoopMode.single
-                      ? const Icon(Icons.repeat_one)
-                      : const Icon(Icons.arrow_forward)),
+              icon: loopMode == LoopMode.single
+                  ? const Icon(Icons.repeat_one)
+                  : Icon(Icons.repeat,
+                      color: loopMode == LoopMode.none
+                          ? ColorTheme.disableGrey
+                          : ColorTheme.lightGrey),
               iconSize: 35,
               onPressed: () {
                 assetsAudioPlayer.toggleLoop();

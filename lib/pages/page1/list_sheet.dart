@@ -65,20 +65,23 @@ class _ListSheetState extends State<ListSheet> {
                         title: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                              '${widget.assetsAudioPlayer.playlist!.audios[index - 1].metas.title}'),
+                            '${widget.assetsAudioPlayer.playlist!.audios[index - 1].metas.title}',
+                            style: TextStyleMaker.defaultTextStyle(
+                              color: ColorTheme.white,
+                              fontSize: 20,
+                            ),
+                          ),
                         ),
-                        tileColor: index % 2 == 0
-                            ? ColorTheme.darkGrey
-                            : ColorTheme.black,
-                        titleTextStyle: TextStyleMaker.defaultTextStyle(
-                          color: current.index == index - 1
-                              ? ColorTheme.lightWine
-                              : ColorTheme.white,
-                          fontSize: 20,
-                        ),
-                        selectedColor: ColorTheme.white,
-                        selectedTileColor: ColorTheme.lightWine,
-                        hoverColor: ColorTheme.lightGrey,
+                        onTap: () async {
+                          await widget.assetsAudioPlayer
+                              .playlistPlayAtIndex(index - 1);
+                        },
+                        tileColor: current.index == index - 1
+                            ? ColorTheme.lightWine
+                            : (index % 2 == 0
+                                ? ColorTheme.darkGrey
+                                : ColorTheme.black),
+                        hoverColor: ColorTheme.lightWine,
                       );
               },
             ),

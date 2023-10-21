@@ -12,4 +12,5 @@ class ColorTheme {
   static const Color overlayHoveredGrey = Color(0x33FFFFFF);
   static const Color overlayPressedGrey = Color(0x44FFFFFF);
   static const Color overlayHoveredPurple = Color(0x445B2EC5);
+  static const Color disableGrey = Color(0xFF797979);
 }
