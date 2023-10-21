@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 
+import '../style/colors.dart';
+
 class ButtonUI extends StatelessWidget {
   const ButtonUI({Key? key, required this.assetsAudioPlayer}) : super(key: key);
   final AssetsAudioPlayer assetsAudioPlayer;
@@ -11,18 +13,18 @@ class ButtonUI extends StatelessWidget {
       data: ThemeData(
         iconButtonTheme: IconButtonThemeData(
           style: ButtonStyle(
-            iconColor: MaterialStateProperty.all(const Color(0xCCFFFFFF)),
-            backgroundColor: MaterialStateProperty.all(Colors.transparent),
+            iconColor: MaterialStateProperty.all(ColorTheme.lightGrey),
+            backgroundColor: MaterialStateProperty.all(ColorTheme.transparent),
             shape: MaterialStateProperty.all(const CircleBorder(
-                side: BorderSide(color: Color(0xCCFFFFFF), width: 1))),
+                side: BorderSide(color: ColorTheme.lightGrey, width: 1))),
             overlayColor:
                 MaterialStateProperty.resolveWith((Set<MaterialState> states) {
               if (states.contains(MaterialState.pressed)) {
-                return const Color(0x44FFFFFF);
+                return ColorTheme.overlayPressedGrey;
               } else if (states.contains(MaterialState.hovered)) {
-                return const Color(0x33FFFFFF);
+                return ColorTheme.overlayHoveredGrey;
               }
-              return Colors.transparent;
+              return ColorTheme.transparent;
             }),
           ),
         ),

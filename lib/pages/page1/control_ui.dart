@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 
-import '../components/time_text.dart';
+import '../components/text_time.dart';
+
+import '../style/colors.dart';
 
 class ControlUI extends StatefulWidget {
   const ControlUI(
@@ -59,15 +61,15 @@ class _ControlUIState extends State<ControlUI> {
               _isSliderChanging = false;
               _afterChangedCount = 2;
             },
-            thumbColor: const Color(0xFF5B2EC5),
-            activeColor: const Color(0xFF5B2EC5),
-            inactiveColor: const Color(0xCCD9D9D9),
+            thumbColor: ColorTheme.purple,
+            activeColor: ColorTheme.purple,
+            inactiveColor: ColorTheme.lightGrey,
             overlayColor:
                 MaterialStateProperty.resolveWith((Set<MaterialState> states) {
               if (states.contains(MaterialState.hovered)) {
-                return const Color(0x445B2EC5);
+                return ColorTheme.overlayHoveredPurple;
               }
-              return Colors.transparent;
+              return ColorTheme.transparent;
             }),
           ),
         ),
@@ -77,14 +79,14 @@ class _ControlUIState extends State<ControlUI> {
           child: Row(
             children: [
               Expanded(
-                child: Container(
+                child: Align(
                   alignment: Alignment.centerLeft,
                   child: TimeText(
                       timeValue: Duration(milliseconds: _sliderValue.toInt())),
                 ),
               ),
               Expanded(
-                child: Container(
+                child: Align(
                   alignment: Alignment.centerRight,
                   child: TimeText(timeValue: widget.trackDuration),
                 ),

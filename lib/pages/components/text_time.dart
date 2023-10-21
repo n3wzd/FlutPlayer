@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../style/text.dart';
+
 class TimeText extends StatelessWidget {
   const TimeText({Key? key, required this.timeValue}) : super(key: key);
   final Duration timeValue;
@@ -15,12 +17,9 @@ class TimeText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       getTimeFormat(timeValue),
-      style: const TextStyle(
+      style: TextStyleMaker.defaultTextStyle(
         color: Colors.white,
-        fontSize: 14,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w400,
-        height: 0,
+        fontSize: 16,
       ),
     );
   }
