@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:file_picker/file_picker.dart';
 
 import './page1/center.dart';
 import './page1/bottom.dart';
@@ -25,9 +26,24 @@ class _Page1State extends State<Page1> {
         metas: Metas(title: 'Rome in Silver - Inferno')),
   ]);
 
+  void filesOpen() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'wav', 'ogg'],
+    );
+
+    if (result != null) {
+      List<Audio> newList = [];
+      for (PlatformFile track in result.files) {
+        newList.add(Audio(track.path!, metas: Metas(title: track.name)));
+      }
+      audioList.addAll(newList);
+    }
+  }
+
   void openPlayer() async {
     await assetsAudioPlayer.open(audioList);
-    setState(() {});
   }
 
   @override
@@ -59,6 +75,7 @@ class _Page1State extends State<Page1> {
                         flex: 2,
                         child: CenterSection(
                           assetsAudioPlayer: assetsAudioPlayer,
+                          filesOpen: filesOpen,
                         ),
                       ),
                       Expanded(

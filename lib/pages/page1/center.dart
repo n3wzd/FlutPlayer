@@ -5,17 +5,22 @@ import '../style/colors.dart';
 import '../style/text.dart';
 
 class CenterSection extends StatelessWidget {
-  const CenterSection({Key? key, required this.assetsAudioPlayer})
+  const CenterSection(
+      {Key? key, required this.assetsAudioPlayer, required this.filesOpen})
       : super(key: key);
   final AssetsAudioPlayer assetsAudioPlayer;
+  final VoidCallback filesOpen;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(
+        SizedBox(
           height: 80,
-          child: SizedBox(height: 1),
+          child: ElevatedButton(
+            onPressed: filesOpen,
+            child: const Text('Open'),
+          ),
         ),
         Expanded(
           child: Container(
