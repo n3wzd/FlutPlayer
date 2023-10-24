@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 
 import './page1/center.dart';
@@ -14,20 +14,26 @@ class Page1 extends StatefulWidget {
 }
 
 class _Page1State extends State<Page1> {
-  final assetsAudioPlayer = AssetsAudioPlayer.newPlayer();
-  Playlist audioList = Playlist(audios: [
-    Audio("assets/audios/Carola-BeatItUp.mp3",
-        metas: Metas(title: 'Carola - Beat It Up')),
-    Audio("assets/audios/Savoy-LetYouGo.mp3",
-        metas: Metas(title: 'Savoy - Let You Go')),
-    Audio("assets/audios/ColBreakz-10.000.mp3",
-        metas: Metas(title: 'ColBreakz - 10.000')),
-    Audio("assets/audios/RomeinSilver-Inferno.mp3",
-        metas: Metas(title: 'Rome in Silver - Inferno')),
-  ]);
+  final audioPlayer = AudioPlayer();
+  List<AudioSource> sourceList = [
+    AudioSource.asset(
+      'assets/audios/Carola-BeatItUp.mp3',
+      tag: IcyInfo(
+        title: 'Carola - Beat It Up',
+        url: 'assets/audios/Carola-BeatItUp.mp3',
+      ),
+    ),
+    AudioSource.asset(
+      'assets/audios/Savoy-LetYouGo.mp3',
+      tag: IcyInfo(
+        title: 'Savoy - Let You Go',
+        url: 'assets/audios/Savoy-LetYouGo.mp3',
+      ),
+    ),
+  ];
 
   void filesOpen() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    /*FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['mp3', 'wav', 'ogg'],
@@ -39,11 +45,13 @@ class _Page1State extends State<Page1> {
         newList.add(Audio(track.path!, metas: Metas(title: track.name)));
       }
       audioList.addAll(newList);
-    }
+    }*/
   }
 
   void openPlayer() async {
-    await assetsAudioPlayer.open(audioList);
+    ConcatenatingAudioSource audioList =
+        ConcatenatingAudioSource(children: sourceList);
+    await audioPlayer.setAudioSource(audioList);
   }
 
   @override
@@ -54,7 +62,7 @@ class _Page1State extends State<Page1> {
 
   @override
   void dispose() {
-    assetsAudioPlayer.dispose();
+    audioPlayer.dispose();
     super.dispose();
   }
 
@@ -63,35 +71,33 @@ class _Page1State extends State<Page1> {
     return MaterialApp(
       home: Scaffold(
         body: SafeArea(
-          child: Stack(
-            children: [
-              PlayerBuilder.current(
-                player: assetsAudioPlayer,
-                builder: (context, playing) => Container(
-                  color: Colors.black,
-                  child: Column(
+          child: StreamBuilder<int?>(
+              stream: audioPlayer.currentIndexStream,
+              builder: (context, currentIndex) => Stack(
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: CenterSection(
-                          assetsAudioPlayer: assetsAudioPlayer,
-                          filesOpen: filesOpen,
+                      Container(
+                        color: Colors.black,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: CenterSection(
+                                audioPlayer: audioPlayer,
+                                filesOpen: filesOpen,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: BottomSection(
+                                audioPlayer: audioPlayer,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Expanded(
-                        flex: 1,
-                        child: BottomSection(
-                          assetsAudioPlayer: assetsAudioPlayer,
-                          playing: playing,
-                        ),
-                      ),
+                      ListSheet(audioPlayer: audioPlayer),
                     ],
-                  ),
-                ),
-              ),
-              ListSheet(assetsAudioPlayer: assetsAudioPlayer),
-            ],
-          ),
+                  )),
         ),
       ),
     );

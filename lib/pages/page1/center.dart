@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:assets_audio_player/assets_audio_player.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../style/colors.dart';
 import '../style/text.dart';
 
 class CenterSection extends StatelessWidget {
-  const CenterSection(
-      {Key? key, required this.assetsAudioPlayer, required this.filesOpen})
-      : super(key: key);
-  final AssetsAudioPlayer assetsAudioPlayer;
+  const CenterSection({
+    Key? key,
+    required this.audioPlayer,
+    required this.filesOpen,
+  }) : super(key: key);
+  final AudioPlayer audioPlayer;
   final VoidCallback filesOpen;
 
   @override
@@ -36,7 +38,7 @@ class CenterSection extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             child: Text(
-              assetsAudioPlayer.getCurrentAudioTitle,
+              audioPlayer.sequenceState!.currentSource!.tag.title,
               style: TextStyleMaker.defaultTextStyle(
                 color: ColorTheme.white,
                 fontSize: 30,
