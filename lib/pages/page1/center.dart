@@ -37,13 +37,17 @@ class CenterSection extends StatelessWidget {
           height: 80,
           child: Container(
             alignment: Alignment.center,
-            child: Text(
-              audioPlayer.sequenceState!.currentSource!.tag.title,
-              style: TextStyleMaker.defaultTextStyle(
-                color: ColorTheme.white,
-                fontSize: 30,
-              ),
-            ),
+            child: StreamBuilder<int?>(
+                stream: audioPlayer.currentIndexStream,
+                builder: (context, sequenceState) {
+                  return Text(
+                    '${audioPlayer.sequence![audioPlayer.currentIndex ?? 0].tag.title}',
+                    style: TextStyleMaker.defaultTextStyle(
+                      color: ColorTheme.white,
+                      fontSize: 30,
+                    ),
+                  );
+                }),
           ),
         ),
       ],

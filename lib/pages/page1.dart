@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import './page1/center.dart';
 import './page1/bottom.dart';
 import './page1/list_sheet.dart';
+import './components/meta_track.dart';
+import './components/file_audio_source.dart';
 
 class Page1 extends StatefulWidget {
   const Page1({super.key});
@@ -18,34 +20,42 @@ class _Page1State extends State<Page1> {
   List<AudioSource> sourceList = [
     AudioSource.asset(
       'assets/audios/Carola-BeatItUp.mp3',
-      tag: IcyInfo(
+      tag: MetaTrack(
         title: 'Carola - Beat It Up',
-        url: 'assets/audios/Carola-BeatItUp.mp3',
       ),
     ),
     AudioSource.asset(
       'assets/audios/Savoy-LetYouGo.mp3',
-      tag: IcyInfo(
+      tag: MetaTrack(
         title: 'Savoy - Let You Go',
-        url: 'assets/audios/Savoy-LetYouGo.mp3',
       ),
     ),
   ];
 
   void filesOpen() async {
-    /*FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['mp3', 'wav', 'ogg'],
     );
 
     if (result != null) {
-      List<Audio> newList = [];
+      List<FileAudioSource> trackList = [];
       for (PlatformFile track in result.files) {
-        newList.add(Audio(track.path!, metas: Metas(title: track.name)));
+        trackList.add(
+          FileAudioSource(
+            bytes: track.bytes!.cast<int>(),
+            tag: MetaTrack(
+              title: track.name,
+            ),
+          ),
+        );
       }
-      audioList.addAll(newList);
-    }*/
+      ConcatenatingAudioSource audioList =
+          ConcatenatingAudioSource(children: audioPlayer.sequence!);
+      audioList.addAll(trackList);
+      await audioPlayer.setAudioSource(audioList);
+    }
   }
 
   void openPlayer() async {
@@ -71,33 +81,31 @@ class _Page1State extends State<Page1> {
     return MaterialApp(
       home: Scaffold(
         body: SafeArea(
-          child: StreamBuilder<int?>(
-              stream: audioPlayer.currentIndexStream,
-              builder: (context, currentIndex) => Stack(
-                    children: [
-                      Container(
-                        color: Colors.black,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: CenterSection(
-                                audioPlayer: audioPlayer,
-                                filesOpen: filesOpen,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: BottomSection(
-                                audioPlayer: audioPlayer,
-                              ),
-                            ),
-                          ],
-                        ),
+          child: Stack(
+            children: [
+              Container(
+                color: Colors.black,
+                child: Column(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: CenterSection(
+                        audioPlayer: audioPlayer,
+                        filesOpen: filesOpen,
                       ),
-                      ListSheet(audioPlayer: audioPlayer),
-                    ],
-                  )),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: BottomSection(
+                        audioPlayer: audioPlayer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ListSheet(audioPlayer: audioPlayer),
+            ],
+          ),
         ),
       ),
     );

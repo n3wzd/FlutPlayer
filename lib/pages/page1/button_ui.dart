@@ -76,7 +76,7 @@ class ButtonUI extends StatelessWidget {
             stream: audioPlayer.loopModeStream,
             builder: (context, loopMode) => IconButton(
               icon: loopMode.data == LoopMode.one
-                  ? const Icon(Icons.repeat_one)
+                  ? const Icon(Icons.repeat_one, color: ColorTheme.lightGrey)
                   : Icon(Icons.repeat,
                       color: loopMode.data == LoopMode.off
                           ? ColorTheme.disableGrey
@@ -84,9 +84,9 @@ class ButtonUI extends StatelessWidget {
               iconSize: 35,
               onPressed: () {
                 if (audioPlayer.loopMode == LoopMode.off) {
-                  audioPlayer.setLoopMode(LoopMode.one);
-                } else if (audioPlayer.loopMode == LoopMode.one) {
                   audioPlayer.setLoopMode(LoopMode.all);
+                } else if (audioPlayer.loopMode == LoopMode.all) {
+                  audioPlayer.setLoopMode(LoopMode.one);
                 } else {
                   audioPlayer.setLoopMode(LoopMode.off);
                 }
