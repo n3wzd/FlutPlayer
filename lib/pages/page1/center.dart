@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
+import '../components/audio_player_kit.dart';
 import '../style/colors.dart';
 import '../style/text.dart';
 
 class CenterSection extends StatelessWidget {
   const CenterSection({
     Key? key,
-    required this.audioPlayer,
-    required this.filesOpen,
+    required this.audioPlayerKit,
   }) : super(key: key);
-  final AudioPlayer audioPlayer;
-  final VoidCallback filesOpen;
+  final AudioPlayerKit audioPlayerKit;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +18,7 @@ class CenterSection extends StatelessWidget {
         SizedBox(
           height: 80,
           child: ElevatedButton(
-            onPressed: filesOpen,
+            onPressed: audioPlayerKit.filesOpen,
             child: const Text('Open'),
           ),
         ),
@@ -37,17 +35,13 @@ class CenterSection extends StatelessWidget {
           height: 80,
           child: Container(
             alignment: Alignment.center,
-            child: StreamBuilder<int?>(
-                stream: audioPlayer.currentIndexStream,
-                builder: (context, sequenceState) {
-                  return Text(
-                    '${audioPlayer.sequence![audioPlayer.currentIndex ?? 0].tag.title}',
-                    style: TextStyleMaker.defaultTextStyle(
-                      color: ColorTheme.white,
-                      fontSize: 30,
-                    ),
-                  );
-                }),
+            child: Text(
+              audioPlayerKit.currentAudioTitle,
+              style: TextStyleMaker.defaultTextStyle(
+                color: ColorTheme.white,
+                fontSize: 30,
+              ),
+            ),
           ),
         ),
       ],

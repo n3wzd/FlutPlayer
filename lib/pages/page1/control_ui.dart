@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
+import '../components/audio_player_kit.dart';
 import '../components/text_time.dart';
-
 import '../style/colors.dart';
 
 class ControlUI extends StatefulWidget {
@@ -10,11 +9,11 @@ class ControlUI extends StatefulWidget {
       {Key? key,
       required this.trackDuration,
       required this.trackCurrentPosition,
-      required this.audioPlayer})
+      required this.audioPlayerKit})
       : super(key: key);
   final Duration trackDuration;
   final Duration trackCurrentPosition;
-  final AudioPlayer audioPlayer;
+  final AudioPlayerKit audioPlayerKit;
 
   @override
   State<ControlUI> createState() => _ControlUIState();
@@ -56,7 +55,8 @@ class _ControlUIState extends State<ControlUI> {
               });
             },
             onChangeEnd: (double value) {
-              widget.audioPlayer.seek(Duration(milliseconds: value.toInt()));
+              widget.audioPlayerKit
+                  .seekPosition(Duration(milliseconds: value.toInt()));
               _isSliderChanging = false;
               _afterChangedCount = 2;
             },

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
+import '../components/audio_player_kit.dart';
 import '../style/colors.dart';
 import '../style/text.dart';
 
 class ListSheet extends StatefulWidget {
-  const ListSheet({Key? key, required this.audioPlayer}) : super(key: key);
-  final AudioPlayer audioPlayer;
+  const ListSheet({Key? key, required this.audioPlayerKit}) : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
 
   @override
   State<ListSheet> createState() => _ListSheetState();
@@ -28,12 +28,11 @@ class _ListSheetState extends State<ListSheet> {
       builder: (context, scrollController) {
         return Material(
           color: ColorTheme.black,
-          child: StreamBuilder<SequenceState?>(
-            stream: widget.audioPlayer.sequenceStateStream,
-            builder: (context, sequenceState) => ListView.builder(
+          child: widget.audioPlayerKit.processingStateStreamBuilder(
+            (context, processingState) => ListView.builder(
               controller: scrollController,
               itemExtent: 60.0,
-              itemCount: widget.audioPlayer.sequence!.length + 1,
+              itemCount: widget.audioPlayerKit.playList.length + 1,
               itemBuilder: (context, index) {
                 return index == 0
                     ? ListTile(
@@ -64,7 +63,7 @@ class _ListSheetState extends State<ListSheet> {
                         title: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            '${widget.audioPlayer.sequence![index - 1].tag.title}',
+                            '${widget.audioPlayerKit.playList[index - 1].tag.title}',
                             style: TextStyleMaker.defaultTextStyle(
                               color: ColorTheme.white,
                               fontSize: 20,
@@ -72,14 +71,14 @@ class _ListSheetState extends State<ListSheet> {
                           ),
                         ),
                         onTap: () async {
-                          await widget.audioPlayer
-                              .seek(Duration.zero, index: index - 1);
+                          await widget.audioPlayerKit.seekTrack(index - 1);
                         },
-                        tileColor: widget.audioPlayer.currentIndex! == index - 1
-                            ? ColorTheme.lightWine
-                            : (index % 2 == 0
-                                ? ColorTheme.darkGrey
-                                : ColorTheme.black),
+                        tileColor:
+                            widget.audioPlayerKit.currentIndex == index - 1
+                                ? ColorTheme.lightWine
+                                : (index % 2 == 0
+                                    ? ColorTheme.darkGrey
+                                    : ColorTheme.black),
                         hoverColor: ColorTheme.lightWine,
                       );
               },

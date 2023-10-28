@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../components/audio_player_kit.dart';
 import '../style/colors.dart';
 
 class ButtonUI extends StatelessWidget {
-  const ButtonUI({Key? key, required this.audioPlayer}) : super(key: key);
-  final AudioPlayer audioPlayer;
+  const ButtonUI({Key? key, required this.audioPlayerKit}) : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
 
   @override
   Widget build(BuildContext context) {
@@ -43,22 +44,21 @@ class ButtonUI extends StatelessWidget {
             icon: const Icon(Icons.skip_previous),
             iconSize: 35,
             onPressed: () async {
-              await audioPlayer.seekToPrevious();
+              await audioPlayerKit.seekToPrevious();
             },
           ),
           const SizedBox(width: 20),
-          StreamBuilder<bool>(
-            stream: audioPlayer.playingStream,
-            builder: (context, isPlaying) => IconButton(
+          audioPlayerKit.playingStreamBuilder(
+            (context, isPlaying) => IconButton(
               isSelected: isPlaying.data,
               icon: const Icon(Icons.play_arrow),
               selectedIcon: const Icon(Icons.pause),
               iconSize: 55,
               onPressed: () async {
-                if (audioPlayer.playing) {
-                  await audioPlayer.pause();
+                if (audioPlayerKit.isPlaying) {
+                  await audioPlayerKit.pause();
                 } else {
-                  await audioPlayer.play();
+                  await audioPlayerKit.play();
                 }
               },
             ),
@@ -68,13 +68,12 @@ class ButtonUI extends StatelessWidget {
             icon: const Icon(Icons.skip_next),
             iconSize: 35,
             onPressed: () async {
-              await audioPlayer.seekToNext();
+              await audioPlayerKit.seekToNext();
             },
           ),
           const SizedBox(width: 20),
-          StreamBuilder<LoopMode>(
-            stream: audioPlayer.loopModeStream,
-            builder: (context, loopMode) => IconButton(
+          audioPlayerKit.loopModeStreamBuilder(
+            (context, loopMode) => IconButton(
               icon: loopMode.data == LoopMode.one
                   ? const Icon(Icons.repeat_one, color: ColorTheme.lightGrey)
                   : Icon(Icons.repeat,
@@ -83,13 +82,7 @@ class ButtonUI extends StatelessWidget {
                           : ColorTheme.lightGrey),
               iconSize: 35,
               onPressed: () {
-                if (audioPlayer.loopMode == LoopMode.off) {
-                  audioPlayer.setLoopMode(LoopMode.all);
-                } else if (audioPlayer.loopMode == LoopMode.all) {
-                  audioPlayer.setLoopMode(LoopMode.one);
-                } else {
-                  audioPlayer.setLoopMode(LoopMode.off);
-                }
+                audioPlayerKit.toggleLoopMode();
               },
             ),
           ),

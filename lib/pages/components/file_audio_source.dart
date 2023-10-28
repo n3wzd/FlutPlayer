@@ -2,7 +2,7 @@ import 'package:just_audio/just_audio.dart';
 
 class FileAudioSource extends StreamAudioSource {
   final List<int> bytes;
-  FileAudioSource({required this.bytes, tag});
+  FileAudioSource({required this.bytes, super.tag});
 
   @override
   Future<StreamAudioResponse> request([int? start, int? end]) async {

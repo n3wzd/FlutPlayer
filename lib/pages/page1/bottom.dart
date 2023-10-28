@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
+import '../components/audio_player_kit.dart';
 import './control_ui.dart';
 import './button_ui.dart';
 
 import '../style/colors.dart';
 
 class BottomSection extends StatelessWidget {
-  const BottomSection({Key? key, required this.audioPlayer}) : super(key: key);
-  final AudioPlayer audioPlayer;
+  const BottomSection({Key? key, required this.audioPlayerKit})
+      : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
 
   @override
   Widget build(BuildContext context) {
@@ -17,16 +18,17 @@ class BottomSection extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          StreamBuilder<Duration>(
-            stream: audioPlayer.positionStream,
-            builder: (context, currentPosition) => ControlUI(
-              trackDuration: audioPlayer.duration ?? const Duration(),
-              trackCurrentPosition: currentPosition.data ?? const Duration(),
-              audioPlayer: audioPlayer,
+          audioPlayerKit.processingStateStreamBuilder(
+            (context, processingState) => audioPlayerKit.durationStreamBuilder(
+              (context, currentPosition) => ControlUI(
+                trackDuration: audioPlayerKit.duration,
+                trackCurrentPosition: currentPosition.data ?? const Duration(),
+                audioPlayerKit: audioPlayerKit,
+              ),
             ),
           ),
           const SizedBox(height: 10),
-          ButtonUI(audioPlayer: audioPlayer),
+          ButtonUI(audioPlayerKit: audioPlayerKit),
         ],
       ),
     );
