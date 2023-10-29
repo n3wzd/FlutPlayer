@@ -6,62 +6,78 @@ import './track_meta.dart';
 import './file_audio_source.dart';
 
 class AudioPlayerKit {
-  final audioPlayer = AudioPlayer();
-  final List<IndexedAudioSource> playList = [
-    AudioSource.asset(
-      'assets/audios/Carola-BeatItUp.mp3',
-      tag: TrackMeta(
-        title: 'Carola - Beat It Up',
-      ),
-    ),
-    AudioSource.asset(
-      'assets/audios/Savoy-LetYouGo.mp3',
-      tag: TrackMeta(
-        title: 'Savoy - Let You Go',
-      ),
-    ),
-  ];
+  final _audioPlayer = AudioPlayer();
+  final List<IndexedAudioSource> _playList = [];
+  final List<IndexedAudioSource> _playListBackup = [];
   int _currentIndex = 0;
-  LoopMode loopMode = LoopMode.off;
+  LoopMode _loopMode = LoopMode.off;
+  bool _shuffleMode = false;
 
   int get currentIndex => _currentIndex;
-  String get currentAudioTitle => playList[_currentIndex].tag.title;
-  bool get isPlaying => audioPlayer.playing;
-  Duration get duration => audioPlayer.duration ?? const Duration();
+  LoopMode get loopMode => _loopMode;
+  bool get shuffleMode => _shuffleMode;
+  int get playListLength => _playList.length;
+  String get currentAudioTitle => _playList[_currentIndex].tag.title;
+  bool get isPlaying => _audioPlayer.playing;
+  Duration get duration => _audioPlayer.duration ?? const Duration();
 
   void init() {
-    audioPlayer.processingStateStream
+    _audioPlayer.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
       nextEventWhenPlayerCompleted();
     });
     seekTrack(_currentIndex);
+
+    playListAddList([
+      AudioSource.asset(
+        'assets/audios/Carola-BeatItUp.mp3',
+        tag: TrackMeta(
+          title: 'Carola - Beat It Up',
+        ),
+      ),
+      AudioSource.asset(
+        'assets/audios/Savoy-LetYouGo.mp3',
+        tag: TrackMeta(
+          title: 'Savoy - Let You Go',
+        ),
+      ),
+    ]);
   }
 
   void dispose() {
-    audioPlayer.dispose();
+    _audioPlayer.dispose();
   }
 
-  void nextEventWhenPlayerCompleted() {
-    if (loopMode == LoopMode.one) {
-      seekPosition(const Duration());
+  void playListAddList(List<IndexedAudioSource> newList) {
+    _playList.addAll(newList);
+    _playListBackup.addAll(newList);
+  }
+
+  void nextEventWhenPlayerCompleted() async {
+    if (_loopMode == LoopMode.one) {
+      await replay();
     } else {
-      if (_currentIndex == playList.length - 1 && loopMode == LoopMode.off) {
-        audioPlayer.stop();
+      if (_currentIndex == _playList.length - 1 && _loopMode == LoopMode.off) {
+        await _audioPlayer.stop();
       } else {
-        seekToNext();
+        await seekToNext();
       }
     }
   }
 
   Future<void> seekTrack(int index) async {
-    index %= playList.length;
-    _currentIndex = index;
-    await audioPlayer.setAudioSource(playList[_currentIndex]);
+    if (index != _currentIndex) {
+      index %= _playList.length;
+      _currentIndex = index;
+      await _audioPlayer.setAudioSource(_playList[_currentIndex]);
+      await play();
+    }
   }
 
   Future<void> seekPosition(Duration duration) async {
-    await audioPlayer.seek(duration);
+    await _audioPlayer.seek(duration);
+    await play();
   }
 
   Future<void> seekToPrevious() async {
@@ -73,11 +89,45 @@ class AudioPlayerKit {
   }
 
   Future<void> play() async {
-    await audioPlayer.play();
+    await _audioPlayer.play();
   }
 
   Future<void> pause() async {
-    await audioPlayer.pause();
+    await _audioPlayer.pause();
+  }
+
+  Future<void> replay() async {
+    await seekPosition(const Duration());
+    await pause();
+    await play();
+  }
+
+  IndexedAudioSource playListAt(int index) {
+    return _playList[index];
+  }
+
+  void shuffleOn() {
+    IndexedAudioSource currentTrack = _playList[_currentIndex];
+    _playList.shuffle();
+    for (int i = 0; i < _playList.length; i++) {
+      if (currentTrack == _playList[i]) {
+        IndexedAudioSource tempTrack = _playList[0];
+        _playList[0] = _playList[i];
+        _playList[i] = tempTrack;
+        break;
+      }
+    }
+    _currentIndex = 0;
+  }
+
+  void shuffleOff() {
+    IndexedAudioSource currentTrack = _playList[_currentIndex];
+    for (int i = 0; i < _playList.length; i++) {
+      _playList[i] = _playListBackup[i];
+      if (currentTrack == _playList[i]) {
+        _currentIndex = i;
+      }
+    }
   }
 
   void filesOpen() async {
@@ -88,53 +138,57 @@ class AudioPlayerKit {
     );
 
     if (result != null) {
+      List<IndexedAudioSource> newList = [];
       for (PlatformFile track in result.files) {
-        playList.add(
+        newList.add(
           FileAudioSource(
             bytes: track.bytes!.cast<int>(),
             tag: TrackMeta(
-              title: track.name,
+              title: track.name.substring(0, track.name.length - 4),
             ),
           ),
         );
       }
+      playListAddList(newList);
     }
   }
 
   void toggleLoopMode() {
-    if (loopMode == LoopMode.off) {
-      loopMode = LoopMode.all;
-    } else if (loopMode == LoopMode.all) {
-      loopMode = LoopMode.one;
+    if (_loopMode == LoopMode.off) {
+      _loopMode = LoopMode.all;
+    } else if (_loopMode == LoopMode.all) {
+      _loopMode = LoopMode.one;
     } else {
-      loopMode = LoopMode.off;
+      _loopMode = LoopMode.off;
     }
+  }
+
+  void toggleShuffleMode() {
+    if (_shuffleMode) {
+      shuffleOff();
+    } else {
+      shuffleOn();
+    }
+    _shuffleMode = !_shuffleMode;
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) {
     return StreamBuilder<bool>(
-      stream: audioPlayer.playingStream,
-      builder: builder,
-    );
-  }
-
-  StreamBuilder<LoopMode> loopModeStreamBuilder(builder) {
-    return StreamBuilder<LoopMode>(
-      stream: audioPlayer.loopModeStream,
+      stream: _audioPlayer.playingStream,
       builder: builder,
     );
   }
 
   StreamBuilder<Duration> durationStreamBuilder(builder) {
     return StreamBuilder<Duration>(
-      stream: audioPlayer.positionStream,
+      stream: _audioPlayer.positionStream,
       builder: builder,
     );
   }
 
-  StreamBuilder<ProcessingState> processingStateStreamBuilder(builder) {
-    return StreamBuilder<ProcessingState>(
-      stream: audioPlayer.processingStateStream,
+  StreamBuilder<Duration> positionStreamBuilder(builder) {
+    return StreamBuilder<Duration>(
+      stream: _audioPlayer.positionStream,
       builder: builder,
     );
   }

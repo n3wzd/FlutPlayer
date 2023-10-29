@@ -8,7 +8,6 @@ class TextStyleMaker {
       fontSize: fontSize,
       fontFamily: 'Inter',
       fontWeight: FontWeight.w400,
-      height: 0,
     );
   }
 }

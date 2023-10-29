@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../components/audio_player_kit.dart';
-import '../components/text_time.dart';
+import '../components/text.dart';
 import '../style/colors.dart';
 
 class ControlUI extends StatefulWidget {
   const ControlUI(
       {Key? key,
       required this.trackDuration,
-      required this.trackCurrentPosition,
+      required this.trackPosition,
       required this.audioPlayerKit})
       : super(key: key);
   final Duration trackDuration;
-  final Duration trackCurrentPosition;
+  final Duration trackPosition;
   final AudioPlayerKit audioPlayerKit;
 
   @override
@@ -27,13 +27,9 @@ class _ControlUIState extends State<ControlUI> {
   @override
   Widget build(BuildContext context) {
     double silderMax = widget.trackDuration.inMilliseconds.toDouble();
-    if (_sliderValue > silderMax) {
-      _sliderValue = silderMax;
-    }
-
     if (!_isSliderChanging) {
       if (_afterChangedCount <= 0) {
-        _sliderValue = widget.trackCurrentPosition.inMilliseconds.toDouble();
+        _sliderValue = widget.trackPosition.inMilliseconds.toDouble();
       } else {
         _afterChangedCount--;
       }
@@ -46,7 +42,7 @@ class _ControlUIState extends State<ControlUI> {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Slider(
-            value: _sliderValue,
+            value: _sliderValue < silderMax ? _sliderValue : silderMax,
             max: silderMax,
             onChanged: (double value) {
               setState(() {
@@ -80,14 +76,14 @@ class _ControlUIState extends State<ControlUI> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: TimeText(
-                      timeValue: Duration(milliseconds: _sliderValue.toInt())),
+                  child: TextMaker.timeFormatText(
+                      Duration(milliseconds: _sliderValue.toInt())),
                 ),
               ),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: TimeText(timeValue: widget.trackDuration),
+                  child: TextMaker.timeFormatText(widget.trackDuration),
                 ),
               ),
             ],

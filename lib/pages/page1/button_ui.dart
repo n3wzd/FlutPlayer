@@ -34,10 +34,18 @@ class ButtonUI extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.shuffle),
-            iconSize: 35,
-            onPressed: () async {},
+          StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) => IconButton(
+              icon: Icon(Icons.shuffle,
+                  color: audioPlayerKit.shuffleMode == true
+                      ? ColorTheme.lightGrey
+                      : ColorTheme.disableGrey),
+              iconSize: 35,
+              onPressed: () {
+                audioPlayerKit.toggleShuffleMode();
+                setState(() {});
+              },
+            ),
           ),
           const SizedBox(width: 20),
           IconButton(
@@ -72,17 +80,18 @@ class ButtonUI extends StatelessWidget {
             },
           ),
           const SizedBox(width: 20),
-          audioPlayerKit.loopModeStreamBuilder(
-            (context, loopMode) => IconButton(
-              icon: loopMode.data == LoopMode.one
+          StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) => IconButton(
+              icon: audioPlayerKit.loopMode == LoopMode.one
                   ? const Icon(Icons.repeat_one, color: ColorTheme.lightGrey)
                   : Icon(Icons.repeat,
-                      color: loopMode.data == LoopMode.off
+                      color: audioPlayerKit.loopMode == LoopMode.off
                           ? ColorTheme.disableGrey
                           : ColorTheme.lightGrey),
               iconSize: 35,
               onPressed: () {
                 audioPlayerKit.toggleLoopMode();
+                setState(() {});
               },
             ),
           ),

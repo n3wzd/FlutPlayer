@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../components/audio_player_kit.dart';
+import '../components/text.dart';
 import '../style/colors.dart';
-import '../style/text.dart';
 
 class CenterSection extends StatelessWidget {
   const CenterSection({
@@ -17,15 +17,17 @@ class CenterSection extends StatelessWidget {
       children: [
         SizedBox(
           height: 80,
-          child: ElevatedButton(
-            onPressed: audioPlayerKit.filesOpen,
-            child: const Text('Open'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 35),
+            child: ElevatedButton(
+              onPressed: audioPlayerKit.filesOpen,
+              child: const Text('Open'),
+            ),
           ),
         ),
         Expanded(
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 35.0, vertical: 10.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 35),
             child: Container(
               decoration: const BoxDecoration(color: ColorTheme.darkGrey),
             ),
@@ -33,13 +35,15 @@ class CenterSection extends StatelessWidget {
         ),
         SizedBox(
           height: 80,
-          child: Container(
-            alignment: Alignment.center,
-            child: Text(
-              audioPlayerKit.currentAudioTitle,
-              style: TextStyleMaker.defaultTextStyle(
-                color: ColorTheme.white,
-                fontSize: 30,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Center(
+              child: audioPlayerKit.durationStreamBuilder(
+                (context, duration) => TextMaker.defaultText(
+                  audioPlayerKit.currentAudioTitle,
+                  color: ColorTheme.white,
+                  fontSize: 30,
+                ),
               ),
             ),
           ),
