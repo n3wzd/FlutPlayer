@@ -17,8 +17,8 @@ class TextMaker {
       double fontSize = _defaultTextFontSize}) {
     return Text(
       value,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      //maxLines: 1,
+      //overflow: TextOverflow.ellipsis,
       style: TextStyleMaker.defaultTextStyle(
         color: color,
         fontSize: fontSize,

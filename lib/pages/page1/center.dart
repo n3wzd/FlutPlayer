@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:marquee/marquee.dart';
 
 import '../components/audio_player_kit.dart';
-import '../components/text.dart';
 import '../style/colors.dart';
 
 class CenterSection extends StatelessWidget {
-  const CenterSection({
+  CenterSection({
     Key? key,
     required this.audioPlayerKit,
   }) : super(key: key);
@@ -38,13 +38,10 @@ class CenterSection extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Center(
-              child: audioPlayerKit.durationStreamBuilder(
-                (context, duration) => TextMaker.defaultText(
-                  audioPlayerKit.currentAudioTitle,
-                  color: ColorTheme.white,
-                  fontSize: 30,
-                ),
-              ),
+              child: audioPlayerKit
+                  .durationStreamBuilder((context, duration) => Marquee(
+                        text: audioPlayerKit.currentAudioTitle,
+                      )),
             ),
           ),
         ),
