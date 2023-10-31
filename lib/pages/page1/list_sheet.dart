@@ -65,7 +65,6 @@ class _ListSheetState extends State<ListSheet> {
                   alignment: Alignment.centerLeft,
                   child: TextMaker.defaultText(
                     '${widget.audioPlayerKit.playListAt(index).tag.title}',
-                    color: ColorTheme.white,
                     fontSize: 18,
                   ),
                 ),

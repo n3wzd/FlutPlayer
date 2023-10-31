@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class TextStyleMaker {
   static TextStyle defaultTextStyle(
-      {required Color color, required double fontSize}) {
+      {Color color = Colors.white, required double fontSize}) {
     return TextStyle(
       color: color,
       fontSize: fontSize,

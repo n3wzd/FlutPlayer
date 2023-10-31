@@ -9,6 +9,8 @@ class AudioPlayerKit {
   final _audioPlayer = AudioPlayer();
   final List<IndexedAudioSource> _playList = [];
   final List<IndexedAudioSource> _playListBackup = [];
+  final ConcatenatingAudioSource _playListSource =
+      ConcatenatingAudioSource(children: []);
   int _currentIndex = 0;
   LoopMode _loopMode = LoopMode.off;
   bool _shuffleMode = false;
@@ -22,13 +24,12 @@ class AudioPlayerKit {
   Duration get duration => _audioPlayer.duration ?? const Duration();
 
   void init() {
-    _audioPlayer.processingStateStream
+    /*_audioPlayer.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
       nextEventWhenPlayerCompleted();
-    });
-    seekTrack(_currentIndex);
-
+    });*/
+    _audioPlayer.setAudioSource(_playListSource, preload: false);
     playListAddList([
       AudioSource.asset(
         'assets/audios/Carola-BeatItUp.mp3',
@@ -43,18 +44,20 @@ class AudioPlayerKit {
         ),
       ),
     ]);
+    seekTrack(_currentIndex);
   }
 
   void dispose() {
     _audioPlayer.dispose();
   }
 
-  void playListAddList(List<IndexedAudioSource> newList) {
+  void playListAddList(List<IndexedAudioSource> newList) async {
     _playList.addAll(newList);
     _playListBackup.addAll(newList);
+    _playListSource.addAll(newList);
   }
 
-  void nextEventWhenPlayerCompleted() async {
+  /*void nextEventWhenPlayerCompleted() async {
     if (_loopMode == LoopMode.one) {
       await replay();
     } else {
@@ -64,13 +67,13 @@ class AudioPlayerKit {
         await seekToNext();
       }
     }
-  }
+  }*/
 
   Future<void> seekTrack(int index) async {
     if (index != _currentIndex) {
       index %= _playList.length;
       _currentIndex = index;
-      await _audioPlayer.setAudioSource(_playList[_currentIndex]);
+      _audioPlayer.seek(const Duration(), index: _currentIndex);
       await play();
     }
   }
@@ -96,11 +99,11 @@ class AudioPlayerKit {
     await _audioPlayer.pause();
   }
 
-  Future<void> replay() async {
+  /*Future<void> replay() async {
     await seekPosition(const Duration());
     await pause();
     await play();
-  }
+  }*/
 
   IndexedAudioSource playListAt(int index) {
     return _playList[index];
@@ -161,6 +164,7 @@ class AudioPlayerKit {
     } else {
       _loopMode = LoopMode.off;
     }
+    _audioPlayer.setLoopMode(_loopMode);
   }
 
   void toggleShuffleMode() {
