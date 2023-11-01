@@ -7,13 +7,15 @@ import './file_audio_source.dart';
 
 class AudioPlayerKit {
   final _audioPlayer = AudioPlayer();
+  final _audioPlayerSub = AudioPlayer();
   final List<IndexedAudioSource> _playList = [];
   final List<IndexedAudioSource> _playListBackup = [];
-  final ConcatenatingAudioSource _playListSource =
-      ConcatenatingAudioSource(children: []);
   int _currentIndex = 0;
   LoopMode _loopMode = LoopMode.off;
   bool _shuffleMode = false;
+  bool _mashupMode = true;
+  double _volumeMasterRate = 1.0;
+  final int _mashupTransitionTime = 100;
 
   int get currentIndex => _currentIndex;
   LoopMode get loopMode => _loopMode;
@@ -21,15 +23,15 @@ class AudioPlayerKit {
   int get playListLength => _playList.length;
   String get currentAudioTitle => _playList[_currentIndex].tag.title;
   bool get isPlaying => _audioPlayer.playing;
-  Duration get duration => _audioPlayer.duration ?? const Duration();
+  Duration? get duration => _audioPlayer.duration;
 
-  void init() {
-    /*_audioPlayer.processingStateStream
+  void init() async {
+    _audioPlayer.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
       nextEventWhenPlayerCompleted();
-    });*/
-    _audioPlayer.setAudioSource(_playListSource, preload: false);
+    });
+
     playListAddList([
       AudioSource.asset(
         'assets/audios/Carola-BeatItUp.mp3',
@@ -44,36 +46,52 @@ class AudioPlayerKit {
         ),
       ),
     ]);
-    seekTrack(_currentIndex);
+    await seekTrack(_currentIndex);
   }
 
   void dispose() {
     _audioPlayer.dispose();
+    _audioPlayerSub.dispose();
   }
 
   void playListAddList(List<IndexedAudioSource> newList) async {
     _playList.addAll(newList);
     _playListBackup.addAll(newList);
-    _playListSource.addAll(newList);
   }
 
-  /*void nextEventWhenPlayerCompleted() async {
-    if (_loopMode == LoopMode.one) {
-      await replay();
+  void nextEventWhenPlayerCompleted() async {
+    if (_mashupMode) {
+      await seekToNext();
     } else {
-      if (_currentIndex == _playList.length - 1 && _loopMode == LoopMode.off) {
-        await _audioPlayer.stop();
+      if (_loopMode == LoopMode.one) {
+        await replay();
       } else {
-        await seekToNext();
+        if (_currentIndex == _playList.length - 1 &&
+            _loopMode == LoopMode.off) {
+          await _audioPlayer.stop();
+        } else {
+          await seekToNext();
+        }
       }
     }
-  }*/
+  }
 
   Future<void> seekTrack(int index) async {
     if (index != _currentIndex) {
+      if (_mashupMode) {
+        Stream<double> volumeTransition = Stream.periodic(
+            const Duration(milliseconds: 100),
+            (x) => x * 1.0 / _mashupTransitionTime).take(_mashupTransitionTime);
+        volumeTransition.listen((x) async {
+          _audioPlayer.setVolume(x * _volumeMasterRate);
+          _audioPlayerSub.setVolume((1.0 - x) * _volumeMasterRate);
+        });
+        await _audioPlayerSub.setAudioSource(_playList[_currentIndex],
+            initialPosition: _audioPlayer.position);
+      }
       index %= _playList.length;
       _currentIndex = index;
-      _audioPlayer.seek(const Duration(), index: _currentIndex);
+      await _audioPlayer.setAudioSource(_playList[_currentIndex]);
       await play();
     }
   }
@@ -93,17 +111,23 @@ class AudioPlayerKit {
 
   Future<void> play() async {
     await _audioPlayer.play();
+    if (_mashupMode) {
+      await _audioPlayerSub.play();
+    }
   }
 
   Future<void> pause() async {
     await _audioPlayer.pause();
+    if (_mashupMode) {
+      await _audioPlayerSub.pause();
+    }
   }
 
-  /*Future<void> replay() async {
+  Future<void> replay() async {
     await seekPosition(const Duration());
     await pause();
     await play();
-  }*/
+  }
 
   IndexedAudioSource playListAt(int index) {
     return _playList[index];
@@ -164,7 +188,6 @@ class AudioPlayerKit {
     } else {
       _loopMode = LoopMode.off;
     }
-    _audioPlayer.setLoopMode(_loopMode);
   }
 
   void toggleShuffleMode() {

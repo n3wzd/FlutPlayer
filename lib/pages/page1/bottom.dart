@@ -21,7 +21,8 @@ class BottomSection extends StatelessWidget {
           audioPlayerKit.durationStreamBuilder(
             (context, duration) => audioPlayerKit.positionStreamBuilder(
               (context, position) => ControlUI(
-                trackDuration: audioPlayerKit.duration,
+                trackDuration:
+                    audioPlayerKit.duration ?? const Duration(days: 1),
                 trackPosition: position.data ?? const Duration(),
                 audioPlayerKit: audioPlayerKit,
               ),

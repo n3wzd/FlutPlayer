@@ -34,7 +34,6 @@ class _ControlUIState extends State<ControlUI> {
         _afterChangedCount--;
       }
     }
-
     return Column(
       children: [
         Container(
