@@ -7,30 +7,28 @@ class TextMaker {
   static const double _defaultTextFontSize = 16;
 
   static Text defaultText(String text,
-      {Color color = _defaultTextColor,
-      double fontSize = _defaultTextFontSize}) {
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyleMaker.defaultTextStyle(
-        color: color,
-        fontSize: fontSize,
-      ),
-    );
-  }
+          {Color color = _defaultTextColor,
+          double fontSize = _defaultTextFontSize}) =>
+      Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyleMaker.defaultTextStyle(
+          color: color,
+          fontSize: fontSize,
+        ),
+      );
 
   static Text timeFormatText(Duration timeValue,
-      {Color color = _defaultTextColor,
-      double fontSize = _defaultTextFontSize}) {
-    return Text(
-      getTimeFormat(timeValue),
-      style: TextStyleMaker.defaultTextStyle(
-        color: color,
-        fontSize: fontSize,
-      ),
-    );
-  }
+          {Color color = _defaultTextColor,
+          double fontSize = _defaultTextFontSize}) =>
+      Text(
+        getTimeFormat(timeValue),
+        style: TextStyleMaker.defaultTextStyle(
+          color: color,
+          fontSize: fontSize,
+        ),
+      );
 
   static String getTimeFormat(Duration d) {
     int minutes = d.inMinutes % 60, seconds = d.inSeconds % 60;

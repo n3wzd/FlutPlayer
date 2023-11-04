@@ -21,8 +21,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-  assets:
-    - assets/audios/
   # assets:
   # fonts:
   #   - family: Schyler

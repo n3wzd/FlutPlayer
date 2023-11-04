@@ -18,11 +18,10 @@ class BottomSection extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          audioPlayerKit.durationStreamBuilder(
+          audioPlayerKit.trackStreamBuilder(
             (context, duration) => audioPlayerKit.positionStreamBuilder(
               (context, position) => ControlUI(
-                trackDuration:
-                    audioPlayerKit.duration ?? const Duration(days: 1),
+                trackDuration: audioPlayerKit.duration,
                 trackPosition: position.data ?? const Duration(),
                 audioPlayerKit: audioPlayerKit,
               ),

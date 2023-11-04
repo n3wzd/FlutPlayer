@@ -34,6 +34,11 @@ class _ControlUIState extends State<ControlUI> {
         _afterChangedCount--;
       }
     }
+    if (_sliderValue >= silderMax) {
+      _sliderValue = 0;
+      silderMax = 1;
+    }
+
     return Column(
       children: [
         Container(
@@ -41,7 +46,7 @@ class _ControlUIState extends State<ControlUI> {
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Slider(
-            value: _sliderValue < silderMax ? _sliderValue : silderMax,
+            value: _sliderValue,
             max: silderMax,
             onChanged: (double value) {
               setState(() {

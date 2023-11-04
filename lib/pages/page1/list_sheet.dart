@@ -19,12 +19,12 @@ class _ListSheetState extends State<ListSheet> {
   bool _isExpand = false;
 
   void toggleSheetExpanding() async {
-    await _controller.animateTo(_isExpand ? _minChildSize : _maxChildSize,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutQuart);
     setState(() {
       _isExpand = !_isExpand;
     });
+    await _controller.animateTo(!_isExpand ? _minChildSize : _maxChildSize,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutQuart);
   }
 
   @override
@@ -38,44 +38,48 @@ class _ListSheetState extends State<ListSheet> {
       maxChildSize: _maxChildSize,
       controller: _controller,
       builder: (context, scrollController) {
-        return Scaffold(
-          backgroundColor: ColorTheme.black,
-          appBar: AppBar(
-            title: GestureDetector(
-              onTap: toggleSheetExpanding,
-              child: Icon(
-                _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-                size: 36,
-                color: ColorTheme.lightGrey,
+        return widget.audioPlayerKit.playListStreamBuilder(
+          (context, playListIndex) => Scaffold(
+            backgroundColor: ColorTheme.black,
+            appBar: AppBar(
+              title: GestureDetector(
+                onTap: toggleSheetExpanding,
+                child: Icon(
+                  _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+                  size: 36,
+                  color: ColorTheme.lightGrey,
+                ),
+              ),
+              centerTitle: true,
+              backgroundColor: ColorTheme.darkWine,
+              flexibleSpace: GestureDetector(
+                onTap: toggleSheetExpanding,
               ),
             ),
-            centerTitle: true,
-            backgroundColor: ColorTheme.darkWine,
-            flexibleSpace: GestureDetector(
-              onTap: toggleSheetExpanding,
-            ),
-          ),
-          body: widget.audioPlayerKit.durationStreamBuilder(
-            (context, duration) => ListView.builder(
-              controller: scrollController,
-              itemExtent: 60.0,
-              itemCount: widget.audioPlayerKit.playListLength,
-              itemBuilder: (context, index) => ListTile(
-                title: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextMaker.defaultText(
-                    '${widget.audioPlayerKit.playListAt(index).tag.title}',
-                    fontSize: 18,
+            body: widget.audioPlayerKit.trackStreamBuilder(
+              (context, duration) => ListView.builder(
+                controller: scrollController,
+                itemExtent: 60.0,
+                itemCount: widget.audioPlayerKit.playListLength,
+                itemBuilder: (context, index) => ListTile(
+                  title: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextMaker.defaultText(
+                      widget.audioPlayerKit.playListAt(index).title,
+                      fontSize: 18,
+                    ),
                   ),
+                  minVerticalPadding: 0,
+                  onTap: () async {
+                    await widget.audioPlayerKit.seekTrack(index);
+                  },
+                  tileColor: widget.audioPlayerKit.currentIndex == index
+                      ? ColorTheme.lightWine
+                      : (index % 2 == 1
+                          ? ColorTheme.darkGrey
+                          : ColorTheme.black),
+                  hoverColor: ColorTheme.lightWine,
                 ),
-                minVerticalPadding: 0,
-                onTap: () async {
-                  await widget.audioPlayerKit.seekTrack(index);
-                },
-                tileColor: widget.audioPlayerKit.currentIndex == index
-                    ? ColorTheme.lightWine
-                    : (index % 2 == 1 ? ColorTheme.darkGrey : ColorTheme.black),
-                hoverColor: ColorTheme.lightWine,
               ),
             ),
           ),
