@@ -57,17 +57,11 @@ class ButtonUI extends StatelessWidget {
           const SizedBox(width: 20),
           audioPlayerKit.playingStreamBuilder(
             (context, isPlaying) => IconButton(
-              isSelected: isPlaying.data,
+              isSelected: audioPlayerKit.isPlaying,
               icon: const Icon(Icons.play_arrow),
               selectedIcon: const Icon(Icons.pause),
               iconSize: 55,
-              onPressed: () async {
-                if (audioPlayerKit.isPlaying) {
-                  await audioPlayerKit.pause();
-                } else {
-                  await audioPlayerKit.play();
-                }
-              },
+              onPressed: audioPlayerKit.togglePlayMode,
             ),
           ),
           const SizedBox(width: 20),

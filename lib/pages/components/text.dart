@@ -51,6 +51,7 @@ class TextMaker {
           child: SingleChildScrollView(
             controller: controller,
             scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
             child: TextMaker.defaultText(
               canScroll ? '$text$space$text' : text,
               color: color,

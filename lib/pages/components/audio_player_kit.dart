@@ -9,35 +9,38 @@ import './audio_track.dart';
 import './file_audio_source.dart';
 
 class AudioPlayerKit {
-  final _audioPlayer = AudioPlayer();
-  final _audioPlayerSub = AudioPlayer();
+  final List<AudioPlayer> _audioPlayerList = [AudioPlayer(), AudioPlayer()];
   final List<AudioTrack> _playList = [];
   final List<AudioTrack> _playListBackup = [];
   int _currentIndex = 0;
   LoopMode _loopMode = LoopMode.one;
   bool _shuffleMode = false;
   bool _mashupMode = false;
+  int _currentIndexAudioPlayerList = 0;
   final double _volumeMasterRate = 1.0;
-  final int _mashupTransitionTime = 10000;
+  final int _mashupTransitionTime = 5000;
   final int _mashupNextTriggerMinTime = 20000;
   final int _mashupNextTriggerMaxTime = 40000;
   final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
 
-  final StreamController<Duration> _trackStreamController =
-      StreamController<Duration>.broadcast();
-  final StreamController<int> _playListStreamController =
-      StreamController<int>.broadcast();
+  final StreamController<void> _trackStreamController =
+      StreamController<void>.broadcast();
+  final StreamController<void> _playListStreamController =
+      StreamController<void>.broadcast();
   final StreamController<LoopMode> _loopModeStreamController =
       StreamController<LoopMode>.broadcast();
   final StreamController<bool> _shuffleModeStreamController =
       StreamController<bool>.broadcast();
   final StreamController<bool> _mashupModeStreamController =
       StreamController<bool>.broadcast();
-  StreamSubscription<double>? _mashupVolumeTransitionStreamSubscription;
-  Timer? _mashupNextTriggerTimer;
+  StreamSubscription<double>? _mashupVolumeTransitionTimer;
+  StreamSubscription<void>? _mashupNextTriggerTimer;
 
-  bool androidMode = false; // true - android, false - web
+  bool androidMode = true; // true - android, false - web
 
+  AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
+  AudioPlayer get audioPlayerSub =>
+      _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
   int get currentIndex => _currentIndex;
   LoopMode get loopMode => _loopMode;
   bool get shuffleMode => _shuffleMode;
@@ -45,50 +48,52 @@ class AudioPlayerKit {
   int get playListLength => _playList.length;
   String get currentAudioTitle =>
       _playList.isNotEmpty ? _playList[_currentIndex].title : '';
-  bool get isPlaying => _audioPlayer.playing;
-  Duration get duration => _audioPlayer.duration ?? const Duration();
-  bool get isAudioPlayerEmpty => _audioPlayer.audioSource == null;
+  bool get isPlaying => audioPlayer.playing;
+  Duration get duration => audioPlayer.duration ?? const Duration();
+  bool get isAudioPlayerEmpty => audioPlayer.audioSource == null;
 
-  void init() async {
-    _audioPlayer.processingStateStream
+  void init() {
+    audioPlayer.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
       nextEventWhenPlayerCompleted();
     });
+    audioPlayerSub.processingStateStream
+        .where((state) => state == ProcessingState.completed)
+        .listen((state) {
+      nextEventWhenPlayerCompleted();
+    });
+
+    audioPlayer.play();
+    audioPlayerSub.play();
   }
 
   void dispose() {
-    _audioPlayer.dispose();
-    _audioPlayerSub.dispose();
+    audioPlayer.dispose();
+    audioPlayerSub.dispose();
     _trackStreamController.close();
     _playListStreamController.close();
     _loopModeStreamController.close();
     _shuffleModeStreamController.close();
     _mashupModeStreamController.close();
-    if (_mashupVolumeTransitionStreamSubscription != null) {
-      _mashupVolumeTransitionStreamSubscription!.cancel();
-    }
-    if (_mashupNextTriggerTimer != null) {
-      _mashupNextTriggerTimer!.cancel();
-    }
+    cancelMashupTimer();
     FilePicker.platform.clearTemporaryFiles();
   }
 
   void playListAddList(List<AudioTrack> newList) {
     _playList.addAll(newList);
     _playListBackup.addAll(newList);
-    FilePicker.platform.clearTemporaryFiles();
   }
 
   void playListUpdated() {
-    _playListStreamController.add(currentIndex);
+    _playListStreamController.add(null);
     initPlayListUpdated();
   }
 
   void initPlayListUpdated() async {
     if (isAudioPlayerEmpty) {
-      Duration? d = await _audioPlayer.setAudioSource(audioSource(0));
-      _trackStreamController.add(d!);
+      AudioSource source = audioSource(0);
+      await audioPlayer.setAudioSource(source);
     }
   }
 
@@ -105,7 +110,7 @@ class AudioPlayerKit {
       } else {
         if (_currentIndex == _playList.length - 1 &&
             _loopMode == LoopMode.off) {
-          await _audioPlayer.stop();
+          await pause();
         } else {
           await seekToNext();
         }
@@ -113,77 +118,60 @@ class AudioPlayerKit {
     }
   }
 
-  void setMashupVolumeTransition() async {
-    if (_mashupVolumeTransitionStreamSubscription != null) {
-      _mashupVolumeTransitionStreamSubscription!.cancel();
-    }
+  void setMashupVolumeTransition() {
     Stream<double> mashupVolumeTransition = Stream.periodic(
             const Duration(milliseconds: 500),
             (x) => x * 1.0 / (_mashupTransitionTime / 500))
         .take(_mashupTransitionTime ~/ 500);
-    _mashupVolumeTransitionStreamSubscription =
-        mashupVolumeTransition.listen((x) async {
-      if (_mashupMode) {
-        await _audioPlayer.setVolume(x * _volumeMasterRate);
-        await _audioPlayerSub.setVolume((1.0 - x) * _volumeMasterRate);
-      }
+    _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
+      audioPlayer.setVolume(x * _volumeMasterRate);
+      audioPlayerSub.setVolume((1.0 - x) * _volumeMasterRate);
     }, onDone: () {
-      _audioPlayer.setVolume(_volumeMasterRate);
-      _audioPlayerSub.pause();
+      audioPlayer.setVolume(_volumeMasterRate);
+      audioPlayerSub.setVolume(0);
     });
   }
 
   void setMashupNextTrigger() {
-    if (_mashupNextTriggerTimer != null) {
-      _mashupNextTriggerTimer!.cancel();
-    }
-    _mashupNextTriggerTimer = Timer(
-        Duration(
-            milliseconds:
-                ((_mashupNextTriggerMaxTime - _mashupNextTriggerMinTime) *
-                            Random().nextDouble() +
-                        _mashupNextTriggerMinTime)
-                    .toInt()), () {
-      if (_mashupMode) {
-        seekToNext();
-      }
+    int nextDelay = ((_mashupNextTriggerMaxTime - _mashupNextTriggerMinTime) *
+                Random().nextDouble() +
+            _mashupNextTriggerMinTime)
+        .toInt();
+    _mashupNextTriggerTimer = Stream<void>.fromFuture(
+            Future<void>.delayed(Duration(milliseconds: nextDelay), () {}))
+        .listen((x) {
+      seekToNext();
     });
   }
 
-  Future<void> seekTrack(int index, {bool autoPlay = true}) async {
+  Future<void> seekTrack(int index) async {
     if (_playList.isNotEmpty && index != _currentIndex) {
       index %= _playList.length;
       if (_mashupMode) {
-        _audioPlayer.setVolume(0);
-        _audioPlayerSub.setVolume(_volumeMasterRate);
-
-        await _audioPlayerSub.setAudioSource(audioSource(_currentIndex),
-            initialPosition: _audioPlayer.position);
-        Duration? newDuration =
-            await _audioPlayer.setAudioSource(audioSource(index));
-        await seekPosition(Duration(
-            milliseconds:
-                (newDuration!.inMilliseconds * (Random().nextDouble() * 0.8))
-                    .toInt()));
-
+        _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
+        await cancelMashupTimer();
         setMashupVolumeTransition();
         setMashupNextTrigger();
+
+        AudioSource source = audioSource(index);
+        Duration? newDuration = await audioPlayer.setAudioSource(source);
+        await seekPosition(Duration(
+            milliseconds:
+                (newDuration!.inMilliseconds * (Random().nextDouble() * 0.75))
+                    .toInt()));
         _trackStreamController.add(newDuration);
       } else {
-        Duration? newDuration =
-            await _audioPlayer.setAudioSource(audioSource(index));
+        AudioSource source = audioSource(index);
+        Duration? newDuration = await audioPlayer.setAudioSource(source);
         _trackStreamController.add(newDuration!);
       }
       _currentIndex = index;
-      if (autoPlay) {
-        await play();
-      }
     }
   }
 
   Future<void> seekPosition(Duration duration) async {
     if (!isAudioPlayerEmpty) {
-      await _audioPlayer.seek(duration);
+      await audioPlayer.seek(duration);
     }
   }
 
@@ -196,20 +184,14 @@ class AudioPlayerKit {
   }
 
   Future<void> play() async {
-    if (!isAudioPlayerEmpty) {
-      await _audioPlayer.play();
-      if (_mashupMode) {
-        await _audioPlayerSub.play();
-      }
+    if (!isAudioPlayerEmpty && !_mashupMode) {
+      await audioPlayer.play();
     }
   }
 
   Future<void> pause() async {
-    if (!isAudioPlayerEmpty) {
-      await _audioPlayer.pause();
-      if (_mashupMode) {
-        await _audioPlayerSub.pause();
-      }
+    if (!isAudioPlayerEmpty && !_mashupMode) {
+      await audioPlayer.pause();
     }
   }
 
@@ -270,24 +252,29 @@ class AudioPlayerKit {
     }
   }
 
-  void directoryOpen() async {
+  Future<List<String>> directoryOpen() async {
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
+    List<String> list = [];
     if (selectedDirectory != null) {
-      directoryScan(selectedDirectory);
+      list.add(directoryScan(selectedDirectory));
       playListUpdated();
     }
+
+    return list;
   }
 
-  void directoryScan(String path) {
+  String directoryScan(String path) {
     if (!androidMode) {
-      return;
+      return '+';
     }
+    String ss = '';
     List<FileSystemEntity> files = Directory(path).listSync();
+    ss = files.length.toString();
     List<AudioTrack> newList = [];
     for (FileSystemEntity fileEntity in files) {
       if (FileSystemEntity.isDirectorySync(fileEntity.path)) {
-        directoryScan(fileEntity.path);
+        ss += directoryScan(fileEntity.path);
       } else {
         File file = File(fileEntity.path);
         List<String> pathSegments = file.uri.pathSegments;
@@ -297,9 +284,19 @@ class AudioPlayerKit {
             path: file.path,
           ));
         }
+        ss += pathSegments[pathSegments.length - 2];
       }
     }
     playListAddList(newList);
+    return ss;
+  }
+
+  void togglePlayMode() async {
+    if (isPlaying) {
+      await pause();
+    } else {
+      await play();
+    }
   }
 
   void toggleLoopMode() {
@@ -331,65 +328,60 @@ class AudioPlayerKit {
       if (_mashupMode) {
         setMashupNextTrigger();
       } else {
-        if (_mashupVolumeTransitionStreamSubscription != null) {
-          await _mashupVolumeTransitionStreamSubscription!.cancel();
-        }
-        if (_mashupNextTriggerTimer != null) {
-          _mashupNextTriggerTimer!.cancel();
-        }
-        _audioPlayer.setVolume(_volumeMasterRate);
-        _audioPlayerSub.pause();
+        await cancelMashupTimer();
+        audioPlayer.setVolume(_volumeMasterRate);
+        audioPlayerSub.setVolume(0);
       }
       _mashupModeStreamController.add(_mashupMode);
     }
   }
 
-  StreamBuilder<bool> playingStreamBuilder(builder) {
-    return StreamBuilder<bool>(
-      stream: _audioPlayer.playingStream,
-      builder: builder,
-    );
+  Future<void> cancelMashupTimer() async {
+    if (_mashupVolumeTransitionTimer != null) {
+      await _mashupVolumeTransitionTimer!.cancel();
+    }
+    if (_mashupNextTriggerTimer != null) {
+      await _mashupNextTriggerTimer!.cancel();
+    }
   }
 
-  StreamBuilder<Duration> positionStreamBuilder(builder) {
-    return StreamBuilder<Duration>(
-      stream: _audioPlayer.positionStream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(
+        stream: audioPlayer.playingStream,
+        builder: (context, data) => StreamBuilder<bool>(
+          stream: audioPlayerSub.playingStream,
+          builder: builder,
+        ),
+      );
 
-  StreamBuilder<Duration> trackStreamBuilder(builder) {
-    return StreamBuilder<Duration>(
-      stream: _trackStreamController.stream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<Duration> positionStreamBuilder(builder) =>
+      StreamBuilder<Duration>(
+        stream: audioPlayer.positionStream,
+        builder: builder,
+      );
 
-  StreamBuilder<int> playListStreamBuilder(builder) {
-    return StreamBuilder<int>(
-      stream: _playListStreamController.stream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<void> trackStreamBuilder(builder) => StreamBuilder<void>(
+        stream: _trackStreamController.stream,
+        builder: builder,
+      );
 
-  StreamBuilder<LoopMode> loopModeStreamBuilder(builder) {
-    return StreamBuilder<LoopMode>(
-      stream: _loopModeStreamController.stream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<void> playListStreamBuilder(builder) => StreamBuilder<void>(
+        stream: _playListStreamController.stream,
+        builder: builder,
+      );
 
-  StreamBuilder<bool> shuffleModeStreamBuilder(builder) {
-    return StreamBuilder<bool>(
-      stream: _shuffleModeStreamController.stream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<LoopMode> loopModeStreamBuilder(builder) =>
+      StreamBuilder<LoopMode>(
+        stream: _loopModeStreamController.stream,
+        builder: builder,
+      );
 
-  StreamBuilder<bool> mashupModeStreamBuilder(builder) {
-    return StreamBuilder<bool>(
-      stream: _mashupModeStreamController.stream,
-      builder: builder,
-    );
-  }
+  StreamBuilder<bool> shuffleModeStreamBuilder(builder) => StreamBuilder<bool>(
+        stream: _shuffleModeStreamController.stream,
+        builder: builder,
+      );
+
+  StreamBuilder<bool> mashupModeStreamBuilder(builder) => StreamBuilder<bool>(
+        stream: _mashupModeStreamController.stream,
+        builder: builder,
+      );
 }
