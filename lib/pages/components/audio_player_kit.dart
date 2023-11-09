@@ -3,13 +3,17 @@ import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:math';
 import 'dart:async';
-import 'dart:io';
 
 import './audio_track.dart';
 import './file_audio_source.dart';
 
 class AudioPlayerKit {
-  final List<AudioPlayer> _audioPlayerList = [AudioPlayer(), AudioPlayer()];
+  final List<AudioPlayer> _audioPlayerList = [
+    AudioPlayer(
+        handleInterruptions: false, handleAudioSessionActivation: false),
+    AudioPlayer(
+        handleInterruptions: false, handleAudioSessionActivation: false),
+  ];
   final List<AudioTrack> _playList = [];
   final List<AudioTrack> _playListBackup = [];
   int _currentIndex = 0;
@@ -36,7 +40,7 @@ class AudioPlayerKit {
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
-  bool androidMode = true; // true - android, false - web
+  final bool _androidMode = false; // true - android, false - web
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -56,16 +60,17 @@ class AudioPlayerKit {
     audioPlayer.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
-      nextEventWhenPlayerCompleted();
+      nextEventWhenPlayerCompleted(0);
     });
     audioPlayerSub.processingStateStream
         .where((state) => state == ProcessingState.completed)
         .listen((state) {
-      nextEventWhenPlayerCompleted();
+      nextEventWhenPlayerCompleted(1);
     });
 
     audioPlayer.play();
     audioPlayerSub.play();
+    setAudioPlayerVolumeDefault();
   }
 
   void dispose() {
@@ -94,23 +99,28 @@ class AudioPlayerKit {
     if (isAudioPlayerEmpty) {
       AudioSource source = audioSource(0);
       await audioPlayer.setAudioSource(source);
+      _trackStreamController.add(null);
     }
   }
 
-  AudioSource audioSource(int index) => androidMode
+  AudioSource audioSource(int index) => _androidMode
       ? AudioSource.file(_playList[index].path)
       : FileAudioSource(bytes: _playList[index].file!.bytes!.cast<int>());
 
-  void nextEventWhenPlayerCompleted() async {
+  void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
+    if (audioPlayerCode != _currentIndexAudioPlayerList) {
+      return;
+    }
+
     if (_mashupMode) {
       await seekToNext();
     } else {
       if (_loopMode == LoopMode.one) {
-        await replay();
+        replay();
       } else {
         if (_currentIndex == _playList.length - 1 &&
             _loopMode == LoopMode.off) {
-          await pause();
+          pause();
         } else {
           await seekToNext();
         }
@@ -126,10 +136,7 @@ class AudioPlayerKit {
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
       audioPlayer.setVolume(x * _volumeMasterRate);
       audioPlayerSub.setVolume((1.0 - x) * _volumeMasterRate);
-    }, onDone: () {
-      audioPlayer.setVolume(_volumeMasterRate);
-      audioPlayerSub.setVolume(0);
-    });
+    }, onDone: setAudioPlayerVolumeDefault);
   }
 
   void setMashupNextTrigger() {
@@ -144,10 +151,16 @@ class AudioPlayerKit {
     });
   }
 
+  void setAudioPlayerVolumeDefault() {
+    audioPlayer.setVolume(_volumeMasterRate);
+    audioPlayerSub.setVolume(0);
+  }
+
   Future<void> seekTrack(int index) async {
     if (_playList.isNotEmpty && index != _currentIndex) {
       index %= _playList.length;
       if (_mashupMode) {
+        play();
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
         await cancelMashupTimer();
         setMashupVolumeTransition();
@@ -159,12 +172,13 @@ class AudioPlayerKit {
             milliseconds:
                 (newDuration!.inMilliseconds * (Random().nextDouble() * 0.75))
                     .toInt()));
-        _trackStreamController.add(newDuration);
+        _trackStreamController.add(null);
       } else {
         AudioSource source = audioSource(index);
-        Duration? newDuration = await audioPlayer.setAudioSource(source);
-        _trackStreamController.add(newDuration!);
+        await audioPlayer.setAudioSource(source);
+        _trackStreamController.add(null);
       }
+      play();
       _currentIndex = index;
     }
   }
@@ -183,22 +197,36 @@ class AudioPlayerKit {
     await seekTrack(_currentIndex + 1);
   }
 
-  Future<void> play() async {
-    if (!isAudioPlayerEmpty && !_mashupMode) {
-      await audioPlayer.play();
+  void play() {
+    if (!isAudioPlayerEmpty && !isPlaying) {
+      audioPlayer.play();
+      audioPlayerSub.play();
+      if (_mashupVolumeTransitionTimer != null) {
+        _mashupVolumeTransitionTimer!.resume();
+      }
+      if (_mashupNextTriggerTimer != null) {
+        _mashupNextTriggerTimer!.resume();
+      }
     }
   }
 
   Future<void> pause() async {
-    if (!isAudioPlayerEmpty && !_mashupMode) {
+    if (!isAudioPlayerEmpty && isPlaying) {
       await audioPlayer.pause();
+      await audioPlayerSub.pause();
+      if (_mashupVolumeTransitionTimer != null) {
+        _mashupVolumeTransitionTimer!.pause();
+      }
+      if (_mashupNextTriggerTimer != null) {
+        _mashupNextTriggerTimer!.pause();
+      }
     }
   }
 
   Future<void> replay() async {
     await seekPosition(const Duration());
     await pause();
-    await play();
+    play();
   }
 
   AudioTrack playListAt(int index) =>
@@ -244,8 +272,8 @@ class AudioPlayerKit {
       for (PlatformFile track in result.files) {
         newList.add(AudioTrack(
             title: track.name.substring(0, track.name.length - 4),
-            path: androidMode ? track.path! : '',
-            file: androidMode ? null : track));
+            path: _androidMode ? track.path! : '',
+            file: _androidMode ? null : track));
       }
       playListAddList(newList);
       playListUpdated();
@@ -253,49 +281,28 @@ class AudioPlayerKit {
   }
 
   Future<List<String>> directoryOpen() async {
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-
-    List<String> list = [];
-    if (selectedDirectory != null) {
-      list.add(directoryScan(selectedDirectory));
-      playListUpdated();
-    }
-
-    return list;
-  }
-
-  String directoryScan(String path) {
-    if (!androidMode) {
-      return '+';
-    }
-    String ss = '';
-    List<FileSystemEntity> files = Directory(path).listSync();
-    ss = files.length.toString();
-    List<AudioTrack> newList = [];
-    for (FileSystemEntity fileEntity in files) {
-      if (FileSystemEntity.isDirectorySync(fileEntity.path)) {
-        ss += directoryScan(fileEntity.path);
-      } else {
-        File file = File(fileEntity.path);
+    /*List<AudioTrack> newList = [];
+      for (Document file in selectedDirectory!.children) {
         List<String> pathSegments = file.uri.pathSegments;
         if (_allowedExtensions.contains(pathSegments.last)) {
           newList.add(AudioTrack(
             title: pathSegments[pathSegments.length - 2],
-            path: file.path,
+            path: file.uri,
           ));
         }
-        ss += pathSegments[pathSegments.length - 2];
+        list.add(file.uriString);
       }
-    }
-    playListAddList(newList);
-    return ss;
+      playListAddList(newList);
+      playListUpdated();
+    return list;*/
+    return [];
   }
 
   void togglePlayMode() async {
     if (isPlaying) {
       await pause();
     } else {
-      await play();
+      play();
     }
   }
 
@@ -329,8 +336,7 @@ class AudioPlayerKit {
         setMashupNextTrigger();
       } else {
         await cancelMashupTimer();
-        audioPlayer.setVolume(_volumeMasterRate);
-        audioPlayerSub.setVolume(0);
+        setAudioPlayerVolumeDefault();
       }
       _mashupModeStreamController.add(_mashupMode);
     }

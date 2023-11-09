@@ -5,12 +5,16 @@ import '../components/text.dart';
 import '../components/button.dart';
 import '../style/colors.dart';
 
-class CenterSection extends StatelessWidget {
-  const CenterSection({
-    Key? key,
-    required this.audioPlayerKit,
-  }) : super(key: key);
+class CenterSection extends StatefulWidget {
+  const CenterSection({super.key, required this.audioPlayerKit});
   final AudioPlayerKit audioPlayerKit;
+
+  @override
+  State<CenterSection> createState() => _CenterSectionState();
+}
+
+class _CenterSectionState extends State<CenterSection> {
+  List<String> list = [];
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +29,14 @@ class CenterSection extends StatelessWidget {
                 child: Row(
                   children: [
                     ButtonMaker.defaultButton(
-                      onPressed: audioPlayerKit.filesOpen,
+                      onPressed: widget.audioPlayerKit.filesOpen,
                       text: 'Open',
                     ),
                     const SizedBox(width: 8),
-                    ButtonMaker.defaultButton(
-                      onPressed: audioPlayerKit.directoryOpen,
+                    /*ButtonMaker.defaultButton(
+                      onPressed: widget.audioPlayerKit.directoryOpen,
                       text: 'Scan',
-                    ),
+                    ),*/
                     const SizedBox(width: 8),
                     TextMaker.defaultText('MASHUP'),
                     StatefulBuilder(
@@ -41,10 +45,10 @@ class CenterSection extends StatelessWidget {
                         checkColor: ColorTheme.white,
                         fillColor:
                             MaterialStateProperty.all(ColorTheme.lightWine),
-                        value: audioPlayerKit.mashupMode,
+                        value: widget.audioPlayerKit.mashupMode,
                         onChanged: (bool? value) {
                           setState(() {
-                            audioPlayerKit.toggleMashupMode();
+                            widget.audioPlayerKit.toggleMashupMode();
                           });
                         },
                       ),
@@ -56,10 +60,10 @@ class CenterSection extends StatelessWidget {
             StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) => Checkbox(
                 checkColor: Colors.white,
-                value: audioPlayerKit.mashupMode,
+                value: widget.audioPlayerKit.mashupMode,
                 onChanged: (bool? value) {
                   setState(() {
-                    audioPlayerKit.toggleMashupMode();
+                    widget.audioPlayerKit.toggleMashupMode();
                     setState(() {});
                   });
                 },
@@ -75,15 +79,37 @@ class CenterSection extends StatelessWidget {
             ),
           ),
         ),
+        /*StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
+          return Column(
+            children: [
+              ButtonMaker.defaultButton(
+                onPressed: () async {
+                  list = await widget.audioPlayerKit.directoryOpen();
+                  setState(() {});
+                },
+                text: 'GO!!!',
+              ),
+              SizedBox(
+                width: 280,
+                child: Text(
+                  list.toString(),
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          );
+        }),*/
         SizedBox(
           height: 80,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Center(
-              child: audioPlayerKit.trackStreamBuilder((context, duration) =>
-                  TextMaker.scrollAnimationText(
-                      audioPlayerKit.currentAudioTitle,
-                      fontSize: 30)),
+              child:
+                  widget.audioPlayerKit.trackStreamBuilder((context, duration) {
+                return TextMaker.scrollAnimationText(
+                    widget.audioPlayerKit.currentAudioTitle,
+                    fontSize: 30);
+              }),
             ),
           ),
         ),

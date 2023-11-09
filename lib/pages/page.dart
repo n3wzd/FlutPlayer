@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 
 import './page/center.dart';
 import './page/bottom.dart';
@@ -19,8 +17,6 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final audioPlayerKit = AudioPlayerKit();
-
-  List<String> list = [];
 
   @override
   void initState() {
@@ -56,28 +52,6 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return WillPopScope(
       child: Scaffold(
-        appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.abc),
-              onPressed: () {
-                DialogMaker.alertDialog(
-                    context: context, onPressed: () {}, text: list.toString());
-              },
-            ),
-            title: IconButton(
-              icon: const Icon(Icons.abc),
-              onPressed: () async {
-                Directory dir = await getApplicationDocumentsDirectory();
-                File file = File('${dir.path}/nahida.txt');
-
-                list = await audioPlayerKit.directoryOpen();
-                for (var line in list) {
-                  await file.writeAsString("${line.toString()}\n",
-                      mode: FileMode.writeOnlyAppend);
-                }
-                file.create();
-              },
-            )),
         body: SafeArea(
           child: Stack(
             children: [
