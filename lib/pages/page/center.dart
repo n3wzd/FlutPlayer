@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/audio_player_kit.dart';
 import '../components/text.dart';
+import '../components/text_scroll.dart';
 import '../components/button.dart';
 import '../style/colors.dart';
 
@@ -33,10 +34,10 @@ class _CenterSectionState extends State<CenterSection> {
                       text: 'Open',
                     ),
                     const SizedBox(width: 8),
-                    /*ButtonMaker.defaultButton(
+                    ButtonMaker.defaultButton(
                       onPressed: widget.audioPlayerKit.directoryOpen,
                       text: 'Scan',
-                    ),*/
+                    ),
                     const SizedBox(width: 8),
                     TextMaker.defaultText('MASHUP'),
                     StatefulBuilder(
@@ -106,8 +107,8 @@ class _CenterSectionState extends State<CenterSection> {
             child: Center(
               child:
                   widget.audioPlayerKit.trackStreamBuilder((context, duration) {
-                return TextMaker.scrollAnimationText(
-                    widget.audioPlayerKit.currentAudioTitle,
+                return ScrollAnimationText(
+                    text: widget.audioPlayerKit.currentAudioTitle,
                     fontSize: 30);
               }),
             ),

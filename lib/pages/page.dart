@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:audio_service/audio_service.dart';
 
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
-
 import './components/audio_player_kit.dart';
+import './components/audio_service.dart';
 import './components/dialog.dart';
+import './style/colors.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -22,30 +24,23 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     audioPlayerKit.init();
-    WidgetsBinding.instance.addObserver(this);
+    createAudioSerivce();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     audioPlayerKit.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        break;
-      case AppLifecycleState.inactive:
-        break;
-      case AppLifecycleState.detached:
-        break;
-      case AppLifecycleState.paused:
-        break;
-      default:
-        break;
-    }
+  void createAudioSerivce() async {
+    CustomAudioHandler _audioHandler = await AudioService.init(
+      builder: () => CustomAudioHandler(audioPlayerKit: audioPlayerKit),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'FlutBeat.myapp.channel.audio',
+        androidNotificationChannelName: 'Music playback',
+      ),
+    );
   }
 
   @override
@@ -56,7 +51,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
           child: Stack(
             children: [
               Container(
-                color: Colors.black,
+                color: ColorTheme.black,
                 child: Column(
                   children: [
                     Expanded(

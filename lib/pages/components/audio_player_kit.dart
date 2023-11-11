@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+// import 'package:external_path/external_path.dart';
+
 import 'dart:math';
 import 'dart:async';
+import 'dart:io';
 
 import './audio_track.dart';
 import './file_audio_source.dart';
@@ -27,6 +31,9 @@ class AudioPlayerKit {
   final int _mashupNextTriggerMaxTime = 40000;
   final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
 
+  late final PermissionStatus _permissionStatus;
+  // List<String> _externalStoragePath = [];
+
   final StreamController<void> _trackStreamController =
       StreamController<void>.broadcast();
   final StreamController<void> _playListStreamController =
@@ -40,7 +47,7 @@ class AudioPlayerKit {
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
-  final bool _androidMode = false; // true - android, false - web
+  final bool _androidMode = true; // true - android, false - web
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -71,6 +78,8 @@ class AudioPlayerKit {
     audioPlayer.play();
     audioPlayerSub.play();
     setAudioPlayerVolumeDefault();
+
+    activePermission();
   }
 
   void dispose() {
@@ -83,6 +92,13 @@ class AudioPlayerKit {
     _mashupModeStreamController.close();
     cancelMashupTimer();
     FilePicker.platform.clearTemporaryFiles();
+  }
+
+  void activePermission() async {
+    _permissionStatus = await Permission.manageExternalStorage.request();
+    if (!_permissionStatus.isDenied) {
+      // _externalStoragePath = await ExternalPath.getExternalStorageDirectories();
+    }
   }
 
   void playListAddList(List<AudioTrack> newList) {
@@ -280,22 +296,34 @@ class AudioPlayerKit {
     }
   }
 
-  Future<List<String>> directoryOpen() async {
-    /*List<AudioTrack> newList = [];
-      for (Document file in selectedDirectory!.children) {
-        List<String> pathSegments = file.uri.pathSegments;
-        if (_allowedExtensions.contains(pathSegments.last)) {
-          newList.add(AudioTrack(
-            title: pathSegments[pathSegments.length - 2],
-            path: file.uri,
-          ));
+  Future<void> directoryOpen() async {
+    activePermission();
+    if (_permissionStatus.isDenied) {
+      return;
+    }
+
+    String? selectedDirectoryPath =
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      List<AudioTrack> newList = [];
+      Directory selectedDirectory = Directory(selectedDirectoryPath);
+      List<FileSystemEntity> selectedDirectoryFile =
+          selectedDirectory.listSync(recursive: true);
+      for (FileSystemEntity file in selectedDirectoryFile) {
+        String path = file.path;
+        if (!FileSystemEntity.isDirectorySync(path)) {
+          if (_allowedExtensions.contains(path.split('.').last)) {
+            String name = file.uri.pathSegments.last;
+            newList.add(AudioTrack(
+              title: name.substring(0, name.length - 4),
+              path: file.path,
+            ));
+          }
         }
-        list.add(file.uriString);
       }
       playListAddList(newList);
       playListUpdated();
-    return list;*/
-    return [];
+    }
   }
 
   void togglePlayMode() async {
