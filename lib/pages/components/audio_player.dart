@@ -25,7 +25,8 @@ class AudioPlayerKit {
   bool _shuffleMode = false;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
-  final double _volumeMasterRate = 1.0;
+  double _volumeMasterRate = 1.0;
+  double _volumeTransitionRate = 1.0;
   final int _mashupTransitionTime = 5000;
   final int _mashupNextTriggerMinTime = 20000;
   final int _mashupNextTriggerMaxTime = 40000;
@@ -47,7 +48,7 @@ class AudioPlayerKit {
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
-  final bool _androidMode = true; // true - android, false - web
+  final bool _androidMode = false; // true - android, false - web
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -56,12 +57,26 @@ class AudioPlayerKit {
   LoopMode get loopMode => _loopMode;
   bool get shuffleMode => _shuffleMode;
   bool get mashupMode => _mashupMode;
+  double get volume => _volumeMasterRate;
   int get playListLength => _playList.length;
   String get currentAudioTitle =>
       _playList.isNotEmpty ? _playList[_currentIndex].title : '';
   bool get isPlaying => audioPlayer.playing;
   Duration get duration => audioPlayer.duration ?? const Duration();
+  Duration get position => audioPlayer.position;
   bool get isAudioPlayerEmpty => audioPlayer.audioSource == null;
+  Stream<PlaybackEvent> get playbackEventStream =>
+      audioPlayer.playbackEventStream;
+
+  set masterVolume(double v) {
+    _volumeMasterRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
+    updateAudioPlayerVolume();
+  }
+
+  set transitionVolume(double v) {
+    _volumeTransitionRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
+    updateAudioPlayerVolume();
+  }
 
   void init() {
     audioPlayer.processingStateStream
@@ -150,8 +165,7 @@ class AudioPlayerKit {
             (x) => x * 1.0 / (_mashupTransitionTime / 500))
         .take(_mashupTransitionTime ~/ 500);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
-      audioPlayer.setVolume(x * _volumeMasterRate);
-      audioPlayerSub.setVolume((1.0 - x) * _volumeMasterRate);
+      transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
   }
 
@@ -168,8 +182,7 @@ class AudioPlayerKit {
   }
 
   void setAudioPlayerVolumeDefault() {
-    audioPlayer.setVolume(_volumeMasterRate);
-    audioPlayerSub.setVolume(0);
+    transitionVolume = 1.0;
   }
 
   Future<void> seekTrack(int index) async {
@@ -243,6 +256,11 @@ class AudioPlayerKit {
     await seekPosition(const Duration());
     await pause();
     play();
+  }
+
+  void updateAudioPlayerVolume() {
+    audioPlayer.setVolume(_volumeTransitionRate * _volumeMasterRate);
+    audioPlayerSub.setVolume((1.0 - _volumeTransitionRate) * _volumeMasterRate);
   }
 
   AudioTrack playListAt(int index) =>

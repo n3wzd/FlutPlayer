@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../components/audio_player_kit.dart';
+import '../components/audio_player.dart';
 import '../components/text.dart';
 import '../components/text_scroll.dart';
 import '../components/button.dart';
@@ -16,6 +16,7 @@ class CenterSection extends StatefulWidget {
 
 class _CenterSectionState extends State<CenterSection> {
   List<String> list = [];
+  double silderValue = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +34,12 @@ class _CenterSectionState extends State<CenterSection> {
                       onPressed: widget.audioPlayerKit.filesOpen,
                       text: 'Open',
                     ),
-                    const SizedBox(width: 8),
+                    /*const SizedBox(width: 8),
                     ButtonMaker.defaultButton(
                       onPressed: widget.audioPlayerKit.directoryOpen,
                       text: 'Scan',
-                    ),
-                    const SizedBox(width: 8),
+                    ),*/
+                    const SizedBox(width: 12),
                     TextMaker.defaultText('MASHUP'),
                     StatefulBuilder(
                       builder: (BuildContext context, StateSetter setState) =>
@@ -54,20 +55,23 @@ class _CenterSectionState extends State<CenterSection> {
                         },
                       ),
                     ),
+                    StatefulBuilder(
+                      builder: (context, setState) => SizedBox(
+                        width: 100,
+                        child: Slider(
+                          value: silderValue,
+                          max: 1,
+                          onChanged: (double value) {
+                            setState(() {
+                              silderValue = value;
+                              widget.audioPlayerKit.masterVolume = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) => Checkbox(
-                checkColor: Colors.white,
-                value: widget.audioPlayerKit.mashupMode,
-                onChanged: (bool? value) {
-                  setState(() {
-                    widget.audioPlayerKit.toggleMashupMode();
-                    setState(() {});
-                  });
-                },
               ),
             ),
           ],
@@ -80,26 +84,6 @@ class _CenterSectionState extends State<CenterSection> {
             ),
           ),
         ),
-        /*StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
-          return Column(
-            children: [
-              ButtonMaker.defaultButton(
-                onPressed: () async {
-                  list = await widget.audioPlayerKit.directoryOpen();
-                  setState(() {});
-                },
-                text: 'GO!!!',
-              ),
-              SizedBox(
-                width: 280,
-                child: Text(
-                  list.toString(),
-                  style: const TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ],
-          );
-        }),*/
         SizedBox(
           height: 80,
           child: Padding(

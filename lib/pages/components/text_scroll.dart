@@ -49,7 +49,7 @@ class _ScrollAnimationTextState extends State<ScrollAnimationText> {
             if (canScroll) {
               await _controller.animateTo(textWidth + spaceWidth,
                   duration: Duration(
-                      milliseconds: 10000000 ~/ (textWidth + spaceWidth)),
+                      milliseconds: ((textWidth + spaceWidth) ~/ 20) * 100),
                   curve: Curves.linear);
               _controller.jumpTo(0);
             }

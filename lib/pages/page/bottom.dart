@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../components/audio_player_kit.dart';
+import '../components/audio_player.dart';
 import './control_ui.dart';
 import './button_ui.dart';
 

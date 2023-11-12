@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:audio_service/audio_service.dart';
 
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
-import './components/audio_player_kit.dart';
-import './components/audio_service.dart';
+import './components/audio_player.dart';
+import './components/audio_handler.dart';
 import './components/dialog.dart';
 import './style/colors.dart';
 
@@ -18,29 +17,19 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
-  final audioPlayerKit = AudioPlayerKit();
+  final _audioPlayerKit = AudioPlayerKit();
 
   @override
   void initState() {
     super.initState();
-    audioPlayerKit.init();
-    createAudioSerivce();
+    _audioPlayerKit.init();
+    createAudioSerivce(_audioPlayerKit);
   }
 
   @override
   void dispose() {
-    audioPlayerKit.dispose();
+    _audioPlayerKit.dispose();
     super.dispose();
-  }
-
-  void createAudioSerivce() async {
-    CustomAudioHandler _audioHandler = await AudioService.init(
-      builder: () => CustomAudioHandler(audioPlayerKit: audioPlayerKit),
-      config: const AudioServiceConfig(
-        androidNotificationChannelId: 'FlutBeat.myapp.channel.audio',
-        androidNotificationChannelName: 'Music playback',
-      ),
-    );
   }
 
   @override
@@ -57,19 +46,19 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                     Expanded(
                       flex: 2,
                       child: CenterSection(
-                        audioPlayerKit: audioPlayerKit,
+                        audioPlayerKit: _audioPlayerKit,
                       ),
                     ),
                     Expanded(
                       flex: 1,
                       child: BottomSection(
-                        audioPlayerKit: audioPlayerKit,
+                        audioPlayerKit: _audioPlayerKit,
                       ),
                     ),
                   ],
                 ),
               ),
-              ListSheet(audioPlayerKit: audioPlayerKit),
+              ListSheet(audioPlayerKit: _audioPlayerKit),
             ],
           ),
         ),
@@ -78,7 +67,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
         DialogMaker.choiceDialog(
             context: context,
             onOkPressed: () {
-              audioPlayerKit.dispose();
+              _audioPlayerKit.dispose();
               SystemNavigator.pop();
             },
             onCancelPressed: () {},
