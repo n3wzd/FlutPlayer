@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../components/audio_player.dart';
-import '../components/text.dart';
-import '../style/colors.dart';
+import '../collection/audio_player.dart';
+import '../component/slider.dart';
+import '../component/text.dart';
 
 class ControlUI extends StatefulWidget {
   const ControlUI(
@@ -45,7 +45,7 @@ class _ControlUIState extends State<ControlUI> {
           height: 24,
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Slider(
+          child: SliderMaker.normal(
             value: _sliderValue,
             max: silderMax,
             onChanged: (double value) {
@@ -60,16 +60,6 @@ class _ControlUIState extends State<ControlUI> {
               _isSliderChanging = false;
               _afterChangedCount = 2;
             },
-            thumbColor: ColorTheme.purple,
-            activeColor: ColorTheme.purple,
-            inactiveColor: ColorTheme.lightGrey,
-            overlayColor:
-                MaterialStateProperty.resolveWith((Set<MaterialState> states) {
-              if (states.contains(MaterialState.hovered)) {
-                return ColorTheme.overlayHoveredPurple;
-              }
-              return ColorTheme.transparent;
-            }),
           ),
         ),
         Container(
@@ -80,14 +70,14 @@ class _ControlUIState extends State<ControlUI> {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: TextMaker.timeFormatText(
+                  child: TextMaker.timeFormat(
                       Duration(milliseconds: _sliderValue.toInt())),
                 ),
               ),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: TextMaker.timeFormatText(widget.trackDuration),
+                  child: TextMaker.timeFormat(widget.trackDuration),
                 ),
               ),
             ],

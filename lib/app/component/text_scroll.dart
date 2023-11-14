@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../components/text.dart';
-import '../style/text_style.dart';
-import '../style/colors.dart';
+import './text.dart';
+import '../style/text.dart';
+import '../style/color.dart';
 
 class ScrollAnimationText extends StatefulWidget {
   const ScrollAnimationText(
       {super.key,
       required this.text,
-      this.color = ColorTheme.white,
+      this.color = ColorMaker.white,
       this.fontSize = 16});
   final String text;
   final Color color;
@@ -20,10 +20,10 @@ class ScrollAnimationText extends StatefulWidget {
 }
 
 class _ScrollAnimationTextState extends State<ScrollAnimationText> {
-  final ScrollController _controller = ScrollController();
+  final _controller = ScrollController();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(context) {
     if (_controller.hasClients) {
       _controller.jumpTo(0);
     }
@@ -37,7 +37,7 @@ class _ScrollAnimationTextState extends State<ScrollAnimationText> {
             controller: _controller,
             scrollDirection: Axis.horizontal,
             physics: const NeverScrollableScrollPhysics(),
-            child: TextMaker.defaultText(
+            child: TextMaker.normal(
               canScroll
                   ? '${widget.text}${widget.space}${widget.text}'
                   : widget.text,
@@ -57,11 +57,11 @@ class _ScrollAnimationTextState extends State<ScrollAnimationText> {
     });
   }
 
-  static double getTextWidth(String text, double fontSize) {
+  static getTextWidth(text, fontSize) {
     TextPainter textPainter = TextPainter(
         text: TextSpan(
           text: text,
-          style: TextStyleMaker.defaultTextStyle(fontSize: fontSize),
+          style: TextStyleMaker.normal(fontSize: fontSize),
         ),
         maxLines: 1,
         textDirection: TextDirection.ltr)

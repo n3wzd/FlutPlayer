@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
-import './components/audio_player.dart';
-import './components/audio_handler.dart';
-import './components/dialog.dart';
-import './style/colors.dart';
+import './collection/audio_player.dart';
+import './collection/audio_handler.dart';
+import './component/dialog.dart';
+import './style/color.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -40,7 +40,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
           child: Stack(
             children: [
               Container(
-                color: ColorTheme.black,
+                color: ColorMaker.black,
                 child: Column(
                   children: [
                     Expanded(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../components/audio_player.dart';
-import '../components/text.dart';
-import '../style/colors.dart';
+import '../collection/audio_player.dart';
+import '../component/text.dart';
+import '../style/color.dart';
 
 class ListSheet extends StatefulWidget {
   const ListSheet({Key? key, required this.audioPlayerKit}) : super(key: key);
@@ -40,18 +40,18 @@ class _ListSheetState extends State<ListSheet> {
       builder: (context, scrollController) {
         return widget.audioPlayerKit.playListStreamBuilder(
           (context, playListIndex) => Scaffold(
-            backgroundColor: ColorTheme.black,
+            backgroundColor: ColorMaker.black,
             appBar: AppBar(
               title: GestureDetector(
                 onTap: toggleSheetExpanding,
                 child: Icon(
                   _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
                   size: 36,
-                  color: ColorTheme.lightGrey,
+                  color: ColorMaker.lightGrey,
                 ),
               ),
               centerTitle: true,
-              backgroundColor: ColorTheme.darkWine,
+              backgroundColor: ColorMaker.darkWine,
               flexibleSpace: GestureDetector(
                 onTap: toggleSheetExpanding,
               ),
@@ -64,8 +64,8 @@ class _ListSheetState extends State<ListSheet> {
                 itemBuilder: (context, index) => ListTile(
                   title: Align(
                     alignment: Alignment.centerLeft,
-                    child: TextMaker.defaultText(
-                      widget.audioPlayerKit.playListAt(index).title,
+                    child: TextMaker.normal(
+                      widget.audioPlayerKit.audioTitle(index),
                       fontSize: 18,
                     ),
                   ),
@@ -73,12 +73,13 @@ class _ListSheetState extends State<ListSheet> {
                   onTap: () async {
                     await widget.audioPlayerKit.seekTrack(index);
                   },
-                  tileColor: widget.audioPlayerKit.currentIndex == index
-                      ? ColorTheme.lightWine
-                      : (index % 2 == 1
-                          ? ColorTheme.darkGrey
-                          : ColorTheme.black),
-                  hoverColor: ColorTheme.lightWine,
+                  tileColor:
+                      widget.audioPlayerKit.compareIndexWithCurrent(index)
+                          ? ColorMaker.lightWine
+                          : (index % 2 == 1
+                              ? ColorMaker.darkGrey
+                              : ColorMaker.black),
+                  hoverColor: ColorMaker.lightWine,
                 ),
               ),
             ),

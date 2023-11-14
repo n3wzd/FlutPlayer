@@ -1,7 +1,7 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 
-import '../components/audio_player.dart';
+import './audio_player.dart';
 
 Future<AudioHandler> createAudioSerivce(AudioPlayerKit audioPlayerKit) async =>
     await AudioService.init(

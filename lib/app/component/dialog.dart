@@ -2,26 +2,24 @@ import 'package:flutter/material.dart';
 
 import './text.dart';
 import './button.dart';
-import '../style/colors.dart';
+import '../style/color.dart';
 
 class DialogMaker {
-  static const double _buttonWidth = 80;
-  static const double _dialogTextSize = 20;
+  static const _buttonWidth = 80.0;
+  static const _dialogTextSize = 20.0;
 
   static void alertDialog(
-          {required BuildContext context,
-          required VoidCallback onPressed,
-          required String text}) =>
+          {required context, required onPressed, required text}) =>
       showDialog(
           context: context,
           builder: (context) => AlertDialog(
-                backgroundColor: ColorTheme.darkGrey,
-                content: TextMaker.defaultText(text, fontSize: 6),
+                backgroundColor: ColorMaker.darkGrey,
+                content: TextMaker.normal(text, fontSize: 6),
                 actions: <Widget>[
                   Center(
                     child: SizedBox(
                       width: _buttonWidth,
-                      child: ButtonMaker.defaultButton(
+                      child: ButtonMaker.text(
                         onPressed: () {
                           onPressed();
                           Navigator.of(context).pop();
@@ -41,12 +39,12 @@ class DialogMaker {
       showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-                backgroundColor: ColorTheme.darkGrey,
-                content: TextMaker.defaultText(text, fontSize: _dialogTextSize),
+                backgroundColor: ColorMaker.darkGrey,
+                content: TextMaker.normal(text, fontSize: _dialogTextSize),
                 actions: <Widget>[
                   SizedBox(
                     width: _buttonWidth,
-                    child: ButtonMaker.defaultButton(
+                    child: ButtonMaker.text(
                       onPressed: () {
                         onOkPressed();
                         Navigator.of(ctx).pop();
@@ -56,7 +54,7 @@ class DialogMaker {
                   ),
                   SizedBox(
                     width: _buttonWidth,
-                    child: ButtonMaker.defaultButton(
+                    child: ButtonMaker.text(
                       onPressed: () {
                         onCancelPressed();
                         Navigator.of(ctx).pop();

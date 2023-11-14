@@ -6,5 +6,5 @@ class AudioTrack {
   final String path;
   final PlatformFile? file;
 
-  static AudioTrack empty() => AudioTrack(title: '', path: '');
+  static empty() => AudioTrack(title: '', path: '');
 }

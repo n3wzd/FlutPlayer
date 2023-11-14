@@ -9,58 +9,49 @@ import 'dart:async';
 import 'dart:io';
 
 import './audio_track.dart';
-import './file_audio_source.dart';
+import './audio_playlist.dart';
 
 class AudioPlayerKit {
-  final List<AudioPlayer> _audioPlayerList = [
+  final _audioPlayerList = [
     AudioPlayer(
         handleInterruptions: false, handleAudioSessionActivation: false),
     AudioPlayer(
         handleInterruptions: false, handleAudioSessionActivation: false),
   ];
-  final List<AudioTrack> _playList = [];
-  final List<AudioTrack> _playListBackup = [];
-  int _currentIndex = 0;
-  LoopMode _loopMode = LoopMode.one;
+  final _playList = PlayList();
+  LoopMode _loopMode = LoopMode.all;
   bool _shuffleMode = false;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
   double _volumeMasterRate = 1.0;
   double _volumeTransitionRate = 1.0;
-  final int _mashupTransitionTime = 5000;
-  final int _mashupNextTriggerMinTime = 20000;
-  final int _mashupNextTriggerMaxTime = 40000;
-  final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
+  final _mashupTransitionTime = 5000;
+  final _mashupNextTriggerMinTime = 20000;
+  final _mashupNextTriggerMaxTime = 40000;
+  final _allowedExtensions = ['mp3', 'wav', 'ogg'];
 
   late final PermissionStatus _permissionStatus;
   // List<String> _externalStoragePath = [];
 
-  final StreamController<void> _trackStreamController =
-      StreamController<void>.broadcast();
-  final StreamController<void> _playListStreamController =
-      StreamController<void>.broadcast();
-  final StreamController<LoopMode> _loopModeStreamController =
-      StreamController<LoopMode>.broadcast();
-  final StreamController<bool> _shuffleModeStreamController =
-      StreamController<bool>.broadcast();
-  final StreamController<bool> _mashupModeStreamController =
-      StreamController<bool>.broadcast();
+  final _trackStreamController = StreamController<void>.broadcast();
+  final _playListStreamController = StreamController<void>.broadcast();
+  final _loopModeStreamController = StreamController<LoopMode>.broadcast();
+  final _shuffleModeStreamController = StreamController<bool>.broadcast();
+  final _mashupModeStreamController = StreamController<bool>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
-  final bool _androidMode = false; // true - android, false - web
+  final _androidMode = false; // true - android, false - web
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
       _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
-  int get currentIndex => _currentIndex;
   LoopMode get loopMode => _loopMode;
   bool get shuffleMode => _shuffleMode;
   bool get mashupMode => _mashupMode;
   double get volume => _volumeMasterRate;
-  int get playListLength => _playList.length;
-  String get currentAudioTitle =>
-      _playList.isNotEmpty ? _playList[_currentIndex].title : '';
+  int get playListLength => _playList.playListLength;
+  String get currentAudioTitle => _playList.currentAudioTitle;
   bool get isPlaying => audioPlayer.playing;
   Duration get duration => audioPlayer.duration ?? const Duration();
   Duration get position => audioPlayer.position;
@@ -77,6 +68,9 @@ class AudioPlayerKit {
     _volumeTransitionRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
     updateAudioPlayerVolume();
   }
+
+  bool compareIndexWithCurrent(index) => _playList.currentIndex == index;
+  String audioTitle(index) => _playList.audioTitle(index);
 
   void init() {
     audioPlayer.processingStateStream
@@ -116,12 +110,11 @@ class AudioPlayerKit {
     }
   }
 
+  AudioSource audioSource(int index) =>
+      _playList.audioSource(index, androidMode: _androidMode);
+
   void playListAddList(List<AudioTrack> newList) {
     _playList.addAll(newList);
-    _playListBackup.addAll(newList);
-  }
-
-  void playListUpdated() {
     _playListStreamController.add(null);
     initPlayListUpdated();
   }
@@ -134,22 +127,17 @@ class AudioPlayerKit {
     }
   }
 
-  AudioSource audioSource(int index) => _androidMode
-      ? AudioSource.file(_playList[index].path)
-      : FileAudioSource(bytes: _playList[index].file!.bytes!.cast<int>());
-
   void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
     if (audioPlayerCode != _currentIndexAudioPlayerList) {
       return;
     }
-
     if (_mashupMode) {
       await seekToNext();
     } else {
       if (_loopMode == LoopMode.one) {
         replay();
       } else {
-        if (_currentIndex == _playList.length - 1 &&
+        if (_playList.currentIndex == playListLength - 1 &&
             _loopMode == LoopMode.off) {
           pause();
         } else {
@@ -186,8 +174,8 @@ class AudioPlayerKit {
   }
 
   Future<void> seekTrack(int index) async {
-    if (_playList.isNotEmpty && index != _currentIndex) {
-      index %= _playList.length;
+    if (_playList.isNotEmpty && index != _playList.currentIndex) {
+      index %= playListLength;
       if (_mashupMode) {
         play();
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
@@ -208,7 +196,7 @@ class AudioPlayerKit {
         _trackStreamController.add(null);
       }
       play();
-      _currentIndex = index;
+      _playList.currentIndex = index;
     }
   }
 
@@ -219,11 +207,11 @@ class AudioPlayerKit {
   }
 
   Future<void> seekToPrevious() async {
-    await seekTrack(_currentIndex - 1);
+    await seekTrack(_playList.currentIndex - 1);
   }
 
   Future<void> seekToNext() async {
-    await seekTrack(_currentIndex + 1);
+    await seekTrack(_playList.currentIndex + 1);
   }
 
   void play() {
@@ -263,37 +251,6 @@ class AudioPlayerKit {
     audioPlayerSub.setVolume((1.0 - _volumeTransitionRate) * _volumeMasterRate);
   }
 
-  AudioTrack playListAt(int index) =>
-      _playList.isNotEmpty ? _playList[index] : AudioTrack.empty();
-
-  void shuffleOn() {
-    if (_playList.isNotEmpty) {
-      AudioTrack currentTrack = _playList[_currentIndex];
-      _playList.shuffle();
-      for (int i = 0; i < _playList.length; i++) {
-        if (currentTrack == _playList[i]) {
-          AudioTrack tempTrack = _playList[0];
-          _playList[0] = _playList[i];
-          _playList[i] = tempTrack;
-          break;
-        }
-      }
-      _currentIndex = 0;
-    }
-  }
-
-  void shuffleOff() {
-    if (_playList.isNotEmpty) {
-      AudioTrack currentTrack = _playList[_currentIndex];
-      for (int i = 0; i < _playList.length; i++) {
-        _playList[i] = _playListBackup[i];
-        if (currentTrack == _playList[i]) {
-          _currentIndex = i;
-        }
-      }
-    }
-  }
-
   void filesOpen() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -310,7 +267,6 @@ class AudioPlayerKit {
             file: _androidMode ? null : track));
       }
       playListAddList(newList);
-      playListUpdated();
     }
   }
 
@@ -340,7 +296,6 @@ class AudioPlayerKit {
         }
       }
       playListAddList(newList);
-      playListUpdated();
     }
   }
 
@@ -367,9 +322,9 @@ class AudioPlayerKit {
     if (_playList.isNotEmpty) {
       _shuffleMode = !_shuffleMode;
       if (_shuffleMode) {
-        shuffleOn();
+        _playList.shuffleOn();
       } else {
-        shuffleOff();
+        _playList.shuffleOff();
       }
       _shuffleModeStreamController.add(_shuffleMode);
     }
@@ -395,6 +350,10 @@ class AudioPlayerKit {
     if (_mashupNextTriggerTimer != null) {
       await _mashupNextTriggerTimer!.cancel();
     }
+  }
+
+  void clearPlayList() {
+    _playList.clear();
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(
