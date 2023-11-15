@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'package:external_path/external_path.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -25,13 +24,11 @@ class AudioPlayerKit {
   int _currentIndexAudioPlayerList = 0;
   double _volumeMasterRate = 1.0;
   double _volumeTransitionRate = 1.0;
-  final _mashupTransitionTime = 5000;
-  final _mashupNextTriggerMinTime = 20000;
-  final _mashupNextTriggerMaxTime = 40000;
-  final _allowedExtensions = ['mp3', 'wav', 'ogg'];
-
+  final int _mashupTransitionTime = 5000;
+  final int _mashupNextTriggerMinTime = 20000;
+  final int _mashupNextTriggerMaxTime = 40000;
+  final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
   late final PermissionStatus _permissionStatus;
-  // List<String> _externalStoragePath = [];
 
   final _trackStreamController = StreamController<void>.broadcast();
   final _playListStreamController = StreamController<void>.broadcast();
@@ -69,8 +66,8 @@ class AudioPlayerKit {
     updateAudioPlayerVolume();
   }
 
-  bool compareIndexWithCurrent(index) => _playList.currentIndex == index;
-  String audioTitle(index) => _playList.audioTitle(index);
+  bool compareIndexWithCurrent(int index) => _playList.currentIndex == index;
+  String audioTitle(int index) => _playList.audioTitle(index);
 
   void init() {
     audioPlayer.processingStateStream
@@ -105,9 +102,6 @@ class AudioPlayerKit {
 
   void activePermission() async {
     _permissionStatus = await Permission.manageExternalStorage.request();
-    if (!_permissionStatus.isDenied) {
-      // _externalStoragePath = await ExternalPath.getExternalStorageDirectories();
-    }
   }
 
   AudioSource audioSource(int index) =>
@@ -173,8 +167,9 @@ class AudioPlayerKit {
     transitionVolume = 1.0;
   }
 
-  Future<void> seekTrack(int index) async {
-    if (_playList.isNotEmpty && index != _playList.currentIndex) {
+  Future<void> seekTrack(int index, {bool forceLoad = false}) async {
+    if (_playList.isNotEmpty &&
+        (index != _playList.currentIndex || forceLoad)) {
       index %= playListLength;
       if (_mashupMode) {
         play();
@@ -354,6 +349,18 @@ class AudioPlayerKit {
 
   void clearPlayList() {
     _playList.clear();
+  }
+
+  void shiftPlayListItem(int oldIndex, int newIndex) {
+    _playList.shift(oldIndex, newIndex);
+  }
+
+  void removePlayListItem(int index) {
+    bool needReload = index == _playList.currentIndex;
+    _playList.remove(index);
+    if (needReload) {
+      seekTrack(index < playListLength ? index : index - 1, forceLoad: true);
+    }
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

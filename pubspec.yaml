@@ -12,7 +12,6 @@ dependencies:
   just_audio: ^0.9.35
   file_picker: ^6.0.0
   permission_handler: ^11.0.1
-  external_path: ^1.0.3
   audio_service: ^0.18.12
 
 dev_dependencies:

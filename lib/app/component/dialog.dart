@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
-import './text.dart';
 import './button.dart';
 import '../style/color.dart';
 
 class DialogMaker {
   static const _buttonWidth = 80.0;
-  static const _dialogTextSize = 20.0;
 
   static void alertDialog(
-          {required context, required onPressed, required text}) =>
+          {required BuildContext context,
+          required VoidCallback onPressed,
+          required Widget content}) =>
       showDialog(
           context: context,
           builder: (context) => AlertDialog(
                 backgroundColor: ColorMaker.darkGrey,
-                content: TextMaker.normal(text, fontSize: 6),
+                content: content,
                 actions: <Widget>[
                   Center(
                     child: SizedBox(
@@ -35,12 +35,12 @@ class DialogMaker {
           {required BuildContext context,
           required VoidCallback onOkPressed,
           required VoidCallback onCancelPressed,
-          required String text}) =>
+          required Widget content}) =>
       showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
                 backgroundColor: ColorMaker.darkGrey,
-                content: TextMaker.normal(text, fontSize: _dialogTextSize),
+                content: content,
                 actions: <Widget>[
                   SizedBox(
                     width: _buttonWidth,

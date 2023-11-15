@@ -7,6 +7,7 @@ import './page/list_sheet.dart';
 import './collection/audio_player.dart';
 import './collection/audio_handler.dart';
 import './component/dialog.dart';
+import './component/text.dart';
 import './style/color.dart';
 
 class MainPage extends StatefulWidget {
@@ -71,7 +72,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
               SystemNavigator.pop();
             },
             onCancelPressed: () {},
-            text: 'Exit?');
+            content: TextMaker.normal('Exit?', fontSize: 20));
         return Future<bool>.value(false);
       },
     );

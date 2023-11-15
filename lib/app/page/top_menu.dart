@@ -30,7 +30,7 @@ class TopMenu extends StatelessWidget {
               ThemeMaker.iconButton(
                 outline: false,
                 IconButton(
-                  icon: const Icon(Icons.delete),
+                  icon: const Icon(Icons.delete, color: ColorMaker.lightGrey),
                   iconSize: 25,
                   onPressed: audioPlayerKit.clearPlayList,
                 ),

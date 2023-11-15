@@ -8,12 +8,12 @@ class PlayList {
   final List<String> _playListBackup = [];
   int currentIndex = 0;
 
-  get playListLength => _playMap.length;
-  get isNotEmpty => _playMap.isNotEmpty;
-  get currentAudioTitle =>
+  int get playListLength => _playMap.length;
+  bool get isNotEmpty => _playMap.isNotEmpty;
+  String get currentAudioTitle =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.title : '';
 
-  String audioTitle(index) => _playMap[_playList[index]]!.title;
+  String audioTitle(int index) => _playMap[_playList[index]]!.title;
   AudioSource audioSource(int index, {bool androidMode = true}) => androidMode
       ? AudioSource.file(_playMap[_playList[index]]!.path)
       : FileAudioSource(
@@ -28,6 +28,32 @@ class PlayList {
         _playListBackup.add(key);
       }
     }
+  }
+
+  void shift(int oldIndex, int newIndex) {
+    if (currentIndex == oldIndex) {
+      currentIndex = newIndex;
+    } else if (currentIndex == newIndex) {
+      if (currentIndex > oldIndex) {
+        currentIndex = newIndex - 1;
+      } else {
+        currentIndex = newIndex + 1;
+      }
+    } else if (currentIndex > oldIndex && currentIndex < newIndex) {
+      currentIndex -= 1;
+    } else if (currentIndex < oldIndex && currentIndex > newIndex) {
+      currentIndex += 1;
+    }
+    _playList.insert(newIndex, _playList.removeAt(oldIndex));
+    _playListBackup.insert(newIndex, _playListBackup.removeAt(oldIndex));
+  }
+
+  void remove(int index) {
+    if (currentIndex > index) {
+      currentIndex -= 1;
+    }
+    _playMap.remove(_playList.removeAt(index));
+    _playListBackup.removeAt(index);
   }
 
   void shuffleOn() {

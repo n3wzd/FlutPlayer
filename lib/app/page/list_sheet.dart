@@ -57,29 +57,48 @@ class _ListSheetState extends State<ListSheet> {
               ),
             ),
             body: widget.audioPlayerKit.trackStreamBuilder(
-              (context, duration) => ListView.builder(
-                controller: scrollController,
-                itemExtent: 60.0,
-                itemCount: widget.audioPlayerKit.playListLength,
-                itemBuilder: (context, index) => ListTile(
-                  title: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextMaker.normal(
-                      widget.audioPlayerKit.audioTitle(index),
-                      fontSize: 18,
+              (context, duration) => StatefulBuilder(
+                builder: (context, setListState) => ReorderableListView.builder(
+                  scrollController: scrollController,
+                  onReorder: (oldIndex, newIndex) {
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
+                    }
+                    widget.audioPlayerKit.shiftPlayListItem(oldIndex, newIndex);
+                  },
+                  itemCount: widget.audioPlayerKit.playListLength,
+                  itemBuilder: (context, index) => Dismissible(
+                    key: Key(widget.audioPlayerKit.audioTitle(index)),
+                    onDismissed: (DismissDirection direction) {
+                      setListState(() {
+                        widget.audioPlayerKit.removePlayListItem(index);
+                      });
+                    },
+                    child: ListTile(
+                      key: Key(widget.audioPlayerKit.audioTitle(index)),
+                      title: SizedBox(
+                        height: 60,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextMaker.normal(
+                            widget.audioPlayerKit.audioTitle(index),
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      minVerticalPadding: 0,
+                      onTap: () async {
+                        await widget.audioPlayerKit.seekTrack(index);
+                      },
+                      tileColor:
+                          widget.audioPlayerKit.compareIndexWithCurrent(index)
+                              ? ColorMaker.lightWine
+                              : (index % 2 == 1
+                                  ? ColorMaker.darkGrey
+                                  : ColorMaker.black),
+                      hoverColor: ColorMaker.lightWine,
                     ),
                   ),
-                  minVerticalPadding: 0,
-                  onTap: () async {
-                    await widget.audioPlayerKit.seekTrack(index);
-                  },
-                  tileColor:
-                      widget.audioPlayerKit.compareIndexWithCurrent(index)
-                          ? ColorMaker.lightWine
-                          : (index % 2 == 1
-                              ? ColorMaker.darkGrey
-                              : ColorMaker.black),
-                  hoverColor: ColorMaker.lightWine,
                 ),
               ),
             ),
