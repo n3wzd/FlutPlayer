@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import './top_menu.dart';
 import '../collection/audio_player.dart';
 import '../component/text_scroll.dart';
 import '../style/color.dart';
@@ -12,16 +11,12 @@ class CenterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          SizedBox(
-            height: 80,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: TopMenu(audioPlayerKit: audioPlayerKit),
-            ),
+          const SizedBox(
+            height: 45,
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 35),
+              padding: const EdgeInsets.symmetric(horizontal: 45),
               child: Container(
                 decoration: const BoxDecoration(color: ColorMaker.darkGrey),
               ),

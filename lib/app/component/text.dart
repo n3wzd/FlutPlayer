@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../style/text.dart';
 
 class TextMaker {
-  static const _defaultTextColor = Colors.white;
-  static const _defaultTextFontSize = 16.0;
+  static const Color _defaultTextColor = Colors.white;
+  static const double _defaultTextFontSize = 16.0;
   static final _method = TextMakerMethod();
 
-  static normal(text,
-          {color = _defaultTextColor, fontSize = _defaultTextFontSize}) =>
+  static normal(String text,
+          {Color color = _defaultTextColor,
+          double fontSize = _defaultTextFontSize}) =>
       Text(
         text,
         maxLines: 1,
@@ -19,8 +20,9 @@ class TextMaker {
         ),
       );
 
-  static timeFormat(timeValue,
-          {color = _defaultTextColor, fontSize = _defaultTextFontSize}) =>
+  static timeFormat(Duration timeValue,
+          {Color color = _defaultTextColor,
+          double fontSize = _defaultTextFontSize}) =>
       Text(
         _method._getTimeFormat(timeValue),
         style: TextStyleMaker.normal(

@@ -23,7 +23,7 @@ class TopMenu extends StatelessWidget {
                 outline: false,
                 IconButton(
                   icon: const Icon(Icons.file_open),
-                  iconSize: 35,
+                  iconSize: 30,
                   onPressed: audioPlayerKit.filesOpen,
                 ),
               ),
@@ -50,37 +50,36 @@ class TopMenu extends StatelessWidget {
                   },
                 ),
               ),
-            ],
-          ),
-        ),
-        const Spacer(flex: 1),
-        Expanded(
-          flex: 3,
-          child: StatefulBuilder(
-            builder: (context, setState) => Row(
-              children: [
-                Icon(
-                    silderValue > silderMax / 2
-                        ? Icons.volume_up
-                        : (silderValue > 0
-                            ? Icons.volume_down
-                            : Icons.volume_mute),
-                    color: ColorMaker.purple),
-                Expanded(
-                  child: SliderMaker.normal(
-                    value: silderValue,
-                    max: silderMax,
-                    onChanged: (double value) {
-                      setState(() {
-                        silderValue = value;
-                        audioPlayerKit.masterVolume = value;
-                      });
-                    },
-                    useOverlayColor: false,
+              const SizedBox(width: 16),
+              Expanded(
+                child: StatefulBuilder(
+                  builder: (context, setState) => Row(
+                    children: [
+                      Icon(
+                          silderValue > silderMax / 2
+                              ? Icons.volume_up
+                              : (silderValue > 0
+                                  ? Icons.volume_down
+                                  : Icons.volume_mute),
+                          color: ColorMaker.purple),
+                      Expanded(
+                        child: SliderMaker.normal(
+                          value: silderValue,
+                          max: silderMax,
+                          onChanged: (double value) {
+                            setState(() {
+                              silderValue = value;
+                              audioPlayerKit.masterVolume = value;
+                            });
+                          },
+                          useOverlayColor: false,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

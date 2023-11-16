@@ -14,8 +14,8 @@ class ListSheet extends StatefulWidget {
 
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
-  double _minChildSize = 0;
-  double _maxChildSize = 0;
+  double _minChildSize = 0.0;
+  double _maxChildSize = 0.0;
   bool _isExpand = false;
 
   void toggleSheetExpanding() async {
@@ -86,7 +86,7 @@ class _ListSheetState extends State<ListSheet> {
                           ),
                         ),
                       ),
-                      minVerticalPadding: 0,
+                      minVerticalPadding: 0.0,
                       onTap: () async {
                         await widget.audioPlayerKit.seekTrack(index);
                       },

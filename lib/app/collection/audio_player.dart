@@ -11,13 +11,15 @@ import './audio_track.dart';
 import './audio_playlist.dart';
 
 class AudioPlayerKit {
+  final _androidMode = false; // true - android, false - web
+
   final _audioPlayerList = [
     AudioPlayer(
         handleInterruptions: false, handleAudioSessionActivation: false),
     AudioPlayer(
         handleInterruptions: false, handleAudioSessionActivation: false),
   ];
-  final _playList = PlayList();
+  final PlayList _playList = PlayList();
   LoopMode _loopMode = LoopMode.all;
   bool _shuffleMode = false;
   bool _mashupMode = false;
@@ -37,8 +39,6 @@ class AudioPlayerKit {
   final _mashupModeStreamController = StreamController<bool>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
-
-  final _androidMode = false; // true - android, false - web
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -80,6 +80,7 @@ class AudioPlayerKit {
         .listen((state) {
       nextEventWhenPlayerCompleted(1);
     });
+    _playList.init();
 
     audioPlayer.play();
     audioPlayerSub.play();
@@ -89,6 +90,7 @@ class AudioPlayerKit {
   }
 
   void dispose() {
+    _playList.dispose();
     audioPlayer.dispose();
     audioPlayerSub.dispose();
     _trackStreamController.close();
@@ -247,50 +249,50 @@ class AudioPlayerKit {
   }
 
   void filesOpen() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: _allowedExtensions,
-    );
-
-    if (result != null) {
-      List<AudioTrack> newList = [];
-      for (PlatformFile track in result.files) {
-        newList.add(AudioTrack(
-            title: track.name.substring(0, track.name.length - 4),
-            path: _androidMode ? track.path! : '',
-            file: _androidMode ? null : track));
+    if (_androidMode) {
+      activePermission();
+      if (_permissionStatus.isDenied) {
+        return;
       }
-      playListAddList(newList);
-    }
-  }
 
-  Future<void> directoryOpen() async {
-    activePermission();
-    if (_permissionStatus.isDenied) {
-      return;
-    }
-
-    String? selectedDirectoryPath =
-        await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectoryPath != null) {
-      List<AudioTrack> newList = [];
-      Directory selectedDirectory = Directory(selectedDirectoryPath);
-      List<FileSystemEntity> selectedDirectoryFile =
-          selectedDirectory.listSync(recursive: true);
-      for (FileSystemEntity file in selectedDirectoryFile) {
-        String path = file.path;
-        if (!FileSystemEntity.isDirectorySync(path)) {
-          if (_allowedExtensions.contains(path.split('.').last)) {
-            String name = file.uri.pathSegments.last;
-            newList.add(AudioTrack(
-              title: name.substring(0, name.length - 4),
-              path: file.path,
-            ));
+      String? selectedDirectoryPath =
+          await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        List<AudioTrack> newList = [];
+        Directory selectedDirectory = Directory(selectedDirectoryPath);
+        List<FileSystemEntity> selectedDirectoryFile =
+            selectedDirectory.listSync(recursive: true);
+        for (FileSystemEntity file in selectedDirectoryFile) {
+          String path = file.path;
+          if (!FileSystemEntity.isDirectorySync(path)) {
+            if (_allowedExtensions.contains(path.split('.').last)) {
+              String name = file.uri.pathSegments.last;
+              newList.add(AudioTrack(
+                title: name.substring(0, name.length - 4),
+                path: file.path,
+              ));
+            }
           }
         }
+        playListAddList(newList);
       }
-      playListAddList(newList);
+    } else {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: _allowedExtensions,
+      );
+
+      if (result != null) {
+        List<AudioTrack> newList = [];
+        for (PlatformFile track in result.files) {
+          newList.add(AudioTrack(
+              title: track.name.substring(0, track.name.length - 4),
+              path: _androidMode ? track.path! : '',
+              file: _androidMode ? null : track));
+        }
+        playListAddList(newList);
+      }
     }
   }
 
@@ -361,6 +363,14 @@ class AudioPlayerKit {
     if (needReload) {
       seekTrack(index < playListLength ? index : index - 1, forceLoad: true);
     }
+  }
+
+  void exportPlayList() {
+    _playList.createColumn();
+  }
+
+  void importPlayList() {
+    _playList.loadColumn();
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

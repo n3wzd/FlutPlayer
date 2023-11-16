@@ -1,4 +1,5 @@
 import 'package:just_audio/just_audio.dart';
+import 'package:sqflite/sqflite.dart';
 import './audio_track.dart';
 import './file_audio_source.dart';
 
@@ -6,6 +7,7 @@ class PlayList {
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
   final List<String> _playListBackup = [];
+  late final Database db;
   int currentIndex = 0;
 
   int get playListLength => _playMap.length;
@@ -18,6 +20,33 @@ class PlayList {
       ? AudioSource.file(_playMap[_playList[index]]!.path)
       : FileAudioSource(
           bytes: _playMap[_playList[index]]!.file!.bytes!.cast<int>());
+
+  void init() async {
+    db = await openDatabase('audio_track.db', version: 1,
+        onCreate: (Database db, int version) async {
+      await db.execute(
+          'CREATE TABLE AudioTrack (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT, path TINYTEXT);');
+    });
+  }
+
+  void dispose() async {
+    await db.close();
+  }
+
+  void createColumn() async {
+    for (String trackTitle in _playList) {
+      AudioTrack? track = _playMap[trackTitle];
+      if (track != null) {
+        await db.execute(
+            'INSERT INTO AudioTrack(title, path) VALUES(${track.title}, ${track.path});');
+      }
+    }
+  }
+
+  void loadColumn() async {
+    List<Map> data = await db.rawQuery('SELECT * FROM AudioTrack');
+    print(data);
+  }
 
   void addAll(List<AudioTrack> files) {
     for (AudioTrack file in files) {

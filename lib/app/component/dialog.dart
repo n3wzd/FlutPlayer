@@ -4,7 +4,7 @@ import './button.dart';
 import '../style/color.dart';
 
 class DialogMaker {
-  static const _buttonWidth = 80.0;
+  static const double _buttonWidth = 80.0;
 
   static void alertDialog(
           {required BuildContext context,

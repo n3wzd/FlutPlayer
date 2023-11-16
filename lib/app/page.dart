@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import './page/top_menu.dart';
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
@@ -9,6 +10,7 @@ import './collection/audio_handler.dart';
 import './component/dialog.dart';
 import './component/text.dart';
 import './style/color.dart';
+import './style/theme.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -19,6 +21,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final _audioPlayerKit = AudioPlayerKit();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -37,6 +40,48 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return WillPopScope(
       child: Scaffold(
+        key: _scaffoldKey,
+        appBar: AppBar(
+          leading: ThemeMaker.iconButton(
+            IconButton(
+              icon:
+                  const Icon(Icons.list, color: ColorMaker.lightGrey, size: 30),
+              onPressed: () => _scaffoldKey.currentState!.openDrawer(),
+            ),
+            outline: false,
+          ),
+          title: TopMenu(audioPlayerKit: _audioPlayerKit),
+          backgroundColor: ColorMaker.black,
+          elevation: 0.0,
+          titleSpacing: 0,
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: ColorMaker.lightWine,
+                ),
+                child: TextMaker.normal('Setting'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.message),
+                title: const Text('Export'),
+                onTap: () {
+                  _audioPlayerKit.exportPlayList();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.account_circle),
+                title: const Text('Import'),
+                onTap: () {
+                  _audioPlayerKit.importPlayList();
+                },
+              ),
+            ],
+          ),
+        ),
         body: SafeArea(
           child: Stack(
             children: [

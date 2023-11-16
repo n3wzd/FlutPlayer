@@ -4,11 +4,11 @@ import '../style/color.dart';
 
 class SliderMaker {
   static normal(
-          {required value,
-          required max,
-          required onChanged,
-          onChangeEnd,
-          useOverlayColor = true}) =>
+          {required double value,
+          required double max,
+          required ValueChanged<double> onChanged,
+          ValueChanged<double>? onChangeEnd,
+          bool useOverlayColor = true}) =>
       SliderTheme(
         data: useOverlayColor
             ? const SliderThemeData()
