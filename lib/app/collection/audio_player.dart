@@ -11,7 +11,7 @@ import './audio_track.dart';
 import './audio_playlist.dart';
 
 class AudioPlayerKit {
-  final _androidMode = false; // true - android, false - web
+  final _androidMode = true; // true - android, false - web
 
   final _audioPlayerList = [
     AudioPlayer(
@@ -365,12 +365,28 @@ class AudioPlayerKit {
     }
   }
 
-  void exportPlayList() {
-    _playList.createColumn();
+  void exportPlayList(String listName) async {
+    _playList.exportList(listName);
   }
 
-  void importPlayList() {
-    _playList.loadColumn();
+  void importPlayList(String listName) async {
+    List<Map>? datas = await _playList.importList(listName);
+    if (datas != null) {
+      List<AudioTrack> newList = [];
+      for (Map data in datas) {
+        newList.add(
+            AudioTrack(title: data['title'], path: data['path'], file: null));
+      }
+      playListAddList(newList);
+    }
+  }
+
+  void updatePlayList(String listName) async {
+    _playList.updateList(listName);
+  }
+
+  void deletePlayList(String listName) async {
+    _playList.deleteList(listName);
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

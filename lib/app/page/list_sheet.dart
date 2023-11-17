@@ -14,14 +14,32 @@ class ListSheet extends StatefulWidget {
 
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
-  double _minChildSize = 0.0;
-  double _maxChildSize = 0.0;
+  double _minChildSize = 0;
+  double _maxChildSize = 0;
   bool _isExpand = false;
 
-  void toggleSheetExpanding() async {
+  void _toggleSheetExpanding() async {
     setState(() {
-      _isExpand = !_isExpand;
+      if (_controller.size == _minChildSize) {
+        _isExpand = true;
+      } else if (_controller.size == _maxChildSize) {
+        _isExpand = false;
+      }
     });
+    await _animateExpand();
+  }
+
+  void _onEndScroll(ScrollMetrics metrics) async {
+    setState(() {
+      _isExpand =
+          _controller.size - _minChildSize < _maxChildSize - _controller.size
+              ? false
+              : true;
+    });
+    await _animateExpand();
+  }
+
+  Future<void> _animateExpand() async {
     await _controller.animateTo(!_isExpand ? _minChildSize : _maxChildSize,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOutQuart);
@@ -32,18 +50,25 @@ class _ListSheetState extends State<ListSheet> {
     _minChildSize = 50.0 / MediaQuery.of(context).size.height;
     _maxChildSize = 0.9;
 
-    return DraggableScrollableSheet(
-      initialChildSize: _minChildSize,
-      minChildSize: _minChildSize,
-      maxChildSize: _maxChildSize,
-      controller: _controller,
-      builder: (context, scrollController) {
-        return widget.audioPlayerKit.playListStreamBuilder(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        if (scrollNotification is ScrollEndNotification) {
+          _onEndScroll(scrollNotification.metrics);
+        }
+        return true;
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: _minChildSize,
+        minChildSize: _minChildSize,
+        maxChildSize: _maxChildSize,
+        controller: _controller,
+        builder: (context, scrollController) =>
+            widget.audioPlayerKit.playListStreamBuilder(
           (context, playListIndex) => Scaffold(
             backgroundColor: ColorMaker.black,
             appBar: AppBar(
               title: GestureDetector(
-                onTap: toggleSheetExpanding,
+                onTap: _toggleSheetExpanding,
                 child: Icon(
                   _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
                   size: 36,
@@ -53,7 +78,7 @@ class _ListSheetState extends State<ListSheet> {
               centerTitle: true,
               backgroundColor: ColorMaker.darkWine,
               flexibleSpace: GestureDetector(
-                onTap: toggleSheetExpanding,
+                onTap: _toggleSheetExpanding,
               ),
             ),
             body: widget.audioPlayerKit.trackStreamBuilder(
@@ -86,7 +111,7 @@ class _ListSheetState extends State<ListSheet> {
                           ),
                         ),
                       ),
-                      minVerticalPadding: 0.0,
+                      minVerticalPadding: 0,
                       onTap: () async {
                         await widget.audioPlayerKit.seekTrack(index);
                       },
@@ -103,8 +128,8 @@ class _ListSheetState extends State<ListSheet> {
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

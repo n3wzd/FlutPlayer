@@ -5,6 +5,7 @@ import './page/top_menu.dart';
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
+import './page/drawer.dart';
 import './collection/audio_player.dart';
 import './collection/audio_handler.dart';
 import './component/dialog.dart';
@@ -44,8 +45,8 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
         appBar: AppBar(
           leading: ThemeMaker.iconButton(
             IconButton(
-              icon:
-                  const Icon(Icons.list, color: ColorMaker.lightGrey, size: 30),
+              icon: const Icon(Icons.settings,
+                  color: ColorMaker.lightGrey, size: 30),
               onPressed: () => _scaffoldKey.currentState!.openDrawer(),
             ),
             outline: false,
@@ -55,33 +56,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
           elevation: 0.0,
           titleSpacing: 0,
         ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: <Widget>[
-              DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: ColorMaker.lightWine,
-                ),
-                child: TextMaker.normal('Setting'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.message),
-                title: const Text('Export'),
-                onTap: () {
-                  _audioPlayerKit.exportPlayList();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.account_circle),
-                title: const Text('Import'),
-                onTap: () {
-                  _audioPlayerKit.importPlayList();
-                },
-              ),
-            ],
-          ),
-        ),
+        drawer: PageDrawer(audioPlayerKit: _audioPlayerKit),
         body: SafeArea(
           child: Stack(
             children: [

@@ -7,7 +7,8 @@ class PlayList {
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
   final List<String> _playListBackup = [];
-  late final Database db;
+  final String mainDBTableName = 'AudioTrack';
+  late final Database database;
   int currentIndex = 0;
 
   int get playListLength => _playMap.length;
@@ -22,30 +23,15 @@ class PlayList {
           bytes: _playMap[_playList[index]]!.file!.bytes!.cast<int>());
 
   void init() async {
-    db = await openDatabase('audio_track.db', version: 1,
+    database = await openDatabase('audio_track.db', version: 1,
         onCreate: (Database db, int version) async {
       await db.execute(
-          'CREATE TABLE AudioTrack (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT, path TINYTEXT);');
+          'CREATE TABLE $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT, path TINYTEXT);');
     });
   }
 
   void dispose() async {
-    await db.close();
-  }
-
-  void createColumn() async {
-    for (String trackTitle in _playList) {
-      AudioTrack? track = _playMap[trackTitle];
-      if (track != null) {
-        await db.execute(
-            'INSERT INTO AudioTrack(title, path) VALUES(${track.title}, ${track.path});');
-      }
-    }
-  }
-
-  void loadColumn() async {
-    List<Map> data = await db.rawQuery('SELECT * FROM AudioTrack');
-    print(data);
+    await database.close();
   }
 
   void addAll(List<AudioTrack> files) {
@@ -118,5 +104,64 @@ class PlayList {
     _playList.clear();
     _playListBackup.clear();
     currentIndex = 0;
+  }
+
+  void exportList(String tableName) async {
+    if (!await checkDBTableExist(tableName)) {
+      await database.transaction((txn) async {
+        await createDBTable(txn, tableName);
+        await insertListToDB(txn);
+      });
+    }
+  }
+
+  void deleteList(String tableName) async {
+    if (await checkDBTableExist(tableName)) {
+      await database.transaction((txn) async {
+        await deleteDBTable(txn, tableName);
+      });
+    }
+  }
+
+  void updateList(String tableName) async {
+    if (await checkDBTableExist(tableName)) {
+      await database.transaction((txn) async {
+        await deleteDBTable(txn, tableName);
+        await createDBTable(txn, tableName);
+        await insertListToDB(txn);
+      });
+    }
+  }
+
+  Future<List<Map>?> importList(String tableName) async {
+    if (await checkDBTableExist(tableName)) {
+      return await database.rawQuery(
+          'SELECT title, path FROM $mainDBTableName, $tableName WHERE $mainDBTableName.id = $tableName.id;');
+    }
+    return null;
+  }
+
+  Future<void> insertListToDB(Transaction txn) async {
+    for (String trackTitle in _playList) {
+      AudioTrack? track = _playMap[trackTitle];
+      if (track != null) {
+        await txn.rawInsert(
+            'INSERT OR IGNORE INTO $mainDBTableName(title, path) VALUES(${track.title}, ${track.path});');
+      }
+    }
+  }
+
+  Future<bool> checkDBTableExist(String tableName) async {
+    List<Map> data = await database.rawQuery(
+        'SELECT name FROM sqlite_master WHERE type="table" AND name=$tableName;');
+    return data.isNotEmpty;
+  }
+
+  Future<void> createDBTable(Transaction txn, String tableName) async {
+    txn.rawInsert('CREATE TABLE $tableName (id INTEGER NOT NULL PRIMARY KEY);');
+  }
+
+  Future<void> deleteDBTable(Transaction txn, String tableName) async {
+    txn.rawInsert('DROP TABLE $tableName;');
   }
 }
