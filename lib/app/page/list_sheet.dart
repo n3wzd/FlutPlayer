@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../collection/audio_player.dart';
-import '../component/text.dart';
+import '../component/listtile.dart';
 import '../style/color.dart';
 
 class ListSheet extends StatefulWidget {
@@ -14,32 +15,31 @@ class ListSheet extends StatefulWidget {
 
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
+  final _expandController = StreamController<bool>.broadcast();
   double _minChildSize = 0;
   double _maxChildSize = 0;
   bool _isExpand = false;
 
   void _toggleSheetExpanding() async {
-    setState(() {
-      if (_controller.size == _minChildSize) {
-        _isExpand = true;
-      } else if (_controller.size == _maxChildSize) {
-        _isExpand = false;
-      }
-    });
+    if (_controller.size == _minChildSize) {
+      _isExpand = true;
+    } else if (_controller.size == _maxChildSize) {
+      _isExpand = false;
+    }
     await _animateExpand();
   }
 
   void _onEndScroll(ScrollMetrics metrics) async {
-    setState(() {
-      _isExpand =
-          _controller.size - _minChildSize < _maxChildSize - _controller.size
-              ? false
-              : true;
-    });
+    _isExpand =
+        _controller.size - _minChildSize < _maxChildSize - _controller.size
+            ? false
+            : true;
+
     await _animateExpand();
   }
 
   Future<void> _animateExpand() async {
+    _expandController.add(_isExpand);
     await _controller.animateTo(!_isExpand ? _minChildSize : _maxChildSize,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOutQuart);
@@ -69,10 +69,13 @@ class _ListSheetState extends State<ListSheet> {
             appBar: AppBar(
               title: GestureDetector(
                 onTap: _toggleSheetExpanding,
-                child: Icon(
-                  _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-                  size: 36,
-                  color: ColorMaker.lightGrey,
+                child: StreamBuilder(
+                  stream: _expandController.stream,
+                  builder: (context, value) => Icon(
+                    _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+                    size: 36,
+                    color: ColorMaker.lightGrey,
+                  ),
                 ),
               ),
               centerTitle: true,
@@ -80,6 +83,7 @@ class _ListSheetState extends State<ListSheet> {
               flexibleSpace: GestureDetector(
                 onTap: _toggleSheetExpanding,
               ),
+              automaticallyImplyLeading: false,
             ),
             body: widget.audioPlayerKit.trackStreamBuilder(
               (context, duration) => StatefulBuilder(
@@ -93,35 +97,20 @@ class _ListSheetState extends State<ListSheet> {
                   },
                   itemCount: widget.audioPlayerKit.playListLength,
                   itemBuilder: (context, index) => Dismissible(
-                    key: Key(widget.audioPlayerKit.audioTitle(index)),
+                    key: UniqueKey(),
                     onDismissed: (DismissDirection direction) {
                       setListState(() {
                         widget.audioPlayerKit.removePlayListItem(index);
                       });
                     },
-                    child: ListTile(
-                      key: Key(widget.audioPlayerKit.audioTitle(index)),
-                      title: SizedBox(
-                        height: 60,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextMaker.normal(
-                            widget.audioPlayerKit.audioTitle(index),
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      minVerticalPadding: 0,
+                    child: ListTileMaker.multiItem(
+                      index: index,
+                      name: widget.audioPlayerKit.audioTitle(index),
                       onTap: () async {
                         await widget.audioPlayerKit.seekTrack(index);
                       },
-                      tileColor:
-                          widget.audioPlayerKit.compareIndexWithCurrent(index)
-                              ? ColorMaker.lightWine
-                              : (index % 2 == 1
-                                  ? ColorMaker.darkGrey
-                                  : ColorMaker.black),
-                      hoverColor: ColorMaker.lightWine,
+                      selected:
+                          widget.audioPlayerKit.compareIndexWithCurrent(index),
                     ),
                   ),
                 ),

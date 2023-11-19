@@ -3,31 +3,32 @@ import 'package:flutter/material.dart';
 import '../style/text.dart';
 
 class TextMaker {
-  static const Color _defaultTextColor = Colors.white;
-  static const double _defaultTextFontSize = 16.0;
   static final _method = TextMakerMethod();
 
   static normal(String text,
-          {Color color = _defaultTextColor,
-          double fontSize = _defaultTextFontSize}) =>
+          {Color? color,
+          double? fontSize,
+          FontWeight? fontWeight,
+          bool allowLineBreak = false}) =>
       Text(
         text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        maxLines: allowLineBreak ? null : 1,
+        overflow: allowLineBreak ? null : TextOverflow.ellipsis,
         style: TextStyleMaker.normal(
           color: color,
           fontSize: fontSize,
+          fontWeight: fontWeight,
         ),
       );
 
   static timeFormat(Duration timeValue,
-          {Color color = _defaultTextColor,
-          double fontSize = _defaultTextFontSize}) =>
+          {Color? color, double? fontSize, FontWeight? fontWeight}) =>
       Text(
         _method._getTimeFormat(timeValue),
         style: TextStyleMaker.normal(
           color: color,
           fontSize: fontSize,
+          fontWeight: fontWeight,
         ),
       );
 }

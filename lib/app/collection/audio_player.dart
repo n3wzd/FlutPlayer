@@ -267,9 +267,11 @@ class AudioPlayerKit {
           if (!FileSystemEntity.isDirectorySync(path)) {
             if (_allowedExtensions.contains(path.split('.').last)) {
               String name = file.uri.pathSegments.last;
+              FileStat fileStat = FileStat.statSync(path);
               newList.add(AudioTrack(
                 title: name.substring(0, name.length - 4),
                 path: file.path,
+                changedDateTime: fileStat.changed,
               ));
             }
           }
@@ -288,8 +290,9 @@ class AudioPlayerKit {
         for (PlatformFile track in result.files) {
           newList.add(AudioTrack(
               title: track.name.substring(0, track.name.length - 4),
-              path: _androidMode ? track.path! : '',
-              file: _androidMode ? null : track));
+              path: '',
+              changedDateTime: DateTime.now(),
+              file: track));
         }
         playListAddList(newList);
       }
@@ -351,6 +354,7 @@ class AudioPlayerKit {
 
   void clearPlayList() {
     _playList.clear();
+    _playListStreamController.add(null);
   }
 
   void shiftPlayListItem(int oldIndex, int newIndex) {
@@ -365,28 +369,44 @@ class AudioPlayerKit {
     }
   }
 
-  void exportPlayList(String listName) async {
+  void sortPlayList(int type) {
+    _playList.sortPlayList(type);
+    _playListStreamController.add(null);
+  }
+
+  void exportCustomPlayList(String listName) async {
     _playList.exportList(listName);
   }
 
-  void importPlayList(String listName) async {
+  void importCustomPlayList(String listName) async {
     List<Map>? datas = await _playList.importList(listName);
     if (datas != null) {
       List<AudioTrack> newList = [];
       for (Map data in datas) {
-        newList.add(
-            AudioTrack(title: data['title'], path: data['path'], file: null));
+        String path = data['path'];
+        if (File(path).existsSync()) {
+          FileStat fileStat = FileStat.statSync(path);
+          newList.add(AudioTrack(
+              title: data['title'],
+              path: path,
+              changedDateTime: fileStat.changed,
+              file: null));
+        }
       }
       playListAddList(newList);
     }
   }
 
-  void updatePlayList(String listName) async {
+  void updateCustomPlayList(String listName) async {
     _playList.updateList(listName);
   }
 
-  void deletePlayList(String listName) async {
+  void deleteCustomPlayList(String listName) async {
     _playList.deleteList(listName);
+  }
+
+  Future<List<Map>> selectAllPlayList() async {
+    return await _playList.selectAllDBTable();
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

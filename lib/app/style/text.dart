@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import './color.dart';
+
 class TextStyleMaker {
-  static normal({Color color = Colors.white, required double fontSize}) =>
+  static normal({Color? color, double? fontSize, FontWeight? fontWeight}) =>
       TextStyle(
-        color: color,
-        fontSize: fontSize,
+        color: color ?? ColorMaker.lightGrey,
+        fontSize: fontSize ?? 16,
         fontFamily: 'Inter',
-        fontWeight: FontWeight.w400,
+        fontWeight: fontWeight ?? FontWeight.normal,
       );
 }

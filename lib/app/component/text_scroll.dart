@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 
 import './text.dart';
 import '../style/text.dart';
-import '../style/color.dart';
 
 class ScrollAnimationText extends StatefulWidget {
   const ScrollAnimationText(
-      {super.key,
-      required this.text,
-      this.color = ColorMaker.white,
-      this.fontSize = 16});
+      {super.key, required this.text, this.color, this.fontSize});
   final String text;
-  final Color color;
-  final double fontSize;
+  final Color? color;
+  final double? fontSize;
   final String space = '        ';
 
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../style/color.dart';
+import './color.dart';
 
 class DecorationMaker {
   static textField() => const InputDecoration(
