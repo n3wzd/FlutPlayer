@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import '../collection/audio_player.dart';
+import '../collection/audio_playlist.dart';
+import '../collection/preference.dart';
 import '../component/listtile.dart';
+import '../component/button.dart';
 import '../style/color.dart';
 
 class ListSheet extends StatefulWidget {
@@ -64,7 +67,7 @@ class _ListSheetState extends State<ListSheet> {
         controller: _controller,
         builder: (context, scrollController) =>
             widget.audioPlayerKit.playListStreamBuilder(
-          (context, playListIndex) => Scaffold(
+          (context, value) => Scaffold(
             backgroundColor: ColorMaker.black,
             appBar: AppBar(
               title: GestureDetector(
@@ -84,28 +87,58 @@ class _ListSheetState extends State<ListSheet> {
                 onTap: _toggleSheetExpanding,
               ),
               automaticallyImplyLeading: false,
+              actions: [
+                StreamBuilder(
+                  stream: _expandController.stream,
+                  builder: (context, value) => Visibility(
+                    visible: _isExpand && Preference.showPlayListOrderButton,
+                    child: StreamBuilder(
+                      stream: _expandController.stream,
+                      builder: (context, value) => ButtonMaker.icon(
+                        icon: Icon(
+                          widget.audioPlayerKit.playListOrderState ==
+                                  PlayListOrderState.ascending
+                              ? Icons.vertical_align_top
+                              : (widget.audioPlayerKit.playListOrderState ==
+                                      PlayListOrderState.descending
+                                  ? Icons.vertical_align_bottom
+                                  : Icons.sort),
+                          size: 25,
+                          color: ColorMaker.lightGrey,
+                        ),
+                        iconSize: 24,
+                        onPressed: widget.audioPlayerKit.sortPlayList,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            body: widget.audioPlayerKit.trackStreamBuilder(
-              (context, duration) => StatefulBuilder(
+            body: widget.audioPlayerKit.playListSheetStreamBuilder(
+              (context, value) => StatefulBuilder(
                 builder: (context, setListState) => ReorderableListView.builder(
                   scrollController: scrollController,
                   onReorder: (oldIndex, newIndex) {
-                    if (oldIndex < newIndex) {
-                      newIndex -= 1;
-                    }
-                    widget.audioPlayerKit.shiftPlayListItem(oldIndex, newIndex);
+                    setListState(() {
+                      if (oldIndex < newIndex) {
+                        newIndex -= 1;
+                      }
+                      widget.audioPlayerKit
+                          .shiftPlayListItem(oldIndex, newIndex);
+                    });
                   },
                   itemCount: widget.audioPlayerKit.playListLength,
                   itemBuilder: (context, index) => Dismissible(
-                    key: UniqueKey(),
+                    key: Key(widget.audioPlayerKit.audioTitle(index)),
                     onDismissed: (DismissDirection direction) {
                       setListState(() {
                         widget.audioPlayerKit.removePlayListItem(index);
                       });
                     },
                     child: ListTileMaker.multiItem(
+                      key: Key(widget.audioPlayerKit.audioTitle(index)),
                       index: index,
-                      name: widget.audioPlayerKit.audioTitle(index),
+                      text: widget.audioPlayerKit.audioTitle(index),
                       onTap: () async {
                         await widget.audioPlayerKit.seekTrack(index);
                       },

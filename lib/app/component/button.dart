@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import './text.dart';
 import '../style/color.dart';
+import '../style/theme.dart';
 
 class ButtonMaker {
-  static text(
+  static ElevatedButton text(
           {required VoidCallback onPressed,
           required String text,
           double? fontSize,
@@ -20,4 +21,21 @@ class ButtonMaker {
         ),
         child: TextMaker.normal(text, fontSize: fontSize),
       );
+
+  static Theme icon(
+          {required Icon icon,
+          double iconSize = 35,
+          required VoidCallback onPressed,
+          bool outline = true,
+          bool? isSelected,
+          Icon? selectedIcon}) =>
+      ThemeMaker.iconButton(
+          IconButton(
+            icon: icon,
+            iconSize: iconSize,
+            onPressed: onPressed,
+            isSelected: isSelected,
+            selectedIcon: selectedIcon,
+          ),
+          outline: outline);
 }

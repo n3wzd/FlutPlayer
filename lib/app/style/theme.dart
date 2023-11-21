@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import './color.dart';
 
 class ThemeMaker {
-  static iconButton(child, {outline = true}) => Theme(
+  static iconButton(IconButton child, {outline = true}) => Theme(
         data: ThemeData(
           iconButtonTheme: IconButtonThemeData(
             style: ButtonStyle(
@@ -28,5 +28,14 @@ class ThemeMaker {
           useMaterial3: true,
         ),
         child: child,
+      );
+
+  static slider(Widget slider, {bool useOverlayColor = true}) => SliderTheme(
+        data: useOverlayColor
+            ? const SliderThemeData()
+            : SliderThemeData(
+                overlayShape: SliderComponentShape.noOverlay,
+              ),
+        child: slider,
       );
 }

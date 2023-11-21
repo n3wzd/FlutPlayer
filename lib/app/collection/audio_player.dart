@@ -9,9 +9,12 @@ import 'dart:io';
 
 import './audio_track.dart';
 import './audio_playlist.dart';
+import './preference.dart';
+
+import '../global.dart' as glo;
 
 class AudioPlayerKit {
-  final _androidMode = true; // true - android, false - web
+  final _androidMode = false; // true - android, false - web
 
   final _audioPlayerList = [
     AudioPlayer(
@@ -21,22 +24,19 @@ class AudioPlayerKit {
   ];
   final PlayList _playList = PlayList();
   LoopMode _loopMode = LoopMode.all;
-  bool _shuffleMode = false;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
   double _volumeMasterRate = 1.0;
   double _volumeTransitionRate = 1.0;
-  final int _mashupTransitionTime = 5000;
-  final int _mashupNextTriggerMinTime = 20000;
-  final int _mashupNextTriggerMaxTime = 40000;
+
   final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
   late final PermissionStatus _permissionStatus;
 
   final _trackStreamController = StreamController<void>.broadcast();
   final _playListStreamController = StreamController<void>.broadcast();
-  final _loopModeStreamController = StreamController<LoopMode>.broadcast();
-  final _shuffleModeStreamController = StreamController<bool>.broadcast();
-  final _mashupModeStreamController = StreamController<bool>.broadcast();
+  final _loopModeStreamController = StreamController<void>.broadcast();
+  final _playListOrderStateStreamController =
+      StreamController<void>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
@@ -44,7 +44,6 @@ class AudioPlayerKit {
   AudioPlayer get audioPlayerSub =>
       _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
   LoopMode get loopMode => _loopMode;
-  bool get shuffleMode => _shuffleMode;
   bool get mashupMode => _mashupMode;
   double get volume => _volumeMasterRate;
   int get playListLength => _playList.playListLength;
@@ -52,6 +51,7 @@ class AudioPlayerKit {
   bool get isPlaying => audioPlayer.playing;
   Duration get duration => audioPlayer.duration ?? const Duration();
   Duration get position => audioPlayer.position;
+  PlayListOrderState get playListOrderState => _playList.playListOrderState;
   bool get isAudioPlayerEmpty => audioPlayer.audioSource == null;
   Stream<PlaybackEvent> get playbackEventStream =>
       audioPlayer.playbackEventStream;
@@ -93,13 +93,6 @@ class AudioPlayerKit {
     _playList.dispose();
     audioPlayer.dispose();
     audioPlayerSub.dispose();
-    _trackStreamController.close();
-    _playListStreamController.close();
-    _loopModeStreamController.close();
-    _shuffleModeStreamController.close();
-    _mashupModeStreamController.close();
-    cancelMashupTimer();
-    FilePicker.platform.clearTemporaryFiles();
   }
 
   void activePermission() async {
@@ -113,6 +106,11 @@ class AudioPlayerKit {
     _playList.addAll(newList);
     _playListStreamController.add(null);
     initPlayListUpdated();
+    if (Preference.shuffleReload) {
+      _playList.currentIndex = Random().nextInt(playListLength);
+      _playList.shuffle();
+      _playListOrderStateStreamController.add(null);
+    }
   }
 
   void initPlayListUpdated() async {
@@ -120,6 +118,9 @@ class AudioPlayerKit {
       AudioSource source = audioSource(0);
       await audioPlayer.setAudioSource(source);
       _trackStreamController.add(null);
+      if (!Preference.instantlyPlay) {
+        pause();
+      }
     }
   }
 
@@ -146,17 +147,18 @@ class AudioPlayerKit {
   void setMashupVolumeTransition() {
     Stream<double> mashupVolumeTransition = Stream.periodic(
             const Duration(milliseconds: 500),
-            (x) => x * 1.0 / (_mashupTransitionTime / 500))
-        .take(_mashupTransitionTime ~/ 500);
+            (x) => x * 1.0 / (Preference.mashupTransitionTime / 500))
+        .take(Preference.mashupTransitionTime ~/ 500);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
       transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
   }
 
   void setMashupNextTrigger() {
-    int nextDelay = ((_mashupNextTriggerMaxTime - _mashupNextTriggerMinTime) *
+    int nextDelay = ((Preference.mashupNextTriggerMaxTime -
+                    Preference.mashupNextTriggerMinTime) *
                 Random().nextDouble() +
-            _mashupNextTriggerMinTime)
+            Preference.mashupNextTriggerMinTime)
         .toInt();
     _mashupNextTriggerTimer = Stream<void>.fromFuture(
             Future<void>.delayed(Duration(milliseconds: nextDelay), () {}))
@@ -254,7 +256,7 @@ class AudioPlayerKit {
       if (_permissionStatus.isDenied) {
         return;
       }
-
+      glo.debugLog = '';
       String? selectedDirectoryPath =
           await FilePicker.platform.getDirectoryPath();
       if (selectedDirectoryPath != null) {
@@ -271,12 +273,15 @@ class AudioPlayerKit {
               newList.add(AudioTrack(
                 title: name.substring(0, name.length - 4),
                 path: file.path,
-                changedDateTime: fileStat.changed,
+                modifiedDateTime: fileStat.modified,
               ));
+              glo.debugLog +=
+                  '${name.substring(0, name.length - 4)} - ${fileStat.modified.toString()} | ';
             }
           }
         }
         playListAddList(newList);
+        glo.debugLogStreamController.add(null);
       }
     } else {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -291,7 +296,7 @@ class AudioPlayerKit {
           newList.add(AudioTrack(
               title: track.name.substring(0, track.name.length - 4),
               path: '',
-              changedDateTime: DateTime.now(),
+              modifiedDateTime: DateTime.now(),
               file: track));
         }
         playListAddList(newList);
@@ -315,19 +320,12 @@ class AudioPlayerKit {
     } else {
       _loopMode = LoopMode.off;
     }
-    _loopModeStreamController.add(_loopMode);
+    _loopModeStreamController.add(null);
   }
 
   void toggleShuffleMode() {
-    if (_playList.isNotEmpty) {
-      _shuffleMode = !_shuffleMode;
-      if (_shuffleMode) {
-        _playList.shuffleOn();
-      } else {
-        _playList.shuffleOff();
-      }
-      _shuffleModeStreamController.add(_shuffleMode);
-    }
+    _playList.toggleShuffleMode();
+    _playListOrderStateStreamController.add(null);
   }
 
   void toggleMashupMode() async {
@@ -339,7 +337,6 @@ class AudioPlayerKit {
         await cancelMashupTimer();
         setAudioPlayerVolumeDefault();
       }
-      _mashupModeStreamController.add(_mashupMode);
     }
   }
 
@@ -352,26 +349,28 @@ class AudioPlayerKit {
     }
   }
 
-  void clearPlayList() {
-    _playList.clear();
-    _playListStreamController.add(null);
-  }
-
   void shiftPlayListItem(int oldIndex, int newIndex) {
     _playList.shift(oldIndex, newIndex);
   }
 
   void removePlayListItem(int index) {
-    bool needReload = index == _playList.currentIndex;
+    bool needReload = (index == _playList.currentIndex);
     _playList.remove(index);
     if (needReload) {
       seekTrack(index < playListLength ? index : index - 1, forceLoad: true);
     }
   }
 
-  void sortPlayList(int type) {
-    _playList.sortPlayList(type);
+  void sortPlayList() {
+    _playList.sortPlayList();
     _playListStreamController.add(null);
+    _playListOrderStateStreamController.add(null);
+  }
+
+  void clearPlayList() {
+    _playList.clear();
+    _playListStreamController.add(null);
+    _playListOrderStateStreamController.add(null);
   }
 
   void exportCustomPlayList(String listName) async {
@@ -389,7 +388,7 @@ class AudioPlayerKit {
           newList.add(AudioTrack(
               title: data['title'],
               path: path,
-              changedDateTime: fileStat.changed,
+              modifiedDateTime: fileStat.modified,
               file: null));
         }
       }
@@ -405,7 +404,7 @@ class AudioPlayerKit {
     _playList.deleteList(listName);
   }
 
-  Future<List<Map>> selectAllPlayList() async {
+  Future<List<Map>?> selectAllPlayList() async {
     return await _playList.selectAllDBTable();
   }
 
@@ -433,19 +432,18 @@ class AudioPlayerKit {
         builder: builder,
       );
 
-  StreamBuilder<LoopMode> loopModeStreamBuilder(builder) =>
-      StreamBuilder<LoopMode>(
+  StreamBuilder<void> loopModeStreamBuilder(builder) => StreamBuilder<void>(
         stream: _loopModeStreamController.stream,
         builder: builder,
       );
 
-  StreamBuilder<bool> shuffleModeStreamBuilder(builder) => StreamBuilder<bool>(
-        stream: _shuffleModeStreamController.stream,
+  StreamBuilder<void> playListOrderStateStreamBuilder(builder) =>
+      StreamBuilder<void>(
+        stream: _playListOrderStateStreamController.stream,
         builder: builder,
       );
 
-  StreamBuilder<bool> mashupModeStreamBuilder(builder) => StreamBuilder<bool>(
-        stream: _mashupModeStreamController.stream,
-        builder: builder,
-      );
+  StreamBuilder<void> playListSheetStreamBuilder(builder) =>
+      playListOrderStateStreamBuilder((context, value) => playListStreamBuilder(
+          (context, value) => trackStreamBuilder(builder)));
 }

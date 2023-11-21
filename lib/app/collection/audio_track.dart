@@ -4,10 +4,10 @@ class AudioTrack {
   AudioTrack(
       {required this.title,
       required this.path,
-      required this.changedDateTime,
+      required this.modifiedDateTime,
       this.file});
   final String title;
   final String path;
-  final DateTime changedDateTime;
+  final DateTime modifiedDateTime;
   final PlatformFile? file;
 }

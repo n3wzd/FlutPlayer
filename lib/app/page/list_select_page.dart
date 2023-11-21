@@ -25,7 +25,7 @@ class _ListSelectPageState extends State<ListSelectPage> {
   }
 
   void setPlayList() async {
-    playList = await widget.audioPlayerKit.selectAllPlayList();
+    playList = await widget.audioPlayerKit.selectAllPlayList() ?? [];
     selectedList = List<bool>.filled(playList.length, false, growable: false);
     setState(() {});
   }
@@ -43,7 +43,7 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 itemCount: length,
                 itemBuilder: (context, index) => ListTileMaker.multiItem(
                   index: index,
-                  name: playList[index]['name'],
+                  text: playList[index]['name'],
                   onTap: () async {
                     selectedList[index] = !selectedList[index];
                     setState(() {});
