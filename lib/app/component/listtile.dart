@@ -135,7 +135,7 @@ class ListTileMaker {
     bool sliderShowLabel = false,
     required void Function(double) onChanged,
   }) {
-    double sliderValue = (sliderMax > initialValue) ? sliderMax : initialValue;
+    double sliderValue = initialValue;
     return Container(
       padding: const EdgeInsets.all(listPadding),
       child: Column(

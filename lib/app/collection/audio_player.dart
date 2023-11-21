@@ -14,7 +14,7 @@ import './preference.dart';
 import '../global.dart' as glo;
 
 class AudioPlayerKit {
-  final _androidMode = false; // true - android, false - web
+  final _androidMode = true; // true - android, false - web
 
   final _audioPlayerList = [
     AudioPlayer(
@@ -104,13 +104,13 @@ class AudioPlayerKit {
 
   void playListAddList(List<AudioTrack> newList) {
     _playList.addAll(newList);
-    _playListStreamController.add(null);
-    initPlayListUpdated();
     if (Preference.shuffleReload) {
       _playList.currentIndex = Random().nextInt(playListLength);
       _playList.shuffle();
       _playListOrderStateStreamController.add(null);
     }
+    _playListStreamController.add(null);
+    initPlayListUpdated();
   }
 
   void initPlayListUpdated() async {

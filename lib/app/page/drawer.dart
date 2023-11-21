@@ -73,7 +73,9 @@ class PageDrawer extends StatelessWidget {
                 subtitle: 'sets how to sort play list.',
                 initialSelection: Preference.playListOrderMethod,
                 onSelected: (PlayListOrderMethod? value) {
-                  Preference.playListOrderMethod;
+                  if (value != null) {
+                    Preference.playListOrderMethod = value;
+                  }
                 },
                 valueList: [
                   {'value': PlayListOrderMethod.title, 'label': 'title'},
@@ -94,7 +96,6 @@ class PageDrawer extends StatelessWidget {
                 sliderMax: Preference.mashupTransitionTimeMax.toDouble() / 1000,
                 onChanged: (double value) {
                   Preference.mashupTransitionTime = value.toInt() * 1000;
-                  print(Preference.mashupTransitionTime);
                 },
                 sliderDivisions: 10,
                 sliderShowLabel: true,
@@ -115,8 +116,6 @@ class PageDrawer extends StatelessWidget {
                       values.start.toInt() * 1000;
                   Preference.mashupNextTriggerMaxTime =
                       values.end.toInt() * 1000;
-                  print(Preference.mashupNextTriggerMinTime);
-                  print(Preference.mashupNextTriggerMaxTime);
                 },
                 sliderDivisions: 10,
                 sliderShowLabel: true,
