@@ -70,6 +70,18 @@ class _ListSheetState extends State<ListSheet> {
           (context, value) => Scaffold(
             backgroundColor: ColorMaker.black,
             appBar: AppBar(
+              leading: StreamBuilder(
+                stream: _expandController.stream,
+                builder: (context, value) => Visibility(
+                  visible: _isExpand && Preference.showPlayListDeleteButton,
+                  child: ButtonMaker.icon(
+                    icon: const Icon(Icons.delete, color: ColorMaker.lightGrey),
+                    iconSize: 25,
+                    onPressed: widget.audioPlayerKit.clearPlayList,
+                    outline: false,
+                  ),
+                ),
+              ),
               title: GestureDetector(
                 onTap: _toggleSheetExpanding,
                 child: StreamBuilder(
@@ -92,23 +104,20 @@ class _ListSheetState extends State<ListSheet> {
                   stream: _expandController.stream,
                   builder: (context, value) => Visibility(
                     visible: _isExpand && Preference.showPlayListOrderButton,
-                    child: StreamBuilder(
-                      stream: _expandController.stream,
-                      builder: (context, value) => ButtonMaker.icon(
-                        icon: Icon(
-                          widget.audioPlayerKit.playListOrderState ==
-                                  PlayListOrderState.ascending
-                              ? Icons.vertical_align_top
-                              : (widget.audioPlayerKit.playListOrderState ==
-                                      PlayListOrderState.descending
-                                  ? Icons.vertical_align_bottom
-                                  : Icons.sort),
-                          size: 25,
-                          color: ColorMaker.lightGrey,
-                        ),
-                        iconSize: 24,
-                        onPressed: widget.audioPlayerKit.sortPlayList,
+                    child: ButtonMaker.icon(
+                      icon: Icon(
+                        widget.audioPlayerKit.playListOrderState ==
+                                PlayListOrderState.ascending
+                            ? Icons.vertical_align_top
+                            : (widget.audioPlayerKit.playListOrderState ==
+                                    PlayListOrderState.descending
+                                ? Icons.vertical_align_bottom
+                                : Icons.sort),
+                        size: 25,
+                        color: ColorMaker.lightGrey,
                       ),
+                      iconSize: 24,
+                      onPressed: widget.audioPlayerKit.sortPlayList,
                     ),
                   ),
                 ),

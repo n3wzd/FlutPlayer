@@ -8,27 +8,35 @@ class DialogMaker {
 
   static void alertDialog(
           {required BuildContext context,
-          required VoidCallback onPressed,
+          required Future<bool> Function() onPressed,
           required Widget content}) =>
       showDialog(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (context) => Dialog(
                 backgroundColor: ColorMaker.darkGrey,
-                content: content,
-                actions: <Widget>[
-                  Center(
-                    child: SizedBox(
-                      width: _buttonWidth,
-                      child: ButtonMaker.text(
-                        onPressed: () {
-                          onPressed();
-                          Navigator.of(context).pop();
-                        },
-                        text: 'ok',
-                      ),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      content,
+                      SizedBox(
+                        width: 80,
+                        height: 32,
+                        child: ButtonMaker.text(
+                          onPressed: () async {
+                            await onPressed();
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          text: 'ok',
+                        ),
+                      )
+                    ],
                   ),
-                ],
+                ),
               ));
 
   static void choiceDialog(

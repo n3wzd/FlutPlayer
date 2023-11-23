@@ -25,17 +25,20 @@ class ButtonMaker {
   static Theme icon(
           {required Icon icon,
           double iconSize = 35,
-          required VoidCallback onPressed,
+          VoidCallback? onPressed,
+          Color? color,
           bool outline = true,
           bool? isSelected,
           Icon? selectedIcon}) =>
       ThemeMaker.iconButton(
           IconButton(
             icon: icon,
+            color: color,
             iconSize: iconSize,
             onPressed: onPressed,
             isSelected: isSelected,
             selectedIcon: selectedIcon,
+            disabledColor: ColorMaker.disableGrey,
           ),
           outline: outline);
 }

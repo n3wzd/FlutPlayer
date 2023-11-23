@@ -1,9 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../collection/audio_player.dart';
 import '../component/listtile.dart';
 import '../component/button.dart';
 import '../style/color.dart';
+import '../style/text.dart';
 
 class ListSelectPage extends StatefulWidget {
   const ListSelectPage({Key? key, required this.audioPlayerKit})
@@ -15,8 +17,12 @@ class ListSelectPage extends StatefulWidget {
 }
 
 class _ListSelectPageState extends State<ListSelectPage> {
-  List<Map> playList = [];
-  List<bool> selectedList = [];
+  List<Map> _playList = [];
+  List<bool> _selectedList = [];
+  int _selectedItemCount = 0;
+  int _selectedItemIndex = 0;
+  bool _isSelectedItemFavorite = false;
+  int _selectedPageIndex = 0;
 
   @override
   void initState() {
@@ -25,30 +31,111 @@ class _ListSelectPageState extends State<ListSelectPage> {
   }
 
   void setPlayList() async {
-    playList = await widget.audioPlayerKit.selectAllPlayList() ?? [];
-    selectedList = List<bool>.filled(playList.length, false, growable: false);
+    _playList = await widget.audioPlayerKit.selectAllPlayList(
+            favoriteFilter: _selectedPageIndex == 0 ? false : true) ??
+        [];
+    _selectedList = List<bool>.filled(_playList.length, false, growable: false);
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    int length = playList.length;
+    int length = _playList.length;
     return Scaffold(
       backgroundColor: ColorMaker.black,
+      appBar: AppBar(
+        backgroundColor: ColorMaker.darkWine,
+        actions: [
+          ButtonMaker.icon(
+            icon: const Icon(Icons.star),
+            color: _isSelectedItemFavorite
+                ? ColorMaker.lightWine
+                : ColorMaker.lightGrey,
+            onPressed: _selectedItemCount == 1
+                ? () {
+                    widget.audioPlayerKit.deleteCustomPlayList(
+                        _playList[_selectedItemIndex]['name']);
+                  }
+                : null,
+            outline: false,
+          ),
+          ButtonMaker.icon(
+            icon: const Icon(Icons.change_circle),
+            color: ColorMaker.lightGrey,
+            onPressed: _selectedItemCount == 1
+                ? () {
+                    widget.audioPlayerKit.deleteCustomPlayList(
+                        _playList[_selectedItemIndex]['name']);
+                  }
+                : null,
+            outline: false,
+          ),
+          ButtonMaker.icon(
+            icon: const Icon(Icons.delete),
+            color: ColorMaker.lightGrey,
+            onPressed: _selectedItemCount == 1
+                ? () {
+                    widget.audioPlayerKit.deleteCustomPlayList(
+                        _playList[_selectedItemIndex]['name']);
+                  }
+                : null,
+            outline: false,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
+            NavigationBarTheme(
+              data: NavigationBarThemeData(
+                labelTextStyle:
+                    MaterialStateProperty.all(TextStyleMaker.normal()),
+                iconTheme: MaterialStateProperty.all(
+                    const IconThemeData(color: ColorMaker.lightGrey)),
+              ),
+              child: NavigationBar(
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.star),
+                    label: 'Favorite',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.present_to_all),
+                    label: 'All',
+                  ),
+                ],
+                backgroundColor: ColorMaker.transparent,
+                selectedIndex: _selectedPageIndex,
+                indicatorColor: ColorMaker.lightWine,
+                onDestinationSelected: (index) {
+                  setState(() {
+                    _selectedPageIndex = index;
+                    setPlayList();
+                  });
+                },
+              ),
+            ),
             Expanded(
               child: ListView.builder(
                 itemCount: length,
                 itemBuilder: (context, index) => ListTileMaker.multiItem(
                   index: index,
-                  text: playList[index]['name'],
+                  text: _playList[index]['name'],
                   onTap: () async {
-                    selectedList[index] = !selectedList[index];
+                    _selectedList[index] = !_selectedList[index];
+                    _selectedList[index]
+                        ? _selectedItemCount++
+                        : _selectedItemCount--;
+                    if (_selectedItemCount == 1) {
+                      _isSelectedItemFavorite = await widget.audioPlayerKit
+                              .selectDBTableFavorite(
+                                  _playList[index]['name']) ??
+                          false;
+                      _selectedItemIndex = index;
+                    }
                     setState(() {});
                   },
-                  selected: selectedList[index],
+                  selected: _selectedList[index],
                 ),
               ),
             ),
@@ -60,9 +147,9 @@ class _ListSelectPageState extends State<ListSelectPage> {
                     ButtonMaker.text(
                         onPressed: () {
                           for (int index = 0; index < length; index++) {
-                            if (selectedList[index]) {
+                            if (_selectedList[index]) {
                               widget.audioPlayerKit.importCustomPlayList(
-                                  playList[index]['name']);
+                                  _playList[index]['name']);
                             }
                           }
                           Navigator.pop(context);

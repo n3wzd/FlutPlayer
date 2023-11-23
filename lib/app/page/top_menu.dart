@@ -15,38 +15,34 @@ class TopMenu extends StatelessWidget {
     double silderValue = silderMax;
     return Row(
       children: [
+        ButtonMaker.icon(
+          icon: const Icon(Icons.file_open),
+          iconSize: 30,
+          onPressed: audioPlayerKit.filesOpen,
+          outline: false,
+        ),
+        const SizedBox(width: 6),
+        const Icon(Icons.nightlife, color: ColorMaker.lightWine),
+        StatefulBuilder(
+          builder: (context, setState) => Checkbox(
+            checkColor: ColorMaker.white,
+            fillColor: MaterialStateProperty.all(ColorMaker.lightWine),
+            value: audioPlayerKit.mashupMode,
+            onChanged: (bool? value) {
+              setState(() {
+                audioPlayerKit.toggleMashupMode();
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
         Expanded(
-          flex: 4,
-          child: Row(
-            children: [
-              ButtonMaker.icon(
-                icon: const Icon(Icons.file_open),
-                iconSize: 30,
-                onPressed: audioPlayerKit.filesOpen,
-                outline: false,
-              ),
-              ButtonMaker.icon(
-                icon: const Icon(Icons.delete, color: ColorMaker.lightGrey),
-                iconSize: 25,
-                onPressed: audioPlayerKit.clearPlayList,
-                outline: false,
-              ),
-              const SizedBox(width: 6),
-              const Icon(Icons.nightlife, color: ColorMaker.lightWine),
-              StatefulBuilder(
-                builder: (context, setState) => Checkbox(
-                  checkColor: ColorMaker.white,
-                  fillColor: MaterialStateProperty.all(ColorMaker.lightWine),
-                  value: audioPlayerKit.mashupMode,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      audioPlayerKit.toggleMashupMode();
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Visibility(
+              visible: MediaQuery.of(context).size.width >= 356,
+              child: SizedBox(
+                width: 160,
                 child: StatefulBuilder(
                   builder: (context, setState) => Row(
                     children: [
@@ -74,9 +70,10 @@ class TopMenu extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
+        const SizedBox(width: 16),
       ],
     );
   }

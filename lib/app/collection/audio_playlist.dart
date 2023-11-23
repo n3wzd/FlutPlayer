@@ -43,7 +43,7 @@ class PlayList {
         await db.execute(
             'CREATE TABLE $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
         await db.execute(
-            'CREATE TABLE $tableMasterDBTableName (name TEXT UNIQUE);');
+            'CREATE TABLE $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
       });
     } catch (e) {
       glo.debugLog += e.toString();
@@ -194,7 +194,7 @@ class PlayList {
     if (!isDBOpen) {
       return;
     }
-    if (!(await _checkDBTableExist(tableName))) {
+    if (!(await checkDBTableExist(tableName) ?? false)) {
       await database.transaction((txn) async {
         await _createDBTable(txn, tableName);
         await _insertListToDBMainTable(txn);
@@ -207,7 +207,7 @@ class PlayList {
     if (!isDBOpen) {
       return;
     }
-    if (await _checkDBTableExist(tableName)) {
+    if (await checkDBTableExist(tableName) ?? false) {
       await database.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
       });
@@ -218,7 +218,7 @@ class PlayList {
     if (!isDBOpen) {
       return;
     }
-    if (await _checkDBTableExist(tableName)) {
+    if (await checkDBTableExist(tableName) ?? false) {
       await database.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
         await _createDBTable(txn, tableName);
@@ -232,18 +232,51 @@ class PlayList {
     if (!isDBOpen) {
       return null;
     }
-    if (await _checkDBTableExist(tableName)) {
+    if (await checkDBTableExist(tableName) ?? false) {
       return await database.rawQuery(
           'SELECT title, path FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id;');
     }
     return null;
   }
 
-  Future<List<Map>?> selectAllDBTable() async {
+  Future<List<Map>?> selectAllDBTable({bool favoriteFilter = false}) async {
     if (!isDBOpen) {
       return null;
     }
-    return await database.rawQuery('SELECT name FROM $tableMasterDBTableName');
+    String extraQuery = favoriteFilter ? 'WHERE favorite=TRUE' : '';
+    return await database.rawQuery(
+        'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;');
+  }
+
+  void toggleDBTableFavorite(String tableName) async {
+    if (!isDBOpen) {
+      return;
+    }
+    if (await checkDBTableExist(tableName) ?? false) {
+      bool? fav = await selectDBTableFavorite(tableName);
+      if (fav != null) {
+        await database.execute(
+            'UPDATE $tableMasterDBTableName SET favorite=${!fav} WHERE name="$tableName";');
+      }
+    }
+  }
+
+  Future<bool?> selectDBTableFavorite(String tableName) async {
+    if (!isDBOpen) {
+      return null;
+    }
+    List<Map> data = await database.rawQuery(
+        'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
+    return data[0]['favorite'];
+  }
+
+  Future<bool?> checkDBTableExist(String tableName) async {
+    if (!isDBOpen) {
+      return null;
+    }
+    List<Map> data = await database.rawQuery(
+        'SELECT name FROM $tableMasterDBTableName WHERE name="$tableName";');
+    return data.isNotEmpty;
   }
 
   Future<void> _insertListToDBMainTable(Transaction txn) async {
@@ -270,12 +303,6 @@ class PlayList {
         }
       }
     }
-  }
-
-  Future<bool> _checkDBTableExist(String tableName) async {
-    List<Map> data = await database.rawQuery(
-        'SELECT name FROM $tableMasterDBTableName WHERE name="$tableName";');
-    return data.isNotEmpty;
   }
 
   Future<void> _createDBTable(Transaction txn, String tableName) async {

@@ -79,6 +79,27 @@ class ListTileMaker {
     );
   }
 
+  static contentContainer(
+          {required String title,
+          String subtitle = '',
+          required Widget child}) =>
+      Container(
+        padding: const EdgeInsets.all(listPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextMaker.normal(title, fontSize: 18),
+            (subtitle != '') ? const SizedBox(height: 2) : const SizedBox(),
+            (subtitle != '')
+                ? TextMaker.normal(subtitle,
+                    fontSize: 14, color: ColorMaker.grey, allowLineBreak: true)
+                : const SizedBox(),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      );
+
   static contentDropDownMenu<T>({
     required String title,
     String subtitle = '',
@@ -87,40 +108,30 @@ class ListTileMaker {
     required List<Map> valueList,
   }) {
     T menuValue = initialSelection;
-    return Container(
-      padding: const EdgeInsets.all(listPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextMaker.normal(title, fontSize: 18),
-          const SizedBox(height: 2),
-          TextMaker.normal(subtitle,
-              fontSize: 14, color: ColorMaker.grey, allowLineBreak: true),
-          const SizedBox(height: 12),
-          StatefulBuilder(
-            builder: (context, setState) => DropdownButton<T>(
-              value: menuValue,
-              icon: const Icon(Icons.arrow_drop_down),
-              onChanged: (T? value) {
-                setState(() {
-                  if (value != null) {
-                    onSelected(value);
-                    menuValue = value;
-                  }
-                });
-              },
-              isExpanded: true,
-              dropdownColor: ColorMaker.darkGrey,
-              items:
-                  List<DropdownMenuItem<T>>.generate(valueList.length, (index) {
-                return DropdownMenuItem<T>(
-                    value: valueList[index]['value'],
-                    child: TextMaker.normal(valueList[index]['label'],
-                        fontSize: 18));
-              }),
-            ),
-          ),
-        ],
+    return contentContainer(
+      title: title,
+      subtitle: subtitle,
+      child: StatefulBuilder(
+        builder: (context, setState) => DropdownButton<T>(
+          value: menuValue,
+          icon: const Icon(Icons.arrow_drop_down),
+          onChanged: (T? value) {
+            setState(() {
+              if (value != null) {
+                onSelected(value);
+                menuValue = value;
+              }
+            });
+          },
+          isExpanded: true,
+          dropdownColor: ColorMaker.darkGrey,
+          items: List<DropdownMenuItem<T>>.generate(valueList.length, (index) {
+            return DropdownMenuItem<T>(
+                value: valueList[index]['value'],
+                child:
+                    TextMaker.normal(valueList[index]['label'], fontSize: 18));
+          }),
+        ),
       ),
     );
   }
@@ -136,33 +147,24 @@ class ListTileMaker {
     required void Function(double) onChanged,
   }) {
     double sliderValue = initialValue;
-    return Container(
-      padding: const EdgeInsets.all(listPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextMaker.normal(title, fontSize: 18),
-          const SizedBox(height: 2),
-          TextMaker.normal(subtitle,
-              fontSize: 14, color: ColorMaker.grey, allowLineBreak: true),
-          const SizedBox(height: 12),
-          StatefulBuilder(
-            builder: (context, setState) => SliderMaker.normal(
-              value: sliderValue,
-              max: sliderMax,
-              min: sliderMin,
-              onChanged: (double value) {
-                setState(() {
-                  onChanged(value);
-                  sliderValue = value;
-                });
-              },
-              useOverlayColor: false,
-              divisions: sliderDivisions,
-              showLabel: sliderShowLabel,
-            ),
-          ),
-        ],
+    return contentContainer(
+      title: title,
+      subtitle: subtitle,
+      child: StatefulBuilder(
+        builder: (context, setState) => SliderMaker.normal(
+          value: sliderValue,
+          max: sliderMax,
+          min: sliderMin,
+          onChanged: (double value) {
+            setState(() {
+              onChanged(value);
+              sliderValue = value;
+            });
+          },
+          useOverlayColor: false,
+          divisions: sliderDivisions,
+          showLabel: sliderShowLabel,
+        ),
       ),
     );
   }
@@ -178,33 +180,24 @@ class ListTileMaker {
     required void Function(RangeValues) onChanged,
   }) {
     RangeValues sliderValues = initialValues;
-    return Container(
-      padding: const EdgeInsets.all(listPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextMaker.normal(title, fontSize: 18),
-          const SizedBox(height: 2),
-          TextMaker.normal(subtitle,
-              fontSize: 14, color: ColorMaker.grey, allowLineBreak: true),
-          const SizedBox(height: 12),
-          StatefulBuilder(
-            builder: (context, setState) => SliderMaker.range(
-              values: sliderValues,
-              max: sliderMax,
-              min: sliderMin,
-              onChanged: (RangeValues values) {
-                setState(() {
-                  onChanged(values);
-                  sliderValues = values;
-                });
-              },
-              useOverlayColor: false,
-              divisions: sliderDivisions,
-              showLabel: sliderShowLabel,
-            ),
-          ),
-        ],
+    return contentContainer(
+      title: title,
+      subtitle: subtitle,
+      child: StatefulBuilder(
+        builder: (context, setState) => SliderMaker.range(
+          values: sliderValues,
+          max: sliderMax,
+          min: sliderMin,
+          onChanged: (RangeValues values) {
+            setState(() {
+              onChanged(values);
+              sliderValues = values;
+            });
+          },
+          useOverlayColor: false,
+          divisions: sliderDivisions,
+          showLabel: sliderShowLabel,
+        ),
       ),
     );
   }

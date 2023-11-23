@@ -18,15 +18,29 @@ class AudioPlayerKit {
 
   final _audioPlayerList = [
     AudioPlayer(
-        handleInterruptions: false, handleAudioSessionActivation: false),
+      handleInterruptions: false,
+      handleAudioSessionActivation: false,
+      audioPipeline: AudioPipeline(
+        androidAudioEffects: [
+          // _equalizer,
+        ],
+      ),
+    ),
     AudioPlayer(
-        handleInterruptions: false, handleAudioSessionActivation: false),
+      handleInterruptions: false,
+      handleAudioSessionActivation: false,
+      audioPipeline: AudioPipeline(
+        androidAudioEffects: [
+          // _equalizer,
+        ],
+      ),
+    ),
   ];
   final PlayList _playList = PlayList();
+  final _equalizer = AndroidEqualizer();
   LoopMode _loopMode = LoopMode.all;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
-  double _volumeMasterRate = 1.0;
   double _volumeTransitionRate = 1.0;
 
   final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
@@ -45,7 +59,7 @@ class AudioPlayerKit {
       _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
   LoopMode get loopMode => _loopMode;
   bool get mashupMode => _mashupMode;
-  double get volume => _volumeMasterRate;
+
   int get playListLength => _playList.playListLength;
   String get currentAudioTitle => _playList.currentAudioTitle;
   bool get isPlaying => audioPlayer.playing;
@@ -57,7 +71,7 @@ class AudioPlayerKit {
       audioPlayer.playbackEventStream;
 
   set masterVolume(double v) {
-    _volumeMasterRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
+    Preference.volumeMasterRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
     updateAudioPlayerVolume();
   }
 
@@ -246,8 +260,9 @@ class AudioPlayerKit {
   }
 
   void updateAudioPlayerVolume() {
-    audioPlayer.setVolume(_volumeTransitionRate * _volumeMasterRate);
-    audioPlayerSub.setVolume((1.0 - _volumeTransitionRate) * _volumeMasterRate);
+    audioPlayer.setVolume(_volumeTransitionRate * Preference.volumeMasterRate);
+    audioPlayerSub
+        .setVolume((1.0 - _volumeTransitionRate) * Preference.volumeMasterRate);
   }
 
   void filesOpen() async {
@@ -404,8 +419,20 @@ class AudioPlayerKit {
     _playList.deleteList(listName);
   }
 
-  Future<List<Map>?> selectAllPlayList() async {
-    return await _playList.selectAllDBTable();
+  Future<List<Map>?> selectAllPlayList({bool favoriteFilter = false}) async {
+    return await _playList.selectAllDBTable(favoriteFilter: favoriteFilter);
+  }
+
+  void toggleDBTableFavorite(String listName) async {
+    _playList.toggleDBTableFavorite(listName);
+  }
+
+  Future<bool?> selectDBTableFavorite(String listName) async {
+    return await _playList.selectDBTableFavorite(listName);
+  }
+
+  Future<bool?> checkDBTableExist(String listName) async {
+    return await _playList.selectDBTableFavorite(listName);
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../page/list_select_page.dart';
 import '../component/dialog.dart';
 import '../component/listtile.dart';
+import '../component/text.dart';
 import '../collection/audio_player.dart';
 import '../collection/preference.dart';
 import '../style/decoration.dart';
@@ -17,7 +18,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 12,
+          itemCount: 14,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -29,18 +30,49 @@ class PageDrawer extends StatelessWidget {
                   subtitle: 'creates new playlist from the current.',
                   onTap: () {
                     String listName = '';
+                    bool showToolTip = false;
                     DialogMaker.alertDialog(
-                      context: context,
-                      onPressed: () {
-                        audioPlayerKit.exportCustomPlayList(listName);
-                      },
-                      content: TextField(
-                        onChanged: (value) {
-                          listName = value;
+                        context: context,
+                        onPressed: () async {
+                          bool ck = await audioPlayerKit
+                                  .checkDBTableExist(listName) ??
+                              true;
+                          if (!ck) {
+                            audioPlayerKit.exportCustomPlayList(listName);
+                            return true;
+                          }
+                          return false;
                         },
-                        decoration: DecorationMaker.textField(),
-                      ),
-                    );
+                        content: StatefulBuilder(
+                          builder: (context, setState) => SizedBox(
+                            height: 64,
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 48,
+                                  child: TextField(
+                                    onChanged: (value) async {
+                                      listName = value;
+                                      showToolTip = await audioPlayerKit
+                                              .checkDBTableExist(listName) ??
+                                          false;
+                                      setState(() {});
+                                    },
+                                    decoration: DecorationMaker.textField(),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 16,
+                                  child: TextMaker.normal(
+                                      showToolTip
+                                          ? 'This name already exists.'
+                                          : '',
+                                      fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ));
                   });
             } else if (index == 2) {
               return ListTileMaker.content(
@@ -132,7 +164,7 @@ class PageDrawer extends StatelessWidget {
                   Preference.instantlyPlay = !Preference.instantlyPlay;
                 },
               );
-            } else {
+            } else if (index == 11) {
               return ListTileMaker.contentSwitch(
                 title: 'Shuffle Reload',
                 subtitle: 'shuffles play list whenever play list updated.',
@@ -141,6 +173,31 @@ class PageDrawer extends StatelessWidget {
                   Preference.shuffleReload = !Preference.shuffleReload;
                 },
               );
+            } else if (index == 12) {
+              return ListTileMaker.contentSwitch(
+                title: 'Show List Delete Button',
+                subtitle:
+                    'shows or hides list delete button on play list sheet.',
+                initialValue: Preference.showPlayListDeleteButton,
+                onChanged: (bool value) {
+                  Preference.showPlayListDeleteButton =
+                      !Preference.showPlayListDeleteButton;
+                },
+              );
+            } else {
+              if (!(MediaQuery.of(context).size.width >= 356)) {
+                return ListTileMaker.contentSlider(
+                  title: 'Master Volumne',
+                  initialValue: Preference.volumeMasterRate,
+                  sliderMin: 0.0,
+                  sliderMax: 1.0,
+                  onChanged: (double value) {
+                    audioPlayerKit.masterVolume = value;
+                  },
+                );
+              } else {
+                return const SizedBox();
+              }
             }
           },
         ),
