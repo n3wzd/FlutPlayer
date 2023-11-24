@@ -267,7 +267,7 @@ class PlayList {
     }
     List<Map> data = await database.rawQuery(
         'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
-    return data[0]['favorite'];
+    return data[0]['favorite'] == 0 ? false : true;
   }
 
   Future<bool?> checkDBTableExist(String tableName) async {

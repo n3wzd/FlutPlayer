@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../collection/audio_player.dart';
@@ -32,10 +31,15 @@ class _ListSelectPageState extends State<ListSelectPage> {
 
   void setPlayList() async {
     _playList = await widget.audioPlayerKit.selectAllPlayList(
-            favoriteFilter: _selectedPageIndex == 0 ? false : true) ??
+            favoriteFilter: _selectedPageIndex == 1 ? false : true) ??
         [];
     _selectedList = List<bool>.filled(_playList.length, false, growable: false);
     setState(() {});
+  }
+
+  void deletePlayListItem(int index) {
+    _playList.removeAt(index);
+    _selectedList.removeAt(index);
   }
 
   @override
@@ -53,8 +57,13 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 : ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
-                    widget.audioPlayerKit.deleteCustomPlayList(
+                    widget.audioPlayerKit.toggleDBTableFavorite(
                         _playList[_selectedItemIndex]['name']);
+                    _isSelectedItemFavorite = !_isSelectedItemFavorite;
+                    if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
+                      deletePlayListItem(_selectedItemIndex);
+                    }
+                    setState(() {});
                   }
                 : null,
             outline: false,
@@ -64,8 +73,9 @@ class _ListSelectPageState extends State<ListSelectPage> {
             color: ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
-                    widget.audioPlayerKit.deleteCustomPlayList(
+                    widget.audioPlayerKit.updateCustomPlayList(
                         _playList[_selectedItemIndex]['name']);
+                    setState(() {});
                   }
                 : null,
             outline: false,
@@ -77,6 +87,9 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 ? () {
                     widget.audioPlayerKit.deleteCustomPlayList(
                         _playList[_selectedItemIndex]['name']);
+                    _selectedItemCount--;
+                    deletePlayListItem(_selectedItemIndex);
+                    setState(() {});
                   }
                 : null,
             outline: false,
@@ -108,10 +121,9 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 selectedIndex: _selectedPageIndex,
                 indicatorColor: ColorMaker.lightWine,
                 onDestinationSelected: (index) {
-                  setState(() {
-                    _selectedPageIndex = index;
-                    setPlayList();
-                  });
+                  _selectedPageIndex = index;
+                  _selectedItemCount = 0;
+                  setPlayList();
                 },
               ),
             ),

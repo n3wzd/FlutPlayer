@@ -11,33 +11,26 @@ import './audio_track.dart';
 import './audio_playlist.dart';
 import './preference.dart';
 
-import '../global.dart' as glo;
-
 class AudioPlayerKit {
   final _androidMode = true; // true - android, false - web
 
-  final _audioPlayerList = [
+  late final List<AudioPlayer> _audioPlayerList = [
     AudioPlayer(
       handleInterruptions: false,
       handleAudioSessionActivation: false,
       audioPipeline: AudioPipeline(
         androidAudioEffects: [
-          // _equalizer,
+          _equalizer,
         ],
       ),
     ),
     AudioPlayer(
       handleInterruptions: false,
       handleAudioSessionActivation: false,
-      audioPipeline: AudioPipeline(
-        androidAudioEffects: [
-          // _equalizer,
-        ],
-      ),
     ),
   ];
   final PlayList _playList = PlayList();
-  final _equalizer = AndroidEqualizer();
+  final AndroidEqualizer _equalizer = AndroidEqualizer();
   LoopMode _loopMode = LoopMode.all;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
@@ -59,7 +52,7 @@ class AudioPlayerKit {
       _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
   LoopMode get loopMode => _loopMode;
   bool get mashupMode => _mashupMode;
-
+  AndroidEqualizer get equalizer => _equalizer;
   int get playListLength => _playList.playListLength;
   String get currentAudioTitle => _playList.currentAudioTitle;
   bool get isPlaying => audioPlayer.playing;
@@ -95,6 +88,7 @@ class AudioPlayerKit {
       nextEventWhenPlayerCompleted(1);
     });
     _playList.init();
+    _equalizer.setEnabled(true);
 
     audioPlayer.play();
     audioPlayerSub.play();
@@ -271,7 +265,6 @@ class AudioPlayerKit {
       if (_permissionStatus.isDenied) {
         return;
       }
-      glo.debugLog = '';
       String? selectedDirectoryPath =
           await FilePicker.platform.getDirectoryPath();
       if (selectedDirectoryPath != null) {
@@ -290,13 +283,10 @@ class AudioPlayerKit {
                 path: file.path,
                 modifiedDateTime: fileStat.modified,
               ));
-              glo.debugLog +=
-                  '${name.substring(0, name.length - 4)} - ${fileStat.modified.toString()} | ';
             }
           }
         }
         playListAddList(newList);
-        glo.debugLogStreamController.add(null);
       }
     } else {
       FilePickerResult? result = await FilePicker.platform.pickFiles(

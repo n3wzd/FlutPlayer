@@ -1,7 +1,8 @@
 import 'package:flutbeat/app/collection/audio_playlist.dart';
 import 'package:flutter/material.dart';
 
-import '../page/list_select_page.dart';
+import './list_select_page.dart';
+import './equalizer.dart';
 import '../component/dialog.dart';
 import '../component/listtile.dart';
 import '../component/text.dart';
@@ -18,7 +19,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 14,
+          itemCount: 15,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -34,14 +35,8 @@ class PageDrawer extends StatelessWidget {
                     DialogMaker.alertDialog(
                         context: context,
                         onPressed: () async {
-                          bool ck = await audioPlayerKit
-                                  .checkDBTableExist(listName) ??
-                              true;
-                          if (!ck) {
-                            audioPlayerKit.exportCustomPlayList(listName);
-                            return true;
-                          }
-                          return false;
+                          audioPlayerKit.exportCustomPlayList(listName);
+                          return true;
                         },
                         content: StatefulBuilder(
                           builder: (context, setState) => SizedBox(
@@ -53,9 +48,6 @@ class PageDrawer extends StatelessWidget {
                                   child: TextField(
                                     onChanged: (value) async {
                                       listName = value;
-                                      showToolTip = await audioPlayerKit
-                                              .checkDBTableExist(listName) ??
-                                          false;
                                       setState(() {});
                                     },
                                     decoration: DecorationMaker.textField(),
@@ -184,7 +176,7 @@ class PageDrawer extends StatelessWidget {
                       !Preference.showPlayListDeleteButton;
                 },
               );
-            } else {
+            } else if (index == 13) {
               if (!(MediaQuery.of(context).size.width >= 356)) {
                 return ListTileMaker.contentSlider(
                   title: 'Master Volumne',
@@ -198,6 +190,18 @@ class PageDrawer extends StatelessWidget {
               } else {
                 return const SizedBox();
               }
+            } else {
+              return ListTileMaker.content(
+                  title: 'Equalizer',
+                  subtitle: 'equalizer.',
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return EqualizerControls(
+                            equalizer: audioPlayerKit.equalizer);
+                      },
+                    ));
+                  });
             }
           },
         ),

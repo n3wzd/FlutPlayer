@@ -23,7 +23,6 @@ class DialogMaker {
                       content,
                       SizedBox(
                         width: 80,
-                        height: 32,
                         child: ButtonMaker.text(
                           onPressed: () async {
                             await onPressed();
