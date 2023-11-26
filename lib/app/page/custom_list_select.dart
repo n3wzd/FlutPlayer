@@ -6,6 +6,8 @@ import '../component/button.dart';
 import '../style/color.dart';
 import '../style/text.dart';
 
+import '../global.dart' as glo;
+
 class ListSelectPage extends StatefulWidget {
   const ListSelectPage({Key? key, required this.audioPlayerKit})
       : super(key: key);
@@ -19,7 +21,6 @@ class _ListSelectPageState extends State<ListSelectPage> {
   List<Map> _playList = [];
   List<bool> _selectedList = [];
   int _selectedItemCount = 0;
-  int _selectedItemIndex = 0;
   bool _isSelectedItemFavorite = false;
   int _selectedPageIndex = 0;
 
@@ -29,17 +30,30 @@ class _ListSelectPageState extends State<ListSelectPage> {
     setPlayList();
   }
 
-  void setPlayList() async {
-    _playList = await widget.audioPlayerKit.selectAllPlayList(
+  Future<void> setPlayList() async {
+    _playList = await widget.audioPlayerKit.selectAllDBTable(
             favoriteFilter: _selectedPageIndex == 1 ? false : true) ??
         [];
-    _selectedList = List<bool>.filled(_playList.length, false, growable: false);
+    _selectedList = List<bool>.filled(_playList.length, false, growable: true);
     setState(() {});
   }
 
   void deletePlayListItem(int index) {
     _playList.removeAt(index);
     _selectedList.removeAt(index);
+    _selectedItemCount--;
+
+    glo.debugLog += _playList.toString();
+    glo.debugLogStreamController.add(null);
+  }
+
+  int findUniqueItemIndex() {
+    for (int i = 0; i < _selectedList.length; i++) {
+      if (_selectedList[i]) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   @override
@@ -57,11 +71,12 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 : ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
+                    int selectedItemIndex = findUniqueItemIndex();
                     widget.audioPlayerKit.toggleDBTableFavorite(
-                        _playList[_selectedItemIndex]['name']);
+                        _playList[selectedItemIndex]['name']);
                     _isSelectedItemFavorite = !_isSelectedItemFavorite;
                     if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
-                      deletePlayListItem(_selectedItemIndex);
+                      deletePlayListItem(selectedItemIndex);
                     }
                     setState(() {});
                   }
@@ -73,8 +88,9 @@ class _ListSelectPageState extends State<ListSelectPage> {
             color: ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
+                    int selectedItemIndex = findUniqueItemIndex();
                     widget.audioPlayerKit.updateCustomPlayList(
-                        _playList[_selectedItemIndex]['name']);
+                        _playList[selectedItemIndex]['name']);
                     setState(() {});
                   }
                 : null,
@@ -85,10 +101,17 @@ class _ListSelectPageState extends State<ListSelectPage> {
             color: ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
-                    widget.audioPlayerKit.deleteCustomPlayList(
-                        _playList[_selectedItemIndex]['name']);
-                    _selectedItemCount--;
-                    deletePlayListItem(_selectedItemIndex);
+                    glo.debugLog = '';
+                    try {
+                      int selectedItemIndex = findUniqueItemIndex();
+                      widget.audioPlayerKit.deleteCustomPlayList(
+                          _playList[selectedItemIndex]['name']);
+                      deletePlayListItem(selectedItemIndex);
+                    } catch (e) {
+                      glo.debugLog += e.toString();
+                      glo.debugLogStreamController.add(null);
+                    }
+
                     setState(() {});
                   }
                 : null,
@@ -120,10 +143,10 @@ class _ListSelectPageState extends State<ListSelectPage> {
                 backgroundColor: ColorMaker.transparent,
                 selectedIndex: _selectedPageIndex,
                 indicatorColor: ColorMaker.lightWine,
-                onDestinationSelected: (index) {
+                onDestinationSelected: (index) async {
                   _selectedPageIndex = index;
                   _selectedItemCount = 0;
-                  setPlayList();
+                  await setPlayList();
                 },
               ),
             ),
@@ -141,9 +164,8 @@ class _ListSelectPageState extends State<ListSelectPage> {
                     if (_selectedItemCount == 1) {
                       _isSelectedItemFavorite = await widget.audioPlayerKit
                               .selectDBTableFavorite(
-                                  _playList[index]['name']) ??
+                                  _playList[findUniqueItemIndex()]['name']) ??
                           false;
-                      _selectedItemIndex = index;
                     }
                     setState(() {});
                   },

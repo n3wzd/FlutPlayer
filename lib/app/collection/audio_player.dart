@@ -20,17 +20,25 @@ class AudioPlayerKit {
       handleAudioSessionActivation: false,
       audioPipeline: AudioPipeline(
         androidAudioEffects: [
-          _equalizer,
+          _equalizerList[0],
         ],
       ),
     ),
     AudioPlayer(
       handleInterruptions: false,
       handleAudioSessionActivation: false,
+      audioPipeline: AudioPipeline(
+        androidAudioEffects: [
+          _equalizerList[1],
+        ],
+      ),
     ),
   ];
   final PlayList _playList = PlayList();
-  final AndroidEqualizer _equalizer = AndroidEqualizer();
+  final List<AndroidEqualizer> _equalizerList = [
+    AndroidEqualizer(),
+    AndroidEqualizer(),
+  ];
   LoopMode _loopMode = LoopMode.all;
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
@@ -52,7 +60,8 @@ class AudioPlayerKit {
       _audioPlayerList[(_currentIndexAudioPlayerList + 1) % 2];
   LoopMode get loopMode => _loopMode;
   bool get mashupMode => _mashupMode;
-  AndroidEqualizer get equalizer => _equalizer;
+  AndroidEqualizer get equalizer => _equalizerList[0];
+  AndroidEqualizer get equalizerSub => _equalizerList[1];
   int get playListLength => _playList.playListLength;
   String get currentAudioTitle => _playList.currentAudioTitle;
   bool get isPlaying => audioPlayer.playing;
@@ -88,7 +97,7 @@ class AudioPlayerKit {
       nextEventWhenPlayerCompleted(1);
     });
     _playList.init();
-    _equalizer.setEnabled(true);
+    setEnabledEqualizer();
 
     audioPlayer.play();
     audioPlayerSub.play();
@@ -129,6 +138,21 @@ class AudioPlayerKit {
       if (!Preference.instantlyPlay) {
         pause();
       }
+    }
+  }
+
+  void setEnabledEqualizer() {
+    equalizer.setEnabled(Preference.enableEqualizer);
+    equalizerSub.setEnabled(Preference.enableEqualizer);
+  }
+
+  Future<void> syncEqualizer() async {
+    var parameters = await equalizer.parameters;
+    var parametersSub = await equalizerSub.parameters;
+    var bands = parameters.bands;
+    var bandsSub = parametersSub.bands;
+    for (int i = 0; i < bands.length; i++) {
+      bandsSub[i].setGain(bands[i].gain);
     }
   }
 
@@ -409,8 +433,9 @@ class AudioPlayerKit {
     _playList.deleteList(listName);
   }
 
-  Future<List<Map>?> selectAllPlayList({bool favoriteFilter = false}) async {
-    return await _playList.selectAllDBTable(favoriteFilter: favoriteFilter);
+  Future<List<Map>?> selectAllDBTable({bool favoriteFilter = false}) async {
+    var list = await _playList.selectAllDBTable(favoriteFilter: favoriteFilter);
+    return list != null ? List<Map>.from(list) : null;
   }
 
   void toggleDBTableFavorite(String listName) async {
@@ -422,7 +447,15 @@ class AudioPlayerKit {
   }
 
   Future<bool?> checkDBTableExist(String listName) async {
-    return await _playList.selectDBTableFavorite(listName);
+    return await _playList.checkDBTableExist(listName);
+  }
+
+  void exportDBFile() async {
+    activePermission();
+    if (_permissionStatus.isDenied) {
+      return;
+    }
+    _playList.exportDBFile();
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

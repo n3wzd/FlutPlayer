@@ -145,6 +145,7 @@ class ListTileMaker {
     int? sliderDivisions,
     bool sliderShowLabel = false,
     required void Function(double) onChanged,
+    void Function(double)? onChangeEnd,
   }) {
     double sliderValue = initialValue;
     return contentContainer(
@@ -161,6 +162,7 @@ class ListTileMaker {
               sliderValue = value;
             });
           },
+          onChangeEnd: onChangeEnd,
           useOverlayColor: false,
           divisions: sliderDivisions,
           showLabel: sliderShowLabel,
@@ -178,6 +180,7 @@ class ListTileMaker {
     int? sliderDivisions,
     bool sliderShowLabel = false,
     required void Function(RangeValues) onChanged,
+    void Function(RangeValues)? onChangeEnd,
   }) {
     RangeValues sliderValues = initialValues;
     return contentContainer(
@@ -194,6 +197,7 @@ class ListTileMaker {
               sliderValues = values;
             });
           },
+          onChangeEnd: onChangeEnd,
           useOverlayColor: false,
           divisions: sliderDivisions,
           showLabel: sliderShowLabel,

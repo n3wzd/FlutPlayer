@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../collection/audio_player.dart';
+import '../collection/preference.dart';
 import '../component/slider.dart';
 import '../component/button.dart';
+import '../component/checkbox.dart';
 import '../style/color.dart';
 
 class TopMenu extends StatelessWidget {
@@ -24,14 +26,11 @@ class TopMenu extends StatelessWidget {
         const SizedBox(width: 6),
         const Icon(Icons.nightlife, color: ColorMaker.lightWine),
         StatefulBuilder(
-          builder: (context, setState) => Checkbox(
-            checkColor: ColorMaker.white,
-            fillColor: MaterialStateProperty.all(ColorMaker.lightWine),
+          builder: (context, setState) => CheckboxMaker.normal(
             value: audioPlayerKit.mashupMode,
             onChanged: (bool? value) {
-              setState(() {
-                audioPlayerKit.toggleMashupMode();
-              });
+              audioPlayerKit.toggleMashupMode();
+              setState(() {});
             },
           ),
         ),
@@ -58,10 +57,12 @@ class TopMenu extends StatelessWidget {
                           value: silderValue,
                           max: silderMax,
                           onChanged: (double value) {
-                            setState(() {
-                              silderValue = value;
-                              audioPlayerKit.masterVolume = value;
-                            });
+                            silderValue = value;
+                            audioPlayerKit.masterVolume = value;
+                            setState(() {});
+                          },
+                          onChangeEnd: (double value) {
+                            Preference.save();
                           },
                           useOverlayColor: false,
                         ),

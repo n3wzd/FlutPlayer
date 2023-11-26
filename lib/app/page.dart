@@ -8,10 +8,11 @@ import './page/list_sheet.dart';
 import './page/drawer.dart';
 import './collection/audio_player.dart';
 import './collection/audio_handler.dart';
+import './collection/preference.dart';
 import './component/dialog.dart';
 import './component/text.dart';
+import './component/button.dart';
 import './style/color.dart';
-import './style/theme.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -29,6 +30,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
     super.initState();
     _audioPlayerKit.init();
     createAudioSerivce(_audioPlayerKit);
+    Preference.init();
   }
 
   @override
@@ -43,12 +45,10 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          leading: ThemeMaker.iconButton(
-            IconButton(
-              icon: const Icon(Icons.settings,
-                  color: ColorMaker.lightGrey, size: 30),
-              onPressed: () => _scaffoldKey.currentState!.openDrawer(),
-            ),
+          leading: ButtonMaker.icon(
+            icon: const Icon(Icons.settings,
+                color: ColorMaker.lightGrey, size: 30),
+            onPressed: () => _scaffoldKey.currentState!.openDrawer(),
             outline: false,
           ),
           title: TopMenu(audioPlayerKit: _audioPlayerKit),

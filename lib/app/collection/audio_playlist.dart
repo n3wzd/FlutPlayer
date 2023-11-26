@@ -1,9 +1,11 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:file_picker/file_picker.dart';
 import './audio_track.dart';
 import './file_audio_source.dart';
 import './preference.dart';
+import 'dart:io';
 
 import '../global.dart' as glo;
 
@@ -11,9 +13,11 @@ class PlayList {
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
   final List<String> _playListBackup = [];
+  final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
   late final Database database;
+  late final String databasesPath;
   bool isDBOpen = false;
   PlayListOrderState _playListOrderState = PlayListOrderState.none;
 
@@ -36,9 +40,8 @@ class PlayList {
   void init() async {
     glo.debugLog = '';
     try {
-      String databasesPath = await getDatabasesPath();
-      String path = join(databasesPath, 'audio_track.db');
-      database = await openDatabase(path, version: 1,
+      databasesPath = join(await getDatabasesPath(), databaseFileName);
+      database = await openDatabase(databasesPath, version: 1,
           onCreate: (Database db, int version) async {
         await db.execute(
             'CREATE TABLE $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
@@ -161,6 +164,8 @@ class PlayList {
               ? sortByModifiedDateTimeAscending()
               : sortByModifiedDateTimeDescending();
           break;
+        default:
+          break;
       }
       for (int i = 0; i < _playList.length; i++) {
         if (currentKey == _playList[i]) {
@@ -265,9 +270,12 @@ class PlayList {
     if (!isDBOpen) {
       return null;
     }
-    List<Map> data = await database.rawQuery(
-        'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
-    return data[0]['favorite'] == 0 ? false : true;
+    if (await checkDBTableExist(tableName) ?? false) {
+      List<Map> data = await database.rawQuery(
+          'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
+      return data[0]['favorite'] == 0 ? false : true;
+    }
+    return null;
   }
 
   Future<bool?> checkDBTableExist(String tableName) async {
@@ -316,6 +324,18 @@ class PlayList {
     txn.execute('DROP TABLE ${_customDBtableName(tableName)};');
     txn.execute('DELETE FROM $tableMasterDBTableName WHERE name="$tableName";');
   }
+
+  void exportDBFile() async {
+    if (!isDBOpen) {
+      return null;
+    }
+    String? selectedDirectoryPath =
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      File file = File(databasesPath);
+      file.copy('$selectedDirectoryPath/$databaseFileName');
+    }
+  }
 }
 
 enum PlayListOrderState {
@@ -326,6 +346,15 @@ enum PlayListOrderState {
 }
 
 enum PlayListOrderMethod {
-  title,
-  modifiedDateTime,
+  title('title'),
+  modifiedDateTime('modifiedDateTime'),
+  undefined('undefined');
+
+  const PlayListOrderMethod(this.code);
+  final String code;
+
+  factory PlayListOrderMethod.toEnum(String code) {
+    return PlayListOrderMethod.values.firstWhere((value) => value.code == code,
+        orElse: () => PlayListOrderMethod.undefined);
+  }
 }

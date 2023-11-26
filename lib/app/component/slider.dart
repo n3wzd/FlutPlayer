@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../style/color.dart';
-import '../style/theme.dart';
 
 class SliderMaker {
-  static SliderTheme normal(
+  static normal(
           {required double value,
           required double max,
           double? min,
-          required ValueChanged<double> onChanged,
+          ValueChanged<double>? onChanged,
           ValueChanged<double>? onChangeEnd,
           int? divisions,
           bool showLabel = false,
@@ -36,11 +35,12 @@ class SliderMaker {
         useOverlayColor: useOverlayColor,
       );
 
-  static SliderTheme range(
+  static range(
           {required RangeValues values,
           required double max,
           double? min,
-          required ValueChanged<RangeValues> onChanged,
+          ValueChanged<RangeValues>? onChanged,
+          ValueChanged<RangeValues>? onChangeEnd,
           int? divisions,
           bool showLabel = false,
           bool useOverlayColor = true}) =>
@@ -50,6 +50,7 @@ class SliderMaker {
           max: max,
           min: min ?? 0,
           onChanged: onChanged,
+          onChangeEnd: onChangeEnd,
           activeColor: ColorMaker.purple,
           inactiveColor: ColorMaker.lightGrey,
           overlayColor:
@@ -68,5 +69,16 @@ class SliderMaker {
               : null,
         ),
         useOverlayColor: useOverlayColor,
+      );
+}
+
+class ThemeMaker {
+  static slider(Widget slider, {bool useOverlayColor = true}) => SliderTheme(
+        data: useOverlayColor
+            ? const SliderThemeData()
+            : SliderThemeData(
+                overlayShape: SliderComponentShape.noOverlay,
+              ),
+        child: slider,
       );
 }

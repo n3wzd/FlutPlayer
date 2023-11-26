@@ -1,7 +1,9 @@
 import 'package:flutbeat/app/collection/audio_playlist.dart';
 import 'package:flutter/material.dart';
 
-import './list_select_page.dart';
+import 'dart:async';
+
+import './custom_list_select.dart';
 import './equalizer.dart';
 import '../component/dialog.dart';
 import '../component/listtile.dart';
@@ -19,56 +21,71 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 15,
+          itemCount: 16,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
-            if (index == 0) {
-              return ListTileMaker.title(text: 'Play List');
-            } else if (index == 1) {
-              return ListTileMaker.content(
-                  title: 'Export',
+            final widgetList = <Widget>[
+              ListTileMaker.title(text: 'Custom Playlist'),
+              ListTileMaker.content(
+                  title: 'Export Playlist',
                   subtitle: 'creates new playlist from the current.',
                   onTap: () {
                     String listName = '';
                     bool showToolTip = false;
+                    final textFieldStreamController =
+                        StreamController<void>.broadcast();
                     DialogMaker.alertDialog(
-                        context: context,
-                        onPressed: () async {
-                          audioPlayerKit.exportCustomPlayList(listName);
-                          return true;
-                        },
-                        content: StatefulBuilder(
-                          builder: (context, setState) => SizedBox(
-                            height: 64,
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 48,
-                                  child: TextField(
-                                    onChanged: (value) async {
-                                      listName = value;
-                                      setState(() {});
-                                    },
-                                    decoration: DecorationMaker.textField(),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 16,
+                      context: context,
+                      onPressed: () async {
+                        bool? checkDBTableExist =
+                            await audioPlayerKit.checkDBTableExist(listName);
+                        if (checkDBTableExist != null) {
+                          if (!checkDBTableExist) {
+                            audioPlayerKit.exportCustomPlayList(listName);
+                            return true;
+                          }
+                          showToolTip = true;
+                          textFieldStreamController.add(null);
+                          return false;
+                        }
+                        return true;
+                      },
+                      content: SizedBox(
+                        height: 64,
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: 40,
+                              child: TextField(
+                                onChanged: (value) {
+                                  listName = value;
+                                  showToolTip = false;
+                                  textFieldStreamController.add(null);
+                                },
+                                decoration: DecorationMaker.textField(),
+                              ),
+                            ),
+                            StreamBuilder(
+                              stream: textFieldStreamController.stream,
+                              builder: (context, data) => SizedBox(
+                                height: 24,
+                                child: Center(
                                   child: TextMaker.normal(
                                       showToolTip
                                           ? 'This name already exists.'
                                           : '',
                                       fontSize: 14),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ));
-                  });
-            } else if (index == 2) {
-              return ListTileMaker.content(
-                  title: 'Import',
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+              ListTileMaker.content(
+                  title: 'Import Playlist',
                   subtitle: 'loads playlist and place on the current.',
                   onTap: () {
                     Navigator.push(context, MaterialPageRoute<void>(
@@ -78,27 +95,32 @@ class PageDrawer extends StatelessWidget {
                         );
                       },
                     ));
-                  });
-            } else if (index == 3) {
-              return ListTileMaker.title(text: 'Sort');
-            } else if (index == 4) {
-              return ListTileMaker.contentSwitch(
+                  }),
+              ListTileMaker.content(
+                  title: 'Export Database',
+                  subtitle: 'export database file.',
+                  onTap: () {
+                    audioPlayerKit.exportDBFile();
+                  }),
+              ListTileMaker.title(text: 'Sort'),
+              ListTileMaker.contentSwitch(
                 title: 'Show Sort Button',
                 subtitle: 'shows or hides sort button on play list sheet.',
                 initialValue: Preference.showPlayListOrderButton,
                 onChanged: (bool value) {
                   Preference.showPlayListOrderButton =
                       !Preference.showPlayListOrderButton;
+                  Preference.save();
                 },
-              );
-            } else if (index == 5) {
-              return ListTileMaker.contentDropDownMenu<PlayListOrderMethod>(
+              ),
+              ListTileMaker.contentDropDownMenu<PlayListOrderMethod>(
                 title: 'Sort Method',
                 subtitle: 'sets how to sort play list.',
                 initialSelection: Preference.playListOrderMethod,
                 onSelected: (PlayListOrderMethod? value) {
                   if (value != null) {
                     Preference.playListOrderMethod = value;
+                    Preference.save();
                   }
                 },
                 valueList: [
@@ -108,11 +130,9 @@ class PageDrawer extends StatelessWidget {
                     'label': 'modifiedDateTime'
                   },
                 ],
-              );
-            } else if (index == 6) {
-              return ListTileMaker.title(text: 'Mashup');
-            } else if (index == 7) {
-              return ListTileMaker.contentSlider(
+              ),
+              ListTileMaker.title(text: 'Mashup'),
+              ListTileMaker.contentSlider(
                 title: 'Time to Transition',
                 subtitle: 'changes time to transition next track.',
                 initialValue: Preference.mashupTransitionTime.toDouble() / 1000,
@@ -121,11 +141,13 @@ class PageDrawer extends StatelessWidget {
                 onChanged: (double value) {
                   Preference.mashupTransitionTime = value.toInt() * 1000;
                 },
+                onChangeEnd: (double value) {
+                  Preference.save();
+                },
                 sliderDivisions: 10,
                 sliderShowLabel: true,
-              );
-            } else if (index == 8) {
-              return ListTileMaker.contentRangeSlider(
+              ),
+              ListTileMaker.contentRangeSlider(
                 title: 'Time to Trigger Next',
                 subtitle: 'changes random time range to trigger next track.',
                 initialValues: RangeValues(
@@ -141,32 +163,45 @@ class PageDrawer extends StatelessWidget {
                   Preference.mashupNextTriggerMaxTime =
                       values.end.toInt() * 1000;
                 },
+                onChangeEnd: (RangeValues values) {
+                  Preference.save();
+                },
                 sliderDivisions: 10,
                 sliderShowLabel: true,
-              );
-            } else if (index == 9) {
-              return ListTileMaker.title(text: 'Other');
-            } else if (index == 10) {
-              return ListTileMaker.contentSwitch(
+              ),
+              ListTileMaker.title(text: 'Equalizer'),
+              ListTileMaker.content(
+                  title: 'Equalizer',
+                  subtitle: 'open equalizer page.',
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return EqualizerControls(
+                            audioPlayerKit: audioPlayerKit);
+                      },
+                    ));
+                  }),
+              ListTileMaker.title(text: 'Other'),
+              ListTileMaker.contentSwitch(
                 title: 'Instantly Play',
                 subtitle:
                     'plays first track instantly when first track loaded on play list.',
                 initialValue: Preference.instantlyPlay,
                 onChanged: (bool value) {
                   Preference.instantlyPlay = !Preference.instantlyPlay;
+                  Preference.save();
                 },
-              );
-            } else if (index == 11) {
-              return ListTileMaker.contentSwitch(
+              ),
+              ListTileMaker.contentSwitch(
                 title: 'Shuffle Reload',
                 subtitle: 'shuffles play list whenever play list updated.',
                 initialValue: Preference.shuffleReload,
                 onChanged: (bool value) {
                   Preference.shuffleReload = !Preference.shuffleReload;
+                  Preference.save();
                 },
-              );
-            } else if (index == 12) {
-              return ListTileMaker.contentSwitch(
+              ),
+              ListTileMaker.contentSwitch(
                 title: 'Show List Delete Button',
                 subtitle:
                     'shows or hides list delete button on play list sheet.',
@@ -174,35 +209,23 @@ class PageDrawer extends StatelessWidget {
                 onChanged: (bool value) {
                   Preference.showPlayListDeleteButton =
                       !Preference.showPlayListDeleteButton;
+                  Preference.save();
                 },
-              );
-            } else if (index == 13) {
-              if (!(MediaQuery.of(context).size.width >= 356)) {
-                return ListTileMaker.contentSlider(
-                  title: 'Master Volumne',
-                  initialValue: Preference.volumeMasterRate,
-                  sliderMin: 0.0,
-                  sliderMax: 1.0,
-                  onChanged: (double value) {
-                    audioPlayerKit.masterVolume = value;
-                  },
-                );
-              } else {
-                return const SizedBox();
-              }
-            } else {
-              return ListTileMaker.content(
-                  title: 'Equalizer',
-                  subtitle: 'equalizer.',
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute<void>(
-                      builder: (BuildContext context) {
-                        return EqualizerControls(
-                            equalizer: audioPlayerKit.equalizer);
-                      },
-                    ));
-                  });
-            }
+              ),
+              ListTileMaker.contentSlider(
+                title: 'Master Volumne',
+                initialValue: Preference.volumeMasterRate,
+                sliderMin: 0.0,
+                sliderMax: 1.0,
+                onChanged: (double value) {
+                  audioPlayerKit.masterVolume = value;
+                },
+                onChangeEnd: (double value) {
+                  Preference.save();
+                },
+              ),
+            ];
+            return widgetList[index];
           },
         ),
       );

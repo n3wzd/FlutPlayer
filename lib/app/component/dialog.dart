@@ -6,7 +6,7 @@ import '../style/color.dart';
 class DialogMaker {
   static const double _buttonWidth = 80.0;
 
-  static void alertDialog(
+  static alertDialog(
           {required BuildContext context,
           required Future<bool> Function() onPressed,
           required Widget content}) =>
@@ -25,8 +25,8 @@ class DialogMaker {
                         width: 80,
                         child: ButtonMaker.text(
                           onPressed: () async {
-                            await onPressed();
-                            if (context.mounted) {
+                            bool isPop = await onPressed();
+                            if (isPop && context.mounted) {
                               Navigator.of(context).pop();
                             }
                           },
@@ -38,7 +38,7 @@ class DialogMaker {
                 ),
               ));
 
-  static void choiceDialog(
+  static choiceDialog(
           {required BuildContext context,
           required VoidCallback onOkPressed,
           required VoidCallback onCancelPressed,
