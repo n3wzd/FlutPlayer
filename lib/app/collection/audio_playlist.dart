@@ -202,7 +202,6 @@ class PlayList {
     if (!(await checkDBTableExist(tableName) ?? false)) {
       await database.transaction((txn) async {
         await _createDBTable(txn, tableName);
-        await _insertListToDBMainTable(txn);
         await _insertListToDBCustomTable(txn, tableName);
       });
     }
@@ -227,7 +226,6 @@ class PlayList {
       await database.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
         await _createDBTable(txn, tableName);
-        await _insertListToDBMainTable(txn);
         await _insertListToDBCustomTable(txn, tableName);
       });
     }
@@ -287,29 +285,31 @@ class PlayList {
     return data.isNotEmpty;
   }
 
-  Future<void> _insertListToDBMainTable(Transaction txn) async {
-    for (String trackTitle in _playList) {
-      AudioTrack? track = _playMap[trackTitle];
-      if (track != null) {
-        await txn.rawInsert(
-            'INSERT OR IGNORE INTO $mainDBTableName(title, path) VALUES("${track.title}", "${track.path}")');
-      }
-    }
-  }
-
   Future<void> _insertListToDBCustomTable(
       Transaction txn, String tableName) async {
     for (String trackTitle in _playList) {
       AudioTrack? track = _playMap[trackTitle];
       if (track != null) {
-        List<Map> data = await txn.rawQuery(
-            'SELECT id FROM $mainDBTableName WHERE title = "${track.title}";');
-        if (data.isNotEmpty) {
-          int id = data[0]['id'];
-          await txn.rawInsert(
-              'INSERT OR IGNORE INTO ${_customDBtableName(tableName)}(id) VALUES($id);');
-        }
+        _insertTrackToDBMainTable(txn, track);
+        _insertTrackToDBCustomTable(txn, tableName, track.title);
       }
+    }
+  }
+
+  Future<void> _insertTrackToDBMainTable(
+      Transaction txn, AudioTrack track) async {
+    await txn.rawInsert(
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path) VALUES("${track.title}", "${track.path}")');
+  }
+
+  Future<void> _insertTrackToDBCustomTable(
+      Transaction txn, String tableName, String title) async {
+    List<Map> data = await txn
+        .rawQuery('SELECT id FROM $mainDBTableName WHERE title = "$title";');
+    if (data.isNotEmpty) {
+      int id = data[0]['id'];
+      await txn.rawInsert(
+          'INSERT OR IGNORE INTO ${_customDBtableName(tableName)}(id) VALUES($id);');
     }
   }
 
@@ -325,15 +325,84 @@ class PlayList {
     txn.execute('DELETE FROM $tableMasterDBTableName WHERE name="$tableName";');
   }
 
-  void exportDBFile() async {
+  Future<void> exportDBFile() async {
     if (!isDBOpen) {
-      return null;
+      return;
     }
     String? selectedDirectoryPath =
         await FilePicker.platform.getDirectoryPath();
     if (selectedDirectoryPath != null) {
       File file = File(databasesPath);
       file.copy('$selectedDirectoryPath/$databaseFileName');
+    }
+  }
+
+  Future<void> customTableDatabaseToCsv() async {
+    try {
+      if (!isDBOpen) {
+        return;
+      }
+      String? selectedDirectoryPath =
+          await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        List<Map>? tables = await selectAllDBTable();
+        if (tables != null) {
+          for (Map table in tables) {
+            String tableName = table['name'];
+            List<Map>? datas = await importList(tableName);
+            if (datas != null) {
+              File file = File('$selectedDirectoryPath/$tableName.csv');
+              String buffer = '';
+              buffer += '"title"\n';
+              for (Map data in datas) {
+                buffer += '"${data["title"]}"\n';
+              }
+              file.writeAsStringSync(buffer);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      glo.debugLog = e.toString();
+      glo.debugLogStreamController.add(null);
+    }
+  }
+
+  Future<void> customTableCsvToDatabase() async {
+    try {
+      if (!isDBOpen) {
+        return;
+      }
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (result != null) {
+        String? path = result.files[0].path;
+        String tableName = result.files[0].name;
+        tableName = tableName.substring(0, tableName.length - 4);
+        if (path != null) {
+          File file = File(path);
+          List<String> datas = file.readAsLinesSync();
+          if (!(await checkDBTableExist(tableName) ?? false)) {
+            await database.transaction((txn) async {
+              await _createDBTable(txn, tableName);
+              int cnt = 0;
+              for (String data in datas) {
+                if (cnt++ == 0) {
+                  continue;
+                }
+                _insertTrackToDBCustomTable(
+                    txn, tableName, data.substring(1, data.length - 1));
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      glo.debugLog = e.toString();
+      glo.debugLogStreamController.add(null);
     }
   }
 }
@@ -356,5 +425,10 @@ enum PlayListOrderMethod {
   factory PlayListOrderMethod.toEnum(String code) {
     return PlayListOrderMethod.values.firstWhere((value) => value.code == code,
         orElse: () => PlayListOrderMethod.undefined);
+  }
+
+  @override
+  String toString() {
+    return code;
   }
 }

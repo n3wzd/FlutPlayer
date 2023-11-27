@@ -179,8 +179,8 @@ class AudioPlayerKit {
   void setMashupVolumeTransition() {
     Stream<double> mashupVolumeTransition = Stream.periodic(
             const Duration(milliseconds: 500),
-            (x) => x * 1.0 / (Preference.mashupTransitionTime / 500))
-        .take(Preference.mashupTransitionTime ~/ 500);
+            (x) => x * 1.0 / (Preference.mashupTransitionTime * 1000 / 500))
+        .take(Preference.mashupTransitionTime * 1000 ~/ 500);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
       transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
@@ -188,9 +188,9 @@ class AudioPlayerKit {
 
   void setMashupNextTrigger() {
     int nextDelay = ((Preference.mashupNextTriggerMaxTime -
-                    Preference.mashupNextTriggerMinTime) *
+                    Preference.mashupNextTriggerMinTime * 1000) *
                 Random().nextDouble() +
-            Preference.mashupNextTriggerMinTime)
+            Preference.mashupNextTriggerMinTime * 1000)
         .toInt();
     _mashupNextTriggerTimer = Stream<void>.fromFuture(
             Future<void>.delayed(Duration(milliseconds: nextDelay), () {}))
@@ -456,6 +456,14 @@ class AudioPlayerKit {
       return;
     }
     _playList.exportDBFile();
+  }
+
+  void customTableDatabaseToCsv() async {
+    _playList.customTableDatabaseToCsv();
+  }
+
+  void customTableCsvToDatabase() async {
+    _playList.customTableCsvToDatabase();
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

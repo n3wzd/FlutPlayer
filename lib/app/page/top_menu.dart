@@ -14,7 +14,7 @@ class TopMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double silderMax = 1.0;
-    double silderValue = silderMax;
+    double silderValue = Preference.volumeMasterRate;
     return Row(
       children: [
         ButtonMaker.icon(

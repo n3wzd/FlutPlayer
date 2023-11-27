@@ -21,7 +21,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 16,
+          itemCount: 19,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -32,24 +32,31 @@ class PageDrawer extends StatelessWidget {
                   subtitle: 'creates new playlist from the current.',
                   onTap: () {
                     String listName = '';
-                    bool showToolTip = false;
+                    String toolTipText = '';
                     final textFieldStreamController =
                         StreamController<void>.broadcast();
                     DialogMaker.alertDialog(
                       context: context,
                       onPressed: () async {
+                        listName = listName.trim();
                         bool? checkDBTableExist =
                             await audioPlayerKit.checkDBTableExist(listName);
                         if (checkDBTableExist != null) {
                           if (!checkDBTableExist) {
-                            audioPlayerKit.exportCustomPlayList(listName);
-                            return true;
+                            if (listName != '') {
+                              audioPlayerKit.exportCustomPlayList(listName);
+                              return true;
+                            } else {
+                              toolTipText = 'Name is empty.';
+                            }
+                          } else {
+                            toolTipText = 'This name already exists.';
                           }
-                          showToolTip = true;
-                          textFieldStreamController.add(null);
-                          return false;
+                        } else {
+                          toolTipText = 'DB Error.';
                         }
-                        return true;
+                        textFieldStreamController.add(null);
+                        return false;
                       },
                       content: SizedBox(
                         height: 64,
@@ -60,7 +67,7 @@ class PageDrawer extends StatelessWidget {
                               child: TextField(
                                 onChanged: (value) {
                                   listName = value;
-                                  showToolTip = false;
+                                  toolTipText = '';
                                   textFieldStreamController.add(null);
                                 },
                                 decoration: DecorationMaker.textField(),
@@ -71,10 +78,7 @@ class PageDrawer extends StatelessWidget {
                               builder: (context, data) => SizedBox(
                                 height: 24,
                                 child: Center(
-                                  child: TextMaker.normal(
-                                      showToolTip
-                                          ? 'This name already exists.'
-                                          : '',
+                                  child: TextMaker.normal(toolTipText,
                                       fontSize: 14),
                                 ),
                               ),
@@ -101,6 +105,18 @@ class PageDrawer extends StatelessWidget {
                   subtitle: 'export database file.',
                   onTap: () {
                     audioPlayerKit.exportDBFile();
+                  }),
+              ListTileMaker.content(
+                  title: 'Export Playlists to csv',
+                  subtitle: 'export playlists to csv file.',
+                  onTap: () {
+                    audioPlayerKit.customTableDatabaseToCsv();
+                  }),
+              ListTileMaker.content(
+                  title: 'Import Playlist from csv',
+                  subtitle: 'import playlist from csv file.',
+                  onTap: () {
+                    audioPlayerKit.customTableCsvToDatabase();
                   }),
               ListTileMaker.title(text: 'Sort'),
               ListTileMaker.contentSwitch(
@@ -135,33 +151,29 @@ class PageDrawer extends StatelessWidget {
               ListTileMaker.contentSlider(
                 title: 'Time to Transition',
                 subtitle: 'changes time to transition next track.',
-                initialValue: Preference.mashupTransitionTime.toDouble() / 1000,
-                sliderMin: Preference.mashupTransitionTimeMin.toDouble() / 1000,
-                sliderMax: Preference.mashupTransitionTimeMax.toDouble() / 1000,
+                initialValue: Preference.mashupTransitionTime.toDouble(),
+                sliderMin: Preference.mashupTransitionTimeMin.toDouble(),
+                sliderMax: Preference.mashupTransitionTimeMax.toDouble(),
                 onChanged: (double value) {
-                  Preference.mashupTransitionTime = value.toInt() * 1000;
+                  Preference.mashupTransitionTime = value.toInt();
                 },
                 onChangeEnd: (double value) {
                   Preference.save();
                 },
-                sliderDivisions: 10,
+                sliderDivisions: 9,
                 sliderShowLabel: true,
               ),
               ListTileMaker.contentRangeSlider(
                 title: 'Time to Trigger Next',
                 subtitle: 'changes random time range to trigger next track.',
                 initialValues: RangeValues(
-                    Preference.mashupNextTriggerMinTime.toDouble() / 1000,
-                    Preference.mashupNextTriggerMaxTime.toDouble() / 1000),
-                sliderMin:
-                    Preference.mashupNextTriggerTimeRangeMin.toDouble() / 1000,
-                sliderMax:
-                    Preference.mashupNextTriggerTimeRangeMax.toDouble() / 1000,
+                    Preference.mashupNextTriggerMinTime.toDouble(),
+                    Preference.mashupNextTriggerMaxTime.toDouble()),
+                sliderMin: Preference.mashupNextTriggerTimeRangeMin.toDouble(),
+                sliderMax: Preference.mashupNextTriggerTimeRangeMax.toDouble(),
                 onChanged: (RangeValues values) {
-                  Preference.mashupNextTriggerMinTime =
-                      values.start.toInt() * 1000;
-                  Preference.mashupNextTriggerMaxTime =
-                      values.end.toInt() * 1000;
+                  Preference.mashupNextTriggerMinTime = values.start.toInt();
+                  Preference.mashupNextTriggerMaxTime = values.end.toInt();
                 },
                 onChangeEnd: (RangeValues values) {
                   Preference.save();

@@ -28,15 +28,19 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _audioPlayerKit.init();
-    createAudioSerivce(_audioPlayerKit);
-    Preference.init();
+    init();
   }
 
   @override
   void dispose() {
     _audioPlayerKit.dispose();
     super.dispose();
+  }
+
+  void init() async {
+    await Preference.init();
+    _audioPlayerKit.init();
+    createAudioSerivce(_audioPlayerKit);
   }
 
   @override

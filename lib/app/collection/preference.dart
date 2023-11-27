@@ -5,12 +5,12 @@ import './audio_playlist.dart';
 class Preference {
   static late final SharedPreferences prefs;
 
-  static void init() async {
+  static Future<void> init() async {
     prefs = await SharedPreferences.getInstance();
     load();
   }
 
-  static void save() async {
+  static Future<void> save() async {
     await prefs.setDouble('volumeMasterRate', volumeMasterRate);
 
     await prefs.setBool('showPlayListOrderButton', showPlayListOrderButton);
@@ -63,14 +63,14 @@ class Preference {
   static PlayListOrderMethod playListOrderMethod = PlayListOrderMethod.title;
 
   // Mashup
-  static int mashupTransitionTime = 5000;
-  static int mashupNextTriggerMinTime = 20000;
-  static int mashupNextTriggerMaxTime = 40000;
+  static int mashupTransitionTime = 5;
+  static int mashupNextTriggerMinTime = 20;
+  static int mashupNextTriggerMaxTime = 40;
 
-  static int mashupTransitionTimeMin = 1000;
-  static int mashupTransitionTimeMax = 10000;
-  static int mashupNextTriggerTimeRangeMin = 10000;
-  static int mashupNextTriggerTimeRangeMax = 60000;
+  static int mashupTransitionTimeMin = 1;
+  static int mashupTransitionTimeMax = 10;
+  static int mashupNextTriggerTimeRangeMin = 10;
+  static int mashupNextTriggerTimeRangeMax = 60;
 
   // Equalizer
   static bool enableEqualizer = false;
