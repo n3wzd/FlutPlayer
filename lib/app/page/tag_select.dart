@@ -8,16 +8,16 @@ import '../style/text.dart';
 
 import '../global.dart' as glo;
 
-class ListSelectPage extends StatefulWidget {
-  const ListSelectPage({Key? key, required this.audioPlayerKit})
+class TagSelectPage extends StatefulWidget {
+  const TagSelectPage({Key? key, required this.audioPlayerKit})
       : super(key: key);
   final AudioPlayerKit audioPlayerKit;
 
   @override
-  State<ListSelectPage> createState() => _ListSelectPageState();
+  State<TagSelectPage> createState() => _TagSelectPageState();
 }
 
-class _ListSelectPageState extends State<ListSelectPage> {
+class _TagSelectPageState extends State<TagSelectPage> {
   List<Map> _playList = [];
   List<bool> _selectedList = [];
   int _selectedItemCount = 0;

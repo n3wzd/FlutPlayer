@@ -237,7 +237,7 @@ class PlayList {
     }
     if (await checkDBTableExist(tableName) ?? false) {
       return await database.rawQuery(
-          'SELECT title, path FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id;');
+          'SELECT title, path FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id ORDER BY sortIdx ASC;');
     }
     return null;
   }
@@ -285,13 +285,40 @@ class PlayList {
     return data.isNotEmpty;
   }
 
+  void addItemInDBTable(
+      {required String tableName, required String trackTitle}) async {
+    if (!isDBOpen) {
+      return;
+    }
+    AudioTrack? track = _playMap[trackTitle];
+    if (track != null) {
+      if (await checkDBTableExist(tableName) ?? false) {
+        await database.transaction((txn) async {
+          await _insertTrackToDBMainTable(txn, track);
+          await _insertTrackToDBCustomTable(txn, tableName, track.title);
+        });
+      }
+    }
+  }
+
+  void createDBTable(String tableName) async {
+    if (!isDBOpen) {
+      return;
+    }
+    if (await checkDBTableExist(tableName) ?? false) {
+      await database.transaction((txn) async {
+        await _createDBTable(txn, tableName);
+      });
+    }
+  }
+
   Future<void> _insertListToDBCustomTable(
       Transaction txn, String tableName) async {
     for (String trackTitle in _playList) {
       AudioTrack? track = _playMap[trackTitle];
       if (track != null) {
-        _insertTrackToDBMainTable(txn, track);
-        _insertTrackToDBCustomTable(txn, tableName, track.title);
+        await _insertTrackToDBMainTable(txn, track);
+        await _insertTrackToDBCustomTable(txn, tableName, track.title);
       }
     }
   }
@@ -315,7 +342,7 @@ class PlayList {
 
   Future<void> _createDBTable(Transaction txn, String tableName) async {
     txn.rawInsert(
-        'CREATE TABLE ${_customDBtableName(tableName)} (id INTEGER NOT NULL PRIMARY KEY);');
+        'CREATE TABLE ${_customDBtableName(tableName)} (sortIdx INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id INTEGER NOT NULL UNIQUE);');
     txn.rawInsert(
         'INSERT INTO $tableMasterDBTableName(name) VALUES("$tableName");');
   }
@@ -393,7 +420,7 @@ class PlayList {
                 if (cnt++ == 0) {
                   continue;
                 }
-                _insertTrackToDBCustomTable(
+                await _insertTrackToDBCustomTable(
                     txn, tableName, data.substring(1, data.length - 1));
               }
             });

@@ -6,6 +6,7 @@ import '../collection/audio_playlist.dart';
 import '../collection/preference.dart';
 import '../component/listtile.dart';
 import '../component/button.dart';
+import './tag_export_dialog.dart';
 import '../style/color.dart';
 
 class ListSheet extends StatefulWidget {
@@ -19,6 +20,7 @@ class ListSheet extends StatefulWidget {
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
   final _expandController = StreamController<bool>.broadcast();
+  final _contextMenu = ContextMenuController();
   double _minChildSize = 0;
   double _maxChildSize = 0;
   bool _isExpand = false;
@@ -144,21 +146,139 @@ class _ListSheetState extends State<ListSheet> {
                         widget.audioPlayerKit.removePlayListItem(index);
                       });
                     },
-                    child: ListTileMaker.multiItem(
-                      key: Key(widget.audioPlayerKit.audioTitle(index)),
-                      index: index,
-                      text: widget.audioPlayerKit.audioTitle(index),
-                      onTap: () async {
-                        await widget.audioPlayerKit.seekTrack(index);
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_contextMenu.isShown) {
+                          ContextMenuController.removeAny();
+                        }
                       },
-                      selected:
-                          widget.audioPlayerKit.compareIndexWithCurrent(index),
+                      onLongPressStart: (details) {
+                        _contextMenu.show(
+                          context: context,
+                          contextMenuBuilder: (BuildContext context) =>
+                              AdaptiveTextSelectionToolbar.buttonItems(
+                            anchors: TextSelectionToolbarAnchors(
+                              primaryAnchor: details.globalPosition,
+                            ),
+                            buttonItems: <ContextMenuButtonItem>[
+                              ContextMenuButtonItem(
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute<void>(
+                                        builder: (context) => TagSelector(
+                                          audioPlayerKit: widget.audioPlayerKit,
+                                          trackTitle: widget.audioPlayerKit
+                                              .audioTitle(index),
+                                        ),
+                                      ));
+                                  ContextMenuController.removeAny();
+                                },
+                                label: 'add',
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: ListTileMaker.multiItem(
+                        key: Key(widget.audioPlayerKit.audioTitle(index)),
+                        index: index,
+                        text: widget.audioPlayerKit.audioTitle(index),
+                        onTap: () async {
+                          await widget.audioPlayerKit.seekTrack(index);
+                        },
+                        selected: widget.audioPlayerKit
+                            .compareIndexWithCurrent(index),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class TagSelector extends StatefulWidget {
+  const TagSelector(
+      {Key? key, required this.audioPlayerKit, required this.trackTitle})
+      : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
+  final String trackTitle;
+
+  @override
+  State<TagSelector> createState() => _TagSelectorState();
+}
+
+class _TagSelectorState extends State<TagSelector> {
+  List<Map> _playList = [];
+  List<bool> _selectedList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    setPlayList();
+  }
+
+  Future<void> setPlayList() async {
+    _playList = await widget.audioPlayerKit.selectAllDBTable() ?? [];
+    _selectedList = List<bool>.filled(_playList.length, false, growable: true);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int length = _playList.length;
+    return Scaffold(
+      backgroundColor: ColorMaker.black,
+      appBar: AppBar(
+        backgroundColor: ColorMaker.transparent,
+        actions: [
+          ButtonMaker.icon(
+            icon: const Icon(Icons.add),
+            color: ColorMaker.lightWine,
+            onPressed: () async {
+              await tagExportDialog(context, widget.audioPlayerKit,
+                  autoAddPlaylist: false);
+              setState(() {});
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: length,
+                itemBuilder: (context, index) => ListTileMaker.multiItem(
+                  index: index,
+                  text: _playList[index]['name'],
+                  onTap: () async {
+                    _selectedList[index] = !_selectedList[index];
+                    setState(() {});
+                  },
+                  selected: _selectedList[index],
+                ),
+              ),
+            ),
+            ButtonMaker.text(
+                onPressed: () {
+                  for (int index = 0; index < length; index++) {
+                    if (_selectedList[index]) {
+                      widget.audioPlayerKit.addItemInDBTable(
+                          tableName: _playList[index]['name'],
+                          trackTitle: widget.trackTitle);
+                    }
+                  }
+                  Navigator.pop(context);
+                },
+                text: 'ok',
+                fontSize: 24),
+          ],
         ),
       ),
     );

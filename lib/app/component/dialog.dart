@@ -9,8 +9,8 @@ class DialogMaker {
   static alertDialog(
           {required BuildContext context,
           required Future<bool> Function() onPressed,
-          required Widget content}) =>
-      showDialog(
+          required Widget content}) async =>
+      await showDialog(
           context: context,
           builder: (context) => Dialog(
                 backgroundColor: ColorMaker.darkGrey,
@@ -42,8 +42,8 @@ class DialogMaker {
           {required BuildContext context,
           required VoidCallback onOkPressed,
           required VoidCallback onCancelPressed,
-          required Widget content}) =>
-      showDialog(
+          required Widget content}) async =>
+      await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
                 backgroundColor: ColorMaker.darkGrey,

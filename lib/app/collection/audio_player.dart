@@ -466,6 +466,15 @@ class AudioPlayerKit {
     _playList.customTableCsvToDatabase();
   }
 
+  void addItemInDBTable(
+      {required String tableName, required String trackTitle}) async {
+    _playList.addItemInDBTable(tableName: tableName, trackTitle: trackTitle);
+  }
+
+  void createDBTable(String tableName) async {
+    _playList.createDBTable(tableName);
+  }
+
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(
         stream: audioPlayer.playingStream,
         builder: (context, data) => StreamBuilder<bool>(

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
-import './color.dart';
+import '../style/color.dart';
+
+class TextFieldMaker {
+  static normal({void Function(String)? onChanged}) => TextField(
+        onChanged: onChanged,
+        decoration: DecorationMaker.textField(),
+      );
+}
 
 class DecorationMaker {
   static textField() => const InputDecoration(

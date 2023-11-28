@@ -1,16 +1,12 @@
 import 'package:flutbeat/app/collection/audio_playlist.dart';
 import 'package:flutter/material.dart';
 
-import 'dart:async';
-
-import './custom_list_select.dart';
+import './tag_select.dart';
+import './tag_export_dialog.dart';
 import './equalizer.dart';
-import '../component/dialog.dart';
 import '../component/listtile.dart';
-import '../component/text.dart';
 import '../collection/audio_player.dart';
 import '../collection/preference.dart';
-import '../style/decoration.dart';
 import '../style/color.dart';
 
 class PageDrawer extends StatelessWidget {
@@ -26,95 +22,41 @@ class PageDrawer extends StatelessWidget {
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
             final widgetList = <Widget>[
-              ListTileMaker.title(text: 'Custom Playlist'),
+              ListTileMaker.title(text: 'Tag'),
               ListTileMaker.content(
-                  title: 'Export Playlist',
-                  subtitle: 'creates new playlist from the current.',
+                  title: 'Export Tag',
+                  subtitle: 'creates new tag add current tracks on the tag.',
                   onTap: () {
-                    String listName = '';
-                    String toolTipText = '';
-                    final textFieldStreamController =
-                        StreamController<void>.broadcast();
-                    DialogMaker.alertDialog(
-                      context: context,
-                      onPressed: () async {
-                        listName = listName.trim();
-                        bool? checkDBTableExist =
-                            await audioPlayerKit.checkDBTableExist(listName);
-                        if (checkDBTableExist != null) {
-                          if (!checkDBTableExist) {
-                            if (listName != '') {
-                              audioPlayerKit.exportCustomPlayList(listName);
-                              return true;
-                            } else {
-                              toolTipText = 'Name is empty.';
-                            }
-                          } else {
-                            toolTipText = 'This name already exists.';
-                          }
-                        } else {
-                          toolTipText = 'DB Error.';
-                        }
-                        textFieldStreamController.add(null);
-                        return false;
-                      },
-                      content: SizedBox(
-                        height: 64,
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 40,
-                              child: TextField(
-                                onChanged: (value) {
-                                  listName = value;
-                                  toolTipText = '';
-                                  textFieldStreamController.add(null);
-                                },
-                                decoration: DecorationMaker.textField(),
-                              ),
-                            ),
-                            StreamBuilder(
-                              stream: textFieldStreamController.stream,
-                              builder: (context, data) => SizedBox(
-                                height: 24,
-                                child: Center(
-                                  child: TextMaker.normal(toolTipText,
-                                      fontSize: 14),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    tagExportDialog(context, audioPlayerKit);
                   }),
               ListTileMaker.content(
-                  title: 'Import Playlist',
-                  subtitle: 'loads playlist and place on the current.',
+                  title: 'Import Tag',
+                  subtitle:
+                      'loads tracks using by tag and place on the current list.',
                   onTap: () {
                     Navigator.push(context, MaterialPageRoute<void>(
                       builder: (BuildContext context) {
-                        return ListSelectPage(
+                        return TagSelectPage(
                           audioPlayerKit: audioPlayerKit,
                         );
                       },
                     ));
                   }),
               ListTileMaker.content(
-                  title: 'Export Database',
+                  title: '_Export Database_',
                   subtitle: 'export database file.',
                   onTap: () {
                     audioPlayerKit.exportDBFile();
                   }),
               ListTileMaker.content(
-                  title: 'Export Playlists to csv',
-                  subtitle: 'export playlists to csv file.',
+                  title: '_Export All Tag to csv_',
+                  subtitle: 'export all tag to csv file.',
                   onTap: () {
                     audioPlayerKit.customTableDatabaseToCsv();
                   }),
               ListTileMaker.content(
-                  title: 'Import Playlist from csv',
-                  subtitle: 'import playlist from csv file.',
+                  title: '_Import Tag from csv_',
+                  subtitle: 'import tag from csv file.',
                   onTap: () {
                     audioPlayerKit.customTableCsvToDatabase();
                   }),
@@ -225,7 +167,7 @@ class PageDrawer extends StatelessWidget {
                 },
               ),
               ListTileMaker.contentSlider(
-                title: 'Master Volumne',
+                title: 'Master Volume',
                 initialValue: Preference.volumeMasterRate,
                 sliderMin: 0.0,
                 sliderMax: 1.0,
