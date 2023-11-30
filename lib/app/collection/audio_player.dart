@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:just_waveform/just_waveform.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -10,6 +11,8 @@ import 'dart:io';
 import './audio_track.dart';
 import './audio_playlist.dart';
 import './preference.dart';
+
+import '../log.dart' as glo;
 
 class AudioPlayerKit {
   final _androidMode = true; // true - android, false - web
@@ -52,6 +55,8 @@ class AudioPlayerKit {
   final _loopModeStreamController = StreamController<void>.broadcast();
   final _playListOrderStateStreamController =
       StreamController<void>.broadcast();
+  final _waveformStreamController =
+      StreamController<WaveformProgress>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
@@ -116,6 +121,25 @@ class AudioPlayerKit {
     _permissionStatus = await Permission.manageExternalStorage.request();
   }
 
+  Future<void> visualizerInit(AudioTrack? audio) async {
+    if (audio == null) {
+      return;
+    }
+    try {
+      JustWaveform.extract(
+              audioInFile: File(audio.path),
+              waveOutFile: File('${audio.title}.wave'))
+          .listen(_waveformStreamController.add,
+              onError: _waveformStreamController.addError);
+      glo.debugLog = '${audio.title} LOAD!!';
+      glo.debugLogStreamController.add(null);
+    } catch (e) {
+      _waveformStreamController.addError(e);
+      glo.debugLog = e.toString();
+      glo.debugLogStreamController.add(null);
+    }
+  }
+
   AudioSource audioSource(int index) =>
       _playList.audioSource(index, androidMode: _androidMode);
 
@@ -178,9 +202,9 @@ class AudioPlayerKit {
 
   void setMashupVolumeTransition() {
     Stream<double> mashupVolumeTransition = Stream.periodic(
-            const Duration(milliseconds: 500),
-            (x) => x * 1.0 / (Preference.mashupTransitionTime * 1000 / 500))
-        .take(Preference.mashupTransitionTime * 1000 ~/ 500);
+            const Duration(milliseconds: 100),
+            (x) => x * 1.0 / ((Preference.mashupTransitionTime * 1000) / 100))
+        .take((Preference.mashupTransitionTime * 1000) ~/ 100);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
       transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
@@ -188,7 +212,8 @@ class AudioPlayerKit {
 
   void setMashupNextTrigger() {
     int nextDelay = ((Preference.mashupNextTriggerMaxTime -
-                    Preference.mashupNextTriggerMinTime * 1000) *
+                    Preference.mashupNextTriggerMinTime) *
+                1000 *
                 Random().nextDouble() +
             Preference.mashupNextTriggerMinTime * 1000)
         .toInt();
@@ -228,6 +253,7 @@ class AudioPlayerKit {
       }
       play();
       _playList.currentIndex = index;
+      visualizerInit(_playList.currentAudioTrack);
     }
   }
 
@@ -402,27 +428,25 @@ class AudioPlayerKit {
     _playListOrderStateStreamController.add(null);
   }
 
-  void exportCustomPlayList(String listName) async {
-    _playList.exportList(listName);
+  void exportCustomPlayList(String listName, bool autoAddPlaylist) async {
+    _playList.exportList(listName, autoAddPlaylist);
   }
 
   void importCustomPlayList(String listName) async {
     List<Map>? datas = await _playList.importList(listName);
-    if (datas != null) {
-      List<AudioTrack> newList = [];
-      for (Map data in datas) {
-        String path = data['path'];
-        if (File(path).existsSync()) {
-          FileStat fileStat = FileStat.statSync(path);
-          newList.add(AudioTrack(
-              title: data['title'],
-              path: path,
-              modifiedDateTime: fileStat.modified,
-              file: null));
-        }
+    List<AudioTrack> newList = [];
+    for (Map data in datas) {
+      String path = data['path'];
+      if (File(path).existsSync()) {
+        FileStat fileStat = FileStat.statSync(path);
+        newList.add(AudioTrack(
+            title: data['title'],
+            path: path,
+            modifiedDateTime: fileStat.modified,
+            file: null));
       }
-      playListAddList(newList);
     }
+    playListAddList(newList);
   }
 
   void updateCustomPlayList(String listName) async {
@@ -435,7 +459,7 @@ class AudioPlayerKit {
 
   Future<List<Map>?> selectAllDBTable({bool favoriteFilter = false}) async {
     var list = await _playList.selectAllDBTable(favoriteFilter: favoriteFilter);
-    return list != null ? List<Map>.from(list) : null;
+    return List<Map>.from(list);
   }
 
   void toggleDBTableFavorite(String listName) async {
@@ -471,10 +495,6 @@ class AudioPlayerKit {
     _playList.addItemInDBTable(tableName: tableName, trackTitle: trackTitle);
   }
 
-  void createDBTable(String tableName) async {
-    _playList.createDBTable(tableName);
-  }
-
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(
         stream: audioPlayer.playingStream,
         builder: (context, data) => StreamBuilder<bool>(
@@ -507,6 +527,12 @@ class AudioPlayerKit {
   StreamBuilder<void> playListOrderStateStreamBuilder(builder) =>
       StreamBuilder<void>(
         stream: _playListOrderStateStreamController.stream,
+        builder: builder,
+      );
+
+  StreamBuilder<WaveformProgress> waveformStreamBuilder(builder) =>
+      StreamBuilder<WaveformProgress>(
+        stream: _waveformStreamController.stream,
         builder: builder,
       );
 

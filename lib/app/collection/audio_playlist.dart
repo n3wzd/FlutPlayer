@@ -1,13 +1,12 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import 'package:file_picker/file_picker.dart';
 import './audio_track.dart';
 import './file_audio_source.dart';
 import './preference.dart';
 import 'dart:io';
 
-import '../global.dart' as glo;
+import '../log.dart' as log;
 
 class PlayList {
   final Map<String, AudioTrack> _playMap = {};
@@ -28,8 +27,10 @@ class PlayList {
   String get currentAudioTitle =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.title : '';
   PlayListOrderState get playListOrderState => _playListOrderState;
+  AudioTrack? get currentAudioTrack =>
+      isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
 
-  String _customDBtableName(String name) => '_fb_$name';
+  String _customDBtableName(String name) => '_fb_${name.replaceAll(' ', '_')}';
 
   String audioTitle(int index) => _playMap[_playList[index]]!.title;
   AudioSource audioSource(int index, {bool androidMode = true}) => androidMode
@@ -38,26 +39,29 @@ class PlayList {
           bytes: _playMap[_playList[index]]!.file!.bytes!.cast<int>());
 
   void init() async {
-    glo.debugLog = '';
+    log.debugLog = '';
     try {
-      databasesPath = join(await getDatabasesPath(), databaseFileName);
-      database = await openDatabase(databasesPath, version: 1,
-          onCreate: (Database db, int version) async {
-        await db.execute(
+      final path = await getDatabasesPath();
+      databasesPath = '$path/$databaseFileName';
+      if (await databaseExists(databasesPath)) {
+        database = await openDatabase(databasesPath);
+      } else {
+        database = await openDatabase(databasesPath);
+        await database.execute(
             'CREATE TABLE $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
-        await db.execute(
+        await database.execute(
             'CREATE TABLE $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
-      });
+      }
+      isDBOpen = true;
     } catch (e) {
-      glo.debugLog += e.toString();
+      log.debugLog += e.toString();
     }
-    isDBOpen = true;
-    glo.debugLog += isDBOpen.toString();
-    glo.debugLogStreamController.add(null);
+    log.debugLog += isDBOpen.toString();
+    log.debugLogStreamController.add(null);
   }
 
-  void dispose() async {
-    await database.close();
+  void dispose() {
+    database.close();
   }
 
   void addAll(List<AudioTrack> files) {
@@ -195,23 +199,19 @@ class PlayList {
     _playListOrderState = PlayListOrderState.none;
   }
 
-  void exportList(String tableName) async {
-    if (!isDBOpen) {
-      return;
-    }
-    if (!(await checkDBTableExist(tableName) ?? false)) {
+  void exportList(String tableName, bool autoAddPlaylist) async {
+    if (!(await checkDBTableExist(tableName))) {
       await database.transaction((txn) async {
         await _createDBTable(txn, tableName);
-        await _insertListToDBCustomTable(txn, tableName);
+        if (autoAddPlaylist) {
+          await _insertListToDBCustomTable(txn, tableName);
+        }
       });
     }
   }
 
   void deleteList(String tableName) async {
-    if (!isDBOpen) {
-      return;
-    }
-    if (await checkDBTableExist(tableName) ?? false) {
+    if (await checkDBTableExist(tableName)) {
       await database.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
       });
@@ -219,10 +219,7 @@ class PlayList {
   }
 
   void updateList(String tableName) async {
-    if (!isDBOpen) {
-      return;
-    }
-    if (await checkDBTableExist(tableName) ?? false) {
+    if (await checkDBTableExist(tableName)) {
       await database.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
         await _createDBTable(txn, tableName);
@@ -231,31 +228,22 @@ class PlayList {
     }
   }
 
-  Future<List<Map>?> importList(String tableName) async {
-    if (!isDBOpen) {
-      return null;
-    }
-    if (await checkDBTableExist(tableName) ?? false) {
+  Future<List<Map>> importList(String tableName) async {
+    if (await checkDBTableExist(tableName)) {
       return await database.rawQuery(
           'SELECT title, path FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id ORDER BY sortIdx ASC;');
     }
-    return null;
+    return [];
   }
 
-  Future<List<Map>?> selectAllDBTable({bool favoriteFilter = false}) async {
-    if (!isDBOpen) {
-      return null;
-    }
+  Future<List<Map>> selectAllDBTable({bool favoriteFilter = false}) async {
     String extraQuery = favoriteFilter ? 'WHERE favorite=TRUE' : '';
     return await database.rawQuery(
         'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;');
   }
 
   void toggleDBTableFavorite(String tableName) async {
-    if (!isDBOpen) {
-      return;
-    }
-    if (await checkDBTableExist(tableName) ?? false) {
+    if (await checkDBTableExist(tableName)) {
       bool? fav = await selectDBTableFavorite(tableName);
       if (fav != null) {
         await database.execute(
@@ -265,10 +253,7 @@ class PlayList {
   }
 
   Future<bool?> selectDBTableFavorite(String tableName) async {
-    if (!isDBOpen) {
-      return null;
-    }
-    if (await checkDBTableExist(tableName) ?? false) {
+    if (await checkDBTableExist(tableName)) {
       List<Map> data = await database.rawQuery(
           'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
       return data[0]['favorite'] == 0 ? false : true;
@@ -276,10 +261,7 @@ class PlayList {
     return null;
   }
 
-  Future<bool?> checkDBTableExist(String tableName) async {
-    if (!isDBOpen) {
-      return null;
-    }
+  Future<bool> checkDBTableExist(String tableName) async {
     List<Map> data = await database.rawQuery(
         'SELECT name FROM $tableMasterDBTableName WHERE name="$tableName";');
     return data.isNotEmpty;
@@ -292,7 +274,7 @@ class PlayList {
     }
     AudioTrack? track = _playMap[trackTitle];
     if (track != null) {
-      if (await checkDBTableExist(tableName) ?? false) {
+      if (await checkDBTableExist(tableName)) {
         await database.transaction((txn) async {
           await _insertTrackToDBMainTable(txn, track);
           await _insertTrackToDBCustomTable(txn, tableName, track.title);
@@ -305,7 +287,7 @@ class PlayList {
     if (!isDBOpen) {
       return;
     }
-    if (await checkDBTableExist(tableName) ?? false) {
+    if (!(await checkDBTableExist(tableName))) {
       await database.transaction((txn) async {
         await _createDBTable(txn, tableName);
       });
@@ -365,71 +347,51 @@ class PlayList {
   }
 
   Future<void> customTableDatabaseToCsv() async {
-    try {
-      if (!isDBOpen) {
-        return;
-      }
-      String? selectedDirectoryPath =
-          await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectoryPath != null) {
-        List<Map>? tables = await selectAllDBTable();
-        if (tables != null) {
-          for (Map table in tables) {
-            String tableName = table['name'];
-            List<Map>? datas = await importList(tableName);
-            if (datas != null) {
-              File file = File('$selectedDirectoryPath/$tableName.csv');
-              String buffer = '';
-              buffer += '"title"\n';
-              for (Map data in datas) {
-                buffer += '"${data["title"]}"\n';
-              }
-              file.writeAsStringSync(buffer);
-            }
-          }
+    String? selectedDirectoryPath =
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      List<Map> tables = await selectAllDBTable();
+      for (Map table in tables) {
+        String tableName = table['name'];
+        List<Map>? datas = await importList(tableName);
+        File file = File('$selectedDirectoryPath/$tableName.csv');
+        String buffer = '';
+        buffer += '"title"\n';
+        for (Map data in datas) {
+          buffer += '"${data["title"]}"\n';
         }
+        file.writeAsStringSync(buffer);
       }
-    } catch (e) {
-      glo.debugLog = e.toString();
-      glo.debugLogStreamController.add(null);
     }
   }
 
   Future<void> customTableCsvToDatabase() async {
-    try {
-      if (!isDBOpen) {
-        return;
-      }
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result != null) {
-        String? path = result.files[0].path;
-        String tableName = result.files[0].name;
-        tableName = tableName.substring(0, tableName.length - 4);
-        if (path != null) {
-          File file = File(path);
-          List<String> datas = file.readAsLinesSync();
-          if (!(await checkDBTableExist(tableName) ?? false)) {
-            await database.transaction((txn) async {
-              await _createDBTable(txn, tableName);
-              int cnt = 0;
-              for (String data in datas) {
-                if (cnt++ == 0) {
-                  continue;
-                }
-                await _insertTrackToDBCustomTable(
-                    txn, tableName, data.substring(1, data.length - 1));
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+    if (result != null) {
+      String? path = result.files[0].path;
+      String tableName = result.files[0].name;
+      tableName = tableName.substring(0, tableName.length - 4);
+      if (path != null) {
+        File file = File(path);
+        List<String> datas = file.readAsLinesSync();
+        if (!(await checkDBTableExist(tableName))) {
+          await database.transaction((txn) async {
+            await _createDBTable(txn, tableName);
+            int cnt = 0;
+            for (String data in datas) {
+              if (cnt++ == 0) {
+                continue;
               }
-            });
-          }
+              await _insertTrackToDBCustomTable(
+                  txn, tableName, data.substring(1, data.length - 1));
+            }
+          });
         }
       }
-    } catch (e) {
-      glo.debugLog = e.toString();
-      glo.debugLogStreamController.add(null);
     }
   }
 }

@@ -13,7 +13,8 @@ class ListTileMaker {
           required String text,
           Key? key,
           VoidCallback? onTap,
-          bool selected = false}) =>
+          bool selected = false,
+          Widget? trailing}) =>
       ListTile(
         key: key ?? UniqueKey(),
         title: SizedBox(
@@ -32,6 +33,7 @@ class ListTileMaker {
         selectedTileColor: ColorMaker.lightWine,
         tileColor: index % 2 == 1 ? ColorMaker.darkGrey : ColorMaker.black,
         hoverColor: ColorMaker.lightWine,
+        trailing: trailing,
       );
 
   static title({required String text}) => ListTile(

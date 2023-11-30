@@ -7,6 +7,7 @@ class ColorMaker {
   static const lightGrey = Color(0xFFD9D9D9);
   static const grey = Color(0xFFAAAAAA);
   static const darkGrey = Color(0xFF1D1D1D);
+  static const lightBlack = Color(0xFF111111);
   static const lightWine = Color(0xFF8C003A);
   static const darkWine = Color(0xFF36081B);
   static const purple = Color(0xFF5B2EC5);

@@ -23,6 +23,8 @@ class ButtonMaker {
           }),
           foregroundColor: MaterialStateProperty.all(ColorMaker.white),
           padding: MaterialStateProperty.all(const EdgeInsets.all(16)),
+          minimumSize:
+              MaterialStateProperty.all(Size.fromHeight((fontSize ?? 24) + 16)),
         ),
         child: TextMaker.normal(text, fontSize: fontSize),
       );

@@ -16,6 +16,7 @@ dependencies:
   audio_service: ^0.18.12
   sqflite: ^2.3.0
   shared_preferences: ^2.2.2
+  just_waveform: ^0.0.5
 
 dev_dependencies:
   flutter_test:

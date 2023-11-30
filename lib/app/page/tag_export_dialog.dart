@@ -21,9 +21,7 @@ Future<void> tagExportDialog(
       if (checkDBTableExist != null) {
         if (!checkDBTableExist) {
           if (listName != '') {
-            if (autoAddPlaylist) {
-              audioPlayerKit.exportCustomPlayList(listName);
-            }
+            audioPlayerKit.exportCustomPlayList(listName, autoAddPlaylist);
             return true;
           } else {
             toolTipText = 'the name is empty.';

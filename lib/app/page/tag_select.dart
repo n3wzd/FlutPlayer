@@ -6,7 +6,7 @@ import '../component/button.dart';
 import '../style/color.dart';
 import '../style/text.dart';
 
-import '../global.dart' as glo;
+import '../log.dart' as glo;
 
 class TagSelectPage extends StatefulWidget {
   const TagSelectPage({Key? key, required this.audioPlayerKit})

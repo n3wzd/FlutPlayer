@@ -6,6 +6,7 @@ import '../collection/audio_playlist.dart';
 import '../collection/preference.dart';
 import '../component/listtile.dart';
 import '../component/button.dart';
+import '../component/text.dart';
 import './tag_export_dialog.dart';
 import '../style/color.dart';
 
@@ -20,7 +21,6 @@ class ListSheet extends StatefulWidget {
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
   final _expandController = StreamController<bool>.broadcast();
-  final _contextMenu = ContextMenuController();
   double _minChildSize = 0;
   double _maxChildSize = 0;
   bool _isExpand = false;
@@ -146,49 +146,37 @@ class _ListSheetState extends State<ListSheet> {
                         widget.audioPlayerKit.removePlayListItem(index);
                       });
                     },
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_contextMenu.isShown) {
-                          ContextMenuController.removeAny();
-                        }
+                    child: ListTileMaker.multiItem(
+                      key: Key(widget.audioPlayerKit.audioTitle(index)),
+                      index: index,
+                      text: widget.audioPlayerKit.audioTitle(index),
+                      onTap: () async {
+                        await widget.audioPlayerKit.seekTrack(index);
                       },
-                      onLongPressStart: (details) {
-                        _contextMenu.show(
-                          context: context,
-                          contextMenuBuilder: (BuildContext context) =>
-                              AdaptiveTextSelectionToolbar.buttonItems(
-                            anchors: TextSelectionToolbarAnchors(
-                              primaryAnchor: details.globalPosition,
-                            ),
-                            buttonItems: <ContextMenuButtonItem>[
-                              ContextMenuButtonItem(
-                                onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute<void>(
-                                        builder: (context) => TagSelector(
-                                          audioPlayerKit: widget.audioPlayerKit,
-                                          trackTitle: widget.audioPlayerKit
-                                              .audioTitle(index),
-                                        ),
-                                      ));
-                                  ContextMenuController.removeAny();
-                                },
-                                label: 'add',
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      child: ListTileMaker.multiItem(
-                        key: Key(widget.audioPlayerKit.audioTitle(index)),
-                        index: index,
-                        text: widget.audioPlayerKit.audioTitle(index),
-                        onTap: () async {
-                          await widget.audioPlayerKit.seekTrack(index);
+                      selected:
+                          widget.audioPlayerKit.compareIndexWithCurrent(index),
+                      trailing: PopupMenuButton(
+                        color: ColorMaker.lightBlack,
+                        icon: const Icon(Icons.menu, color: ColorMaker.grey),
+                        onSelected: (value) {
+                          if (value == 0) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (context) => TagSelector(
+                                    audioPlayerKit: widget.audioPlayerKit,
+                                    trackTitle:
+                                        widget.audioPlayerKit.audioTitle(index),
+                                  ),
+                                ));
+                          }
                         },
-                        selected: widget.audioPlayerKit
-                            .compareIndexWithCurrent(index),
+                        itemBuilder: (context) => <PopupMenuEntry>[
+                          PopupMenuItem(
+                            value: 0,
+                            child: TextMaker.normal('Add'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -257,7 +245,7 @@ class _TagSelectorState extends State<TagSelector> {
                 itemBuilder: (context, index) => ListTileMaker.multiItem(
                   index: index,
                   text: _playList[index]['name'],
-                  onTap: () async {
+                  onTap: () {
                     _selectedList[index] = !_selectedList[index];
                     setState(() {});
                   },
