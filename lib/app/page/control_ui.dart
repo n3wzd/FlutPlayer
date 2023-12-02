@@ -35,8 +35,7 @@ class _ControlUIState extends State<ControlUI> {
       }
     }
     if (_sliderValue >= silderMax) {
-      _sliderValue = 0;
-      silderMax = 1;
+      _sliderValue = silderMax;
     }
 
     return Column(

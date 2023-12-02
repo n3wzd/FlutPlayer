@@ -17,7 +17,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 19,
+          itemCount: 18,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -166,7 +166,7 @@ class PageDrawer extends StatelessWidget {
                   Preference.save();
                 },
               ),
-              ListTileMaker.contentSlider(
+              /*ListTileMaker.contentSlider(
                 title: 'Master Volume',
                 initialValue: Preference.volumeMasterRate,
                 sliderMin: 0.0,
@@ -177,7 +177,7 @@ class PageDrawer extends StatelessWidget {
                 onChangeEnd: (double value) {
                   Preference.save();
                 },
-              ),
+              ),*/
             ];
             return widgetList[index];
           },

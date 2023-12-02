@@ -8,7 +8,7 @@ import '../collection/audio_player.dart';
 
 Future<void> tagExportDialog(
     BuildContext context, AudioPlayerKit audioPlayerKit,
-    {bool autoAddPlaylist = true}) async {
+    {bool autoAddPlaylist = true, VoidCallback? onCompleted}) async {
   String listName = '';
   String toolTipText = '';
   final textFieldStreamController = StreamController<void>.broadcast();
@@ -22,6 +22,9 @@ Future<void> tagExportDialog(
         if (!checkDBTableExist) {
           if (listName != '') {
             audioPlayerKit.exportCustomPlayList(listName, autoAddPlaylist);
+            if (onCompleted != null) {
+              onCompleted();
+            }
             return true;
           } else {
             toolTipText = 'the name is empty.';

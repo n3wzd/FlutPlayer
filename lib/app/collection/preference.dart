@@ -73,7 +73,7 @@ class Preference {
   static int mashupNextTriggerTimeRangeMax = 60;
 
   // Equalizer
-  static bool enableEqualizer = false;
+  static bool enableEqualizer = true;
   static bool smoothSliderEqualizer = true;
 
   // Other

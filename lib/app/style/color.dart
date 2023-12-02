@@ -17,3 +17,33 @@ class ColorMaker {
   static const disableGrey = Color(0xff474747);
   static const lightGreySeparator = Color(0x44D9D9D9);
 }
+
+/*enum VisualizerColor {
+  red('red'),
+  orange('orange'),
+  yellow('yellow'),
+  green('green'),
+  mint('mint'),
+  cyan('cyan'),
+  blue('blue'),
+  purple('purple'),
+  pink('pink'),
+  teal('teal'),
+  grey('grey'),
+  white('white'),
+  black('black'),
+  undefined('undefined');
+
+  const VisualizerColor(this.code);
+  final String code;
+
+  factory VisualizerColor.toEnum(String code) {
+    return VisualizerColor.values.firstWhere((value) => value.code == code,
+        orElse: () => VisualizerColor.undefined);
+  }
+
+  @override
+  String toString() {
+    return code;
+  }
+}*/

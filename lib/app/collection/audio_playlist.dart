@@ -6,8 +6,6 @@ import './file_audio_source.dart';
 import './preference.dart';
 import 'dart:io';
 
-import '../log.dart' as log;
-
 class PlayList {
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
@@ -26,6 +24,10 @@ class PlayList {
   bool get isNotEmpty => _playMap.isNotEmpty;
   String get currentAudioTitle =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.title : '';
+  String get currentAudioPath =>
+      isNotEmpty ? _playMap[(_playList[currentIndex])]!.path : '';
+  int? get currentAudioColor =>
+      isNotEmpty ? _playMap[(_playList[currentIndex])]!.color : null;
   PlayListOrderState get playListOrderState => _playListOrderState;
   AudioTrack? get currentAudioTrack =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
@@ -38,26 +40,23 @@ class PlayList {
       : FileAudioSource(
           bytes: _playMap[_playList[index]]!.file!.bytes!.cast<int>());
 
+  // only Web Mode
+  List<int> get currentbyteData =>
+      _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
+
   void init() async {
-    log.debugLog = '';
-    try {
-      final path = await getDatabasesPath();
-      databasesPath = '$path/$databaseFileName';
-      if (await databaseExists(databasesPath)) {
-        database = await openDatabase(databasesPath);
-      } else {
-        database = await openDatabase(databasesPath);
-        await database.execute(
-            'CREATE TABLE $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
-        await database.execute(
-            'CREATE TABLE $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
-      }
-      isDBOpen = true;
-    } catch (e) {
-      log.debugLog += e.toString();
+    final path = await getDatabasesPath();
+    databasesPath = '$path/$databaseFileName';
+    if (await databaseExists(databasesPath)) {
+      database = await openDatabase(databasesPath);
+    } else {
+      database = await openDatabase(databasesPath);
+      await database.execute(
+          'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
+      await database.execute(
+          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE, color INT);');
     }
-    log.debugLog += isDBOpen.toString();
-    log.debugLogStreamController.add(null);
+    isDBOpen = true;
   }
 
   void dispose() {

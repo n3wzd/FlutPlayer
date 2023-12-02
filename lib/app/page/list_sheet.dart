@@ -228,10 +228,11 @@ class _TagSelectorState extends State<TagSelector> {
           ButtonMaker.icon(
             icon: const Icon(Icons.add),
             color: ColorMaker.lightWine,
-            onPressed: () async {
-              await tagExportDialog(context, widget.audioPlayerKit,
-                  autoAddPlaylist: false);
-              setState(() {});
+            onPressed: () {
+              tagExportDialog(context, widget.audioPlayerKit,
+                  autoAddPlaylist: false, onCompleted: () {
+                setState(() {});
+              });
             },
           ),
         ],

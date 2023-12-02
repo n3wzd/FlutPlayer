@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:just_waveform/just_waveform.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -11,8 +10,6 @@ import 'dart:io';
 import './audio_track.dart';
 import './audio_playlist.dart';
 import './preference.dart';
-
-import '../log.dart' as glo;
 
 class AudioPlayerKit {
   final _androidMode = true; // true - android, false - web
@@ -46,6 +43,7 @@ class AudioPlayerKit {
   bool _mashupMode = false;
   int _currentIndexAudioPlayerList = 0;
   double _volumeTransitionRate = 1.0;
+  List<int> _currentByteData = [];
 
   final List<String> _allowedExtensions = ['mp3', 'wav', 'ogg'];
   late final PermissionStatus _permissionStatus;
@@ -55,8 +53,6 @@ class AudioPlayerKit {
   final _loopModeStreamController = StreamController<void>.broadcast();
   final _playListOrderStateStreamController =
       StreamController<void>.broadcast();
-  final _waveformStreamController =
-      StreamController<WaveformProgress>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
@@ -69,13 +65,16 @@ class AudioPlayerKit {
   AndroidEqualizer get equalizerSub => _equalizerList[1];
   int get playListLength => _playList.playListLength;
   String get currentAudioTitle => _playList.currentAudioTitle;
+  int? get currentAudioColor => _playList.currentAudioColor;
   bool get isPlaying => audioPlayer.playing;
-  Duration get duration => audioPlayer.duration ?? const Duration();
+  Duration get duration =>
+      audioPlayer.duration ?? const Duration(milliseconds: 1);
   Duration get position => audioPlayer.position;
   PlayListOrderState get playListOrderState => _playList.playListOrderState;
   bool get isAudioPlayerEmpty => audioPlayer.audioSource == null;
   Stream<PlaybackEvent> get playbackEventStream =>
       audioPlayer.playbackEventStream;
+  List<int> get currentByteData => _currentByteData;
 
   set masterVolume(double v) {
     Preference.volumeMasterRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
@@ -121,25 +120,6 @@ class AudioPlayerKit {
     _permissionStatus = await Permission.manageExternalStorage.request();
   }
 
-  Future<void> visualizerInit(AudioTrack? audio) async {
-    if (audio == null) {
-      return;
-    }
-    try {
-      JustWaveform.extract(
-              audioInFile: File(audio.path),
-              waveOutFile: File('${audio.title}.wave'))
-          .listen(_waveformStreamController.add,
-              onError: _waveformStreamController.addError);
-      glo.debugLog = '${audio.title} LOAD!!';
-      glo.debugLogStreamController.add(null);
-    } catch (e) {
-      _waveformStreamController.addError(e);
-      glo.debugLog = e.toString();
-      glo.debugLogStreamController.add(null);
-    }
-  }
-
   AudioSource audioSource(int index) =>
       _playList.audioSource(index, androidMode: _androidMode);
 
@@ -159,6 +139,7 @@ class AudioPlayerKit {
       AudioSource source = audioSource(0);
       await audioPlayer.setAudioSource(source);
       _trackStreamController.add(null);
+      setCurrentByteData();
       if (!Preference.instantlyPlay) {
         pause();
       }
@@ -253,7 +234,7 @@ class AudioPlayerKit {
       }
       play();
       _playList.currentIndex = index;
-      visualizerInit(_playList.currentAudioTrack);
+      setCurrentByteData();
     }
   }
 
@@ -330,7 +311,7 @@ class AudioPlayerKit {
               FileStat fileStat = FileStat.statSync(path);
               newList.add(AudioTrack(
                 title: name.substring(0, name.length - 4),
-                path: file.path,
+                path: path,
                 modifiedDateTime: fileStat.modified,
               ));
             }
@@ -344,7 +325,6 @@ class AudioPlayerKit {
         type: FileType.custom,
         allowedExtensions: _allowedExtensions,
       );
-
       if (result != null) {
         List<AudioTrack> newList = [];
         for (PlatformFile track in result.files) {
@@ -357,6 +337,26 @@ class AudioPlayerKit {
         playListAddList(newList);
       }
     }
+  }
+
+  List<int> _readBytesFromFile(String filePath) {
+    File file = File(filePath);
+    if (file.existsSync()) {
+      RandomAccessFile accessFile = file.openSync();
+      int length = file.lengthSync();
+      List<int> bytes = accessFile.readSync(length);
+      accessFile.closeSync();
+      return bytes;
+    }
+    return [];
+  }
+
+  void setCurrentByteData() {
+    if (!_androidMode) {
+      _currentByteData = _playList.currentbyteData;
+      return;
+    }
+    _currentByteData = _readBytesFromFile(_playList.currentAudioPath);
   }
 
   void togglePlayMode() async {
@@ -440,10 +440,11 @@ class AudioPlayerKit {
       if (File(path).existsSync()) {
         FileStat fileStat = FileStat.statSync(path);
         newList.add(AudioTrack(
-            title: data['title'],
-            path: path,
-            modifiedDateTime: fileStat.modified,
-            file: null));
+          title: data['title'],
+          path: path,
+          modifiedDateTime: fileStat.modified,
+          color: data['color'],
+        ));
       }
     }
     playListAddList(newList);
@@ -527,12 +528,6 @@ class AudioPlayerKit {
   StreamBuilder<void> playListOrderStateStreamBuilder(builder) =>
       StreamBuilder<void>(
         stream: _playListOrderStateStreamController.stream,
-        builder: builder,
-      );
-
-  StreamBuilder<WaveformProgress> waveformStreamBuilder(builder) =>
-      StreamBuilder<WaveformProgress>(
-        stream: _waveformStreamController.stream,
         builder: builder,
       );
 
