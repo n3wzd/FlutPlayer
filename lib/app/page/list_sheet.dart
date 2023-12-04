@@ -4,6 +4,7 @@ import 'dart:async';
 import '../collection/audio_player.dart';
 import '../collection/audio_playlist.dart';
 import '../collection/preference.dart';
+import '../collection/audio_track.dart';
 import '../component/listtile.dart';
 import '../component/button.dart';
 import '../component/text.dart';
@@ -169,12 +170,25 @@ class _ListSheetState extends State<ListSheet> {
                                         widget.audioPlayerKit.audioTitle(index),
                                   ),
                                 ));
+                          } else if (value == 1) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute<void>(
+                                  builder: (context) => ColorSelector(
+                                    audioPlayerKit: widget.audioPlayerKit,
+                                    trackIndex: index,
+                                  ),
+                                ));
                           }
                         },
                         itemBuilder: (context) => <PopupMenuEntry>[
                           PopupMenuItem(
                             value: 0,
-                            child: TextMaker.normal('Add'),
+                            child: TextMaker.normal('Add Tag'),
+                          ),
+                          PopupMenuItem(
+                            value: 1,
+                            child: TextMaker.normal('Add Color'),
                           ),
                         ],
                       ),
@@ -217,6 +231,12 @@ class _TagSelectorState extends State<TagSelector> {
     setState(() {});
   }
 
+  Future<void> addItem(String item) async {
+    _playList.add({"name": item});
+    _selectedList.add(false);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     int length = _playList.length;
@@ -230,8 +250,8 @@ class _TagSelectorState extends State<TagSelector> {
             color: ColorMaker.lightWine,
             onPressed: () {
               tagExportDialog(context, widget.audioPlayerKit,
-                  autoAddPlaylist: false, onCompleted: () {
-                setState(() {});
+                  autoAddPlaylist: false, onCompleted: (listName) {
+                addItem(listName);
               });
             },
           ),
@@ -270,6 +290,91 @@ class _TagSelectorState extends State<TagSelector> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class ColorSelector extends StatelessWidget {
+  const ColorSelector(
+      {Key? key, required this.audioPlayerKit, required this.trackIndex})
+      : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
+  final int trackIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: ColorSelectorApp(
+            audioPlayerKit: audioPlayerKit, trackIndex: trackIndex),
+      ),
+    );
+  }
+}
+
+class ColorSelectorApp extends StatefulWidget {
+  const ColorSelectorApp(
+      {Key? key, required this.audioPlayerKit, required this.trackIndex})
+      : super(key: key);
+  final AudioPlayerKit audioPlayerKit;
+  final int trackIndex;
+
+  @override
+  State<ColorSelectorApp> createState() => _ColorSelectorAppState();
+}
+
+class _ColorSelectorAppState extends State<ColorSelectorApp> {
+  List<Map> _playList = [];
+  List<Map> defaultVisualizerColors = [
+    {"name": "red", "value": Colors.red.value},
+    {"name": "orange", "value": Colors.orange.value},
+    {"name": "yellow", "value": Colors.yellow.value},
+    {"name": "green", "value": Colors.green.value},
+    {"name": "cyan", "value": Colors.cyan.value},
+    {"name": "blue", "value": Colors.blue.value},
+    {"name": "purple", "value": Colors.purple.value},
+    {"name": "pink", "value": Colors.pink.value},
+    {"name": "teal", "value": Colors.teal.value},
+    {"name": "grey", "value": Colors.grey.value},
+    {"name": "white", "value": Colors.white.value},
+    {"name": "black", "value": Colors.black.value},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    setPlayList();
+  }
+
+  Future<void> setPlayList() async {
+    _playList = await widget.audioPlayerKit.selectAllDBColor() ?? [];
+    _playList.addAll(defaultVisualizerColors);
+    setState(() {});
+  }
+
+  Future<void> addItem(String item, int value) async {
+    _playList.add({"name": item, "value": value});
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      children: _playList.map((data) {
+        return GestureDetector(
+            child: Chip(
+              label: Text(data["name"]),
+            ),
+            onTap: () {
+              AudioTrack? audio =
+                  widget.audioPlayerKit.audioTrack(widget.trackIndex);
+              if (audio != null) {
+                widget.audioPlayerKit.updateDBTrackColor(audio,
+                    VisualizerColor(name: data["name"], value: data["value"]));
+                Navigator.pop(context);
+              }
+            });
+      }).toList(),
     );
   }
 }

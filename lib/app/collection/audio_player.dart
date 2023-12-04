@@ -88,6 +88,7 @@ class AudioPlayerKit {
 
   bool compareIndexWithCurrent(int index) => _playList.currentIndex == index;
   String audioTitle(int index) => _playList.audioTitle(index);
+  AudioTrack? audioTrack(int index) => _playList.audioTrack(index);
 
   void init() {
     audioPlayer.processingStateStream
@@ -463,6 +464,11 @@ class AudioPlayerKit {
     return List<Map>.from(list);
   }
 
+  Future<List<Map>?> selectAllDBColor() async {
+    var list = await _playList.selectAllDBColor();
+    return List<Map>.from(list);
+  }
+
   void toggleDBTableFavorite(String listName) async {
     _playList.toggleDBTableFavorite(listName);
   }
@@ -483,6 +489,14 @@ class AudioPlayerKit {
     _playList.exportDBFile();
   }
 
+  void importDBFile() async {
+    activePermission();
+    if (_permissionStatus.isDenied) {
+      return;
+    }
+    _playList.importDBFile();
+  }
+
   void customTableDatabaseToCsv() async {
     _playList.customTableDatabaseToCsv();
   }
@@ -494,6 +508,10 @@ class AudioPlayerKit {
   void addItemInDBTable(
       {required String tableName, required String trackTitle}) async {
     _playList.addItemInDBTable(tableName: tableName, trackTitle: trackTitle);
+  }
+
+  void updateDBTrackColor(AudioTrack track, VisualizerColor color) async {
+    _playList.updateDBTrackColor(track, color);
   }
 
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(

@@ -13,9 +13,9 @@ class PlayList {
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
+  final String colorDBTableName = '_color';
   late final Database database;
   late final String databasesPath;
-  bool isDBOpen = false;
   PlayListOrderState _playListOrderState = PlayListOrderState.none;
 
   int currentIndex = 0;
@@ -35,6 +35,8 @@ class PlayList {
   String _customDBtableName(String name) => '_fb_${name.replaceAll(' ', '_')}';
 
   String audioTitle(int index) => _playMap[_playList[index]]!.title;
+  AudioTrack? audioTrack(int index) =>
+      isNotEmpty ? _playMap[(_playList[index])]! : null;
   AudioSource audioSource(int index, {bool androidMode = true}) => androidMode
       ? AudioSource.file(_playMap[_playList[index]]!.path)
       : FileAudioSource(
@@ -52,11 +54,12 @@ class PlayList {
     } else {
       database = await openDatabase(databasesPath);
       await database.execute(
-          'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT);');
+          'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT, color INTEGER);');
       await database.execute(
-          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE, color INT);');
+          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
+      await database.execute(
+          'CREATE TABLE IF NOT EXISTS $colorDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TINYTEXT NOT NULL UNIQUE, value INTEGER NOT NULL);');
     }
-    isDBOpen = true;
   }
 
   void dispose() {
@@ -230,7 +233,7 @@ class PlayList {
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
       return await database.rawQuery(
-          'SELECT title, path FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id ORDER BY sortIdx ASC;');
+          'SELECT title, path, color FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id ORDER BY sortIdx ASC;');
     }
     return [];
   }
@@ -239,6 +242,11 @@ class PlayList {
     String extraQuery = favoriteFilter ? 'WHERE favorite=TRUE' : '';
     return await database.rawQuery(
         'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;');
+  }
+
+  Future<List<Map>> selectAllDBColor() async {
+    return await database
+        .rawQuery('SELECT * FROM $colorDBTableName ORDER BY name ASC;');
   }
 
   void toggleDBTableFavorite(String tableName) async {
@@ -268,9 +276,6 @@ class PlayList {
 
   void addItemInDBTable(
       {required String tableName, required String trackTitle}) async {
-    if (!isDBOpen) {
-      return;
-    }
     AudioTrack? track = _playMap[trackTitle];
     if (track != null) {
       if (await checkDBTableExist(tableName)) {
@@ -283,13 +288,25 @@ class PlayList {
   }
 
   void createDBTable(String tableName) async {
-    if (!isDBOpen) {
-      return;
-    }
     if (!(await checkDBTableExist(tableName))) {
       await database.transaction((txn) async {
         await _createDBTable(txn, tableName);
       });
+    }
+  }
+
+  void updateDBTrackColor(AudioTrack track, VisualizerColor color) async {
+    await database.transaction((txn) async {
+      await _insertTrackToDBMainTable(txn, track);
+      await _insertColorToDBColorTable(txn, color);
+    });
+    List<Map> trackData = await database.rawQuery(
+        'SELECT id FROM $mainDBTableName WHERE title="${track.title}";');
+    List<Map> colorData = await database.rawQuery(
+        'SELECT id FROM $colorDBTableName WHERE name="${color.name}";');
+    if (trackData.isNotEmpty && colorData.isNotEmpty) {
+      await database.execute(
+          'UPDATE $mainDBTableName SET color=${colorData[0]["id"]} WHERE id=${trackData[0]["id"]};');
     }
   }
 
@@ -305,9 +322,25 @@ class PlayList {
   }
 
   Future<void> _insertTrackToDBMainTable(
-      Transaction txn, AudioTrack track) async {
-    await txn.rawInsert(
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path) VALUES("${track.title}", "${track.path}")');
+      Transaction? txn, AudioTrack track) async {
+    String sql =
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path) VALUES("${track.title}", "${track.path}")';
+    if (txn != null) {
+      await txn.rawInsert(sql);
+    } else {
+      await database.rawQuery(sql);
+    }
+  }
+
+  Future<void> _insertColorToDBColorTable(
+      Transaction? txn, VisualizerColor color) async {
+    String sql =
+        'INSERT OR IGNORE INTO $colorDBTableName(name, value) VALUES("${color.name}", ${color.value})';
+    if (txn != null) {
+      await txn.rawInsert(sql);
+    } else {
+      await database.rawQuery(sql);
+    }
   }
 
   Future<void> _insertTrackToDBCustomTable(
@@ -334,14 +367,26 @@ class PlayList {
   }
 
   Future<void> exportDBFile() async {
-    if (!isDBOpen) {
-      return;
-    }
     String? selectedDirectoryPath =
         await FilePicker.platform.getDirectoryPath();
     if (selectedDirectoryPath != null) {
       File file = File(databasesPath);
       file.copy('$selectedDirectoryPath/$databaseFileName');
+    }
+  }
+
+  Future<void> importDBFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: ['db'],
+    );
+    if (result != null) {
+      String? path = result.files[0].path;
+      if (path != null) {
+        File file = File(path);
+        file.copy(databasesPath);
+      }
     }
   }
 

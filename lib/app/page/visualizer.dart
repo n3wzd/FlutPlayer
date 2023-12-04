@@ -5,9 +5,15 @@ import '../collection/audio_player.dart';
 import '../style/color.dart';
 
 class VisualizerController extends StatefulWidget {
-  const VisualizerController({Key? key, required this.audioPlayerKit})
+  const VisualizerController(
+      {Key? key,
+      required this.audioPlayerKit,
+      required this.widgetWidth,
+      required this.widgetHeight})
       : super(key: key);
   final AudioPlayerKit audioPlayerKit;
+  final double widgetWidth;
+  final double widgetHeight;
 
   @override
   State<VisualizerController> createState() => _VisualizerControllerState();
@@ -18,8 +24,8 @@ class _VisualizerControllerState extends State<VisualizerController>
   late final AnimationController _controller = AnimationController(
       vsync: this, duration: Duration(milliseconds: sampleLength))
     ..forward();
-  double maxSize = 180;
-  double minSize = 160;
+  late double maxSize;
+  late double minSize;
   final double maxSampleDepth = 32768;
   final int sampleLength = 100;
   late Animation<double> _animation;
@@ -38,7 +44,7 @@ class _VisualizerControllerState extends State<VisualizerController>
         }
         _previousSize = _currentSize;
         _currentSize =
-            (sample / maxSampleDepth) * (maxSize - minSize) + minSize;
+            (1 - sample / maxSampleDepth) * (maxSize - minSize) + minSize;
         setState(() {});
 
         _controller.reset();
@@ -86,9 +92,8 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   void updateVisualizerSize() {
-    Size size = MediaQuery.of(context).size;
-    maxSize = min(size.width, size.height) * 0.5;
-    minSize = maxSize * 0.9;
+    maxSize = min(widget.widgetWidth, widget.widgetHeight) * 0.8;
+    minSize = maxSize * 0.88;
   }
 
   Color getColor() {

@@ -17,7 +17,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 18,
+          itemCount: 19,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -47,6 +47,12 @@ class PageDrawer extends StatelessWidget {
                   subtitle: 'export database file.',
                   onTap: () {
                     audioPlayerKit.exportDBFile();
+                  }),
+              ListTileMaker.content(
+                  title: '_Import Database_',
+                  subtitle: 'export database file.',
+                  onTap: () {
+                    audioPlayerKit.importDBFile();
                   }),
               ListTileMaker.content(
                   title: '_Export All Tag to csv_',

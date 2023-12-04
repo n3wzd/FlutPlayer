@@ -31,10 +31,12 @@ class CenterSection extends StatelessWidget {
           ),*/
           Expanded(
             child: Center(
-              child: VisualizerController(
-                audioPlayerKit: audioPlayerKit,
-              ),
-            ),
+                child: LayoutBuilder(
+              builder: (context, constraints) => VisualizerController(
+                  audioPlayerKit: audioPlayerKit,
+                  widgetWidth: constraints.maxWidth,
+                  widgetHeight: constraints.maxHeight),
+            )),
           ),
           SizedBox(
             height: 80,
