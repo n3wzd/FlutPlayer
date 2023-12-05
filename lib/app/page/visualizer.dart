@@ -98,7 +98,12 @@ class _VisualizerControllerState extends State<VisualizerController>
 
   Color getColor() {
     int? color = widget.audioPlayerKit.currentAudioColor;
-    return color != null ? Color(color) : ColorMaker.white;
+    if (color != null) {
+      if (color != 0) {
+        return Color(color);
+      }
+    }
+    return ColorMaker.white;
   }
 
   @override

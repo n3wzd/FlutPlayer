@@ -294,7 +294,7 @@ class _TagSelectorState extends State<TagSelector> {
   }
 }
 
-class ColorSelector extends StatelessWidget {
+class ColorSelector extends StatefulWidget {
   const ColorSelector(
       {Key? key, required this.audioPlayerKit, required this.trackIndex})
       : super(key: key);
@@ -302,43 +302,11 @@ class ColorSelector extends StatelessWidget {
   final int trackIndex;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: ColorSelectorApp(
-            audioPlayerKit: audioPlayerKit, trackIndex: trackIndex),
-      ),
-    );
-  }
+  State<ColorSelector> createState() => _ColorSelectorState();
 }
 
-class ColorSelectorApp extends StatefulWidget {
-  const ColorSelectorApp(
-      {Key? key, required this.audioPlayerKit, required this.trackIndex})
-      : super(key: key);
-  final AudioPlayerKit audioPlayerKit;
-  final int trackIndex;
-
-  @override
-  State<ColorSelectorApp> createState() => _ColorSelectorAppState();
-}
-
-class _ColorSelectorAppState extends State<ColorSelectorApp> {
+class _ColorSelectorState extends State<ColorSelector> {
   List<Map> _playList = [];
-  List<Map> defaultVisualizerColors = [
-    {"name": "red", "value": Colors.red.value},
-    {"name": "orange", "value": Colors.orange.value},
-    {"name": "yellow", "value": Colors.yellow.value},
-    {"name": "green", "value": Colors.green.value},
-    {"name": "cyan", "value": Colors.cyan.value},
-    {"name": "blue", "value": Colors.blue.value},
-    {"name": "purple", "value": Colors.purple.value},
-    {"name": "pink", "value": Colors.pink.value},
-    {"name": "teal", "value": Colors.teal.value},
-    {"name": "grey", "value": Colors.grey.value},
-    {"name": "white", "value": Colors.white.value},
-    {"name": "black", "value": Colors.black.value},
-  ];
 
   @override
   void initState() {
@@ -348,7 +316,6 @@ class _ColorSelectorAppState extends State<ColorSelectorApp> {
 
   Future<void> setPlayList() async {
     _playList = await widget.audioPlayerKit.selectAllDBColor() ?? [];
-    _playList.addAll(defaultVisualizerColors);
     setState(() {});
   }
 
@@ -359,22 +326,49 @@ class _ColorSelectorAppState extends State<ColorSelectorApp> {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      children: _playList.map((data) {
-        return GestureDetector(
-            child: Chip(
-              label: Text(data["name"]),
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: ColorMaker.black,
+        appBar: AppBar(
+          backgroundColor: ColorMaker.transparent,
+          actions: [
+            ButtonMaker.icon(
+              icon: const Icon(Icons.add),
+              color: ColorMaker.lightWine,
+              onPressed: () {
+                /*tagExportDialog(context, widget.audioPlayerKit,
+                    autoAddPlaylist: false, onCompleted: (listName) {
+                  addItem(listName);
+                });*/
+              },
             ),
-            onTap: () {
-              AudioTrack? audio =
-                  widget.audioPlayerKit.audioTrack(widget.trackIndex);
-              if (audio != null) {
-                widget.audioPlayerKit.updateDBTrackColor(audio,
-                    VisualizerColor(name: data["name"], value: data["value"]));
-                Navigator.pop(context);
-              }
-            });
-      }).toList(),
+          ],
+        ),
+        body: Wrap(
+          children: _playList.map((data) {
+            return GestureDetector(
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Chip(
+                    label: TextMaker.outline(data["name"], fontSize: 24),
+                    backgroundColor: Color(data["value"]),
+                  ),
+                ),
+                onTap: () {
+                  AudioTrack? audio =
+                      widget.audioPlayerKit.audioTrack(widget.trackIndex);
+                  if (audio != null) {
+                    widget.audioPlayerKit.updateDBTrackColor(
+                        audio,
+                        VisualizerColor(
+                            name: data["name"], value: data["value"]));
+                    widget.audioPlayerKit.setCurrentAudioColor(data["value"]);
+                    Navigator.pop(context);
+                  }
+                });
+          }).toList(),
+        ),
+      ),
     );
   }
 }

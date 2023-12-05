@@ -25,7 +25,8 @@ class PageDrawer extends StatelessWidget {
               ListTileMaker.title(text: 'Tag'),
               ListTileMaker.content(
                   title: 'Export Tag',
-                  subtitle: 'creates new tag add current tracks on the tag.',
+                  subtitle:
+                      'creates new tag and add current tracks on the tag.',
                   onTap: () {
                     tagExportDialog(context, audioPlayerKit);
                   }),
@@ -50,7 +51,8 @@ class PageDrawer extends StatelessWidget {
                   }),
               ListTileMaker.content(
                   title: '_Import Database_',
-                  subtitle: 'export database file.',
+                  subtitle:
+                      'import database file. name of the file is must "audio_track.db".',
                   onTap: () {
                     audioPlayerKit.importDBFile();
                   }),
@@ -69,7 +71,7 @@ class PageDrawer extends StatelessWidget {
               ListTileMaker.title(text: 'Sort'),
               ListTileMaker.contentSwitch(
                 title: 'Show Sort Button',
-                subtitle: 'shows or hides sort button on play list sheet.',
+                subtitle: 'shows or hides sort button on list sheet.',
                 initialValue: Preference.showPlayListOrderButton,
                 onChanged: (bool value) {
                   Preference.showPlayListOrderButton =
@@ -145,7 +147,7 @@ class PageDrawer extends StatelessWidget {
               ListTileMaker.contentSwitch(
                 title: 'Instantly Play',
                 subtitle:
-                    'plays first track instantly when first track loaded on play list.',
+                    'plays first track instantly when first track loaded on list.',
                 initialValue: Preference.instantlyPlay,
                 onChanged: (bool value) {
                   Preference.instantlyPlay = !Preference.instantlyPlay;
@@ -154,7 +156,7 @@ class PageDrawer extends StatelessWidget {
               ),
               ListTileMaker.contentSwitch(
                 title: 'Shuffle Reload',
-                subtitle: 'shuffles play list whenever play list updated.',
+                subtitle: 'shuffles list whenever list updated.',
                 initialValue: Preference.shuffleReload,
                 onChanged: (bool value) {
                   Preference.shuffleReload = !Preference.shuffleReload;
@@ -162,9 +164,8 @@ class PageDrawer extends StatelessWidget {
                 },
               ),
               ListTileMaker.contentSwitch(
-                title: 'Show List Delete Button',
-                subtitle:
-                    'shows or hides list delete button on play list sheet.',
+                title: 'Show Delete Button',
+                subtitle: 'shows or hides list delete button on list sheet.',
                 initialValue: Preference.showPlayListDeleteButton,
                 onChanged: (bool value) {
                   Preference.showPlayListDeleteButton =

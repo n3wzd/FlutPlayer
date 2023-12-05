@@ -6,6 +6,8 @@ import './file_audio_source.dart';
 import './preference.dart';
 import 'dart:io';
 
+import '../log.dart' as globals;
+
 class PlayList {
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
@@ -46,19 +48,34 @@ class PlayList {
   List<int> get currentbyteData =>
       _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
 
+  void setCurrentAudioColor(int color) =>
+      isNotEmpty ? _playMap[(_playList[currentIndex])]!.color = color : null;
+
   void init() async {
     final path = await getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
     if (await databaseExists(databasesPath)) {
       database = await openDatabase(databasesPath);
     } else {
-      database = await openDatabase(databasesPath);
-      await database.execute(
-          'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT, color INTEGER);');
-      await database.execute(
-          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
-      await database.execute(
-          'CREATE TABLE IF NOT EXISTS $colorDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TINYTEXT NOT NULL UNIQUE, value INTEGER NOT NULL);');
+      try {
+        database = await openDatabase(databasesPath);
+        await database.execute(
+            'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT, color INTEGER NOT NULL DEFAULT 0);');
+        await database.execute(
+            'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
+        await database.execute(
+            'CREATE TABLE IF NOT EXISTS $colorDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TINYTEXT NOT NULL UNIQUE, value INTEGER NOT NULL);');
+        await database.transaction((txn) async {
+          await txn.rawInsert(
+              'INSERT OR IGNORE INTO $colorDBTableName(name, value, id) VALUES("null", 0, 0);');
+          for (VisualizerColor color in defaultVisualizerColors) {
+            _insertColorToDBColorTable(txn, color);
+          }
+        });
+      } catch (e) {
+        globals.debugLog = e.toString();
+        globals.debugLogStreamController.add(null);
+      }
     }
   }
 
@@ -233,7 +250,7 @@ class PlayList {
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
       return await database.rawQuery(
-          'SELECT title, path, color FROM $mainDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id ORDER BY sortIdx ASC;');
+          'SELECT title, path, value AS color FROM $mainDBTableName, $colorDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id AND $colorDBTableName.id = ${_customDBtableName(tableName)}.color ORDER BY sortIdx ASC;');
     }
     return [];
   }
@@ -378,14 +395,15 @@ class PlayList {
   Future<void> importDBFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
-      type: FileType.custom,
-      allowedExtensions: ['db'],
     );
     if (result != null) {
-      String? path = result.files[0].path;
-      if (path != null) {
-        File file = File(path);
-        file.copy(databasesPath);
+      String name = result.files[0].name;
+      if (name == databaseFileName) {
+        String? path = result.files[0].path;
+        if (path != null) {
+          File file = File(path);
+          file.copy(databasesPath);
+        }
       }
     }
   }

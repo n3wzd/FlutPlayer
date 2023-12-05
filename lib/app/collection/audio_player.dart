@@ -514,6 +514,10 @@ class AudioPlayerKit {
     _playList.updateDBTrackColor(track, color);
   }
 
+  void setCurrentAudioColor(int color) {
+    _playList.setCurrentAudioColor(color);
+  }
+
   StreamBuilder<bool> playingStreamBuilder(builder) => StreamBuilder<bool>(
         stream: audioPlayer.playingStream,
         builder: (context, data) => StreamBuilder<bool>(

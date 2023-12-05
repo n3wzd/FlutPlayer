@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../style/text.dart';
+import '../style/color.dart';
 
 class TextMaker {
   static final _method = TextMakerMethod();
@@ -30,6 +31,36 @@ class TextMaker {
           fontSize: fontSize,
           fontWeight: fontWeight,
         ),
+      );
+
+  static outline(String text,
+          {Color? color,
+          Color outlineColor = ColorMaker.black,
+          double outlineWidth = 1,
+          double? fontSize,
+          FontWeight? fontWeight}) =>
+      Stack(
+        children: [
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: fontSize ?? 16,
+              fontWeight: fontWeight,
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = outlineWidth
+                ..color = outlineColor,
+            ),
+          ),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: fontSize ?? 16,
+              fontWeight: fontWeight,
+              color: color ?? ColorMaker.lightGrey,
+            ),
+          ),
+        ],
       );
 }
 
