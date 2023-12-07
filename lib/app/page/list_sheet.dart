@@ -243,7 +243,8 @@ class _TagSelectorState extends State<TagSelector> {
     return Scaffold(
       backgroundColor: ColorMaker.black,
       appBar: AppBar(
-        backgroundColor: ColorMaker.transparent,
+        automaticallyImplyLeading: true,
+        backgroundColor: ColorMaker.darkWine,
         actions: [
           ButtonMaker.icon(
             icon: const Icon(Icons.add),
@@ -319,30 +320,15 @@ class _ColorSelectorState extends State<ColorSelector> {
     setState(() {});
   }
 
-  Future<void> addItem(String item, int value) async {
-    _playList.add({"name": item, "value": value});
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         backgroundColor: ColorMaker.black,
         appBar: AppBar(
-          backgroundColor: ColorMaker.transparent,
-          actions: [
-            ButtonMaker.icon(
-              icon: const Icon(Icons.add),
-              color: ColorMaker.lightWine,
-              onPressed: () {
-                /*tagExportDialog(context, widget.audioPlayerKit,
-                    autoAddPlaylist: false, onCompleted: (listName) {
-                  addItem(listName);
-                });*/
-              },
-            ),
-          ],
+          automaticallyImplyLeading: true,
+          backgroundColor: ColorMaker.darkWine,
+          actions: const [],
         ),
         body: Wrap(
           children: _playList.map((data) {
@@ -352,6 +338,8 @@ class _ColorSelectorState extends State<ColorSelector> {
                   child: Chip(
                     label: TextMaker.outline(data["name"], fontSize: 24),
                     backgroundColor: Color(data["value"]),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
                 onTap: () {

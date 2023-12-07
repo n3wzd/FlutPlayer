@@ -6,8 +6,6 @@ import '../component/button.dart';
 import '../style/color.dart';
 import '../style/text.dart';
 
-import '../log.dart' as glo;
-
 class TagSelectPage extends StatefulWidget {
   const TagSelectPage({Key? key, required this.audioPlayerKit})
       : super(key: key);
@@ -42,9 +40,6 @@ class _TagSelectPageState extends State<TagSelectPage> {
     _playList.removeAt(index);
     _selectedList.removeAt(index);
     _selectedItemCount--;
-
-    glo.debugLog += _playList.toString();
-    glo.debugLogStreamController.add(null);
   }
 
   int findUniqueItemIndex() {
@@ -101,17 +96,10 @@ class _TagSelectPageState extends State<TagSelectPage> {
             color: ColorMaker.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
-                    glo.debugLog = '';
-                    try {
-                      int selectedItemIndex = findUniqueItemIndex();
-                      widget.audioPlayerKit.deleteCustomPlayList(
-                          _playList[selectedItemIndex]['name']);
-                      deletePlayListItem(selectedItemIndex);
-                    } catch (e) {
-                      glo.debugLog += e.toString();
-                      glo.debugLogStreamController.add(null);
-                    }
-
+                    int selectedItemIndex = findUniqueItemIndex();
+                    widget.audioPlayerKit.deleteCustomPlayList(
+                        _playList[selectedItemIndex]['name']);
+                    deletePlayListItem(selectedItemIndex);
                     setState(() {});
                   }
                 : null,

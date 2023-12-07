@@ -76,6 +76,12 @@ class Preference {
   static bool enableEqualizer = true;
   static bool smoothSliderEqualizer = true;
 
+  // Visualizer
+  static bool enableVisualizer = true;
+  static bool enableBackground = true;
+  static bool enableNCSLogo = true;
+  static bool enableFullScreen = false;
+
   // Other
   static bool instantlyPlay = true;
   static bool shuffleReload = true;

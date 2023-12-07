@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import './global.dart' as global;
 import './page/top_menu.dart';
 import './page/center.dart';
 import './page/bottom.dart';
 import './page/list_sheet.dart';
 import './page/drawer.dart';
+import './page/background.dart';
 import './collection/audio_player.dart';
 import './collection/audio_handler.dart';
 import './collection/preference.dart';
@@ -41,6 +43,9 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
     await Preference.init();
     _audioPlayerKit.init();
     createAudioSerivce(_audioPlayerKit);
+    global.rebuildAll = () {
+      setState(() {});
+    };
   }
 
   @override
@@ -48,18 +53,20 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
     return WillPopScope(
       child: Scaffold(
         key: _scaffoldKey,
-        appBar: AppBar(
-          leading: ButtonMaker.icon(
-            icon: const Icon(Icons.settings,
-                color: ColorMaker.lightGrey, size: 30),
-            onPressed: () => _scaffoldKey.currentState!.openDrawer(),
-            outline: false,
-          ),
-          title: TopMenu(audioPlayerKit: _audioPlayerKit),
-          backgroundColor: ColorMaker.black,
-          elevation: 0.0,
-          titleSpacing: 0,
-        ),
+        appBar: !Preference.enableFullScreen
+            ? AppBar(
+                leading: ButtonMaker.icon(
+                  icon: const Icon(Icons.settings,
+                      color: ColorMaker.lightGrey, size: 30),
+                  onPressed: () => _scaffoldKey.currentState!.openDrawer(),
+                  outline: false,
+                ),
+                title: TopMenu(audioPlayerKit: _audioPlayerKit),
+                backgroundColor: ColorMaker.black,
+                elevation: 0.0,
+                titleSpacing: 0,
+              )
+            : null,
         drawer: PageDrawer(audioPlayerKit: _audioPlayerKit),
         body: SafeArea(
           child: Stack(
@@ -70,20 +77,35 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                   children: [
                     Expanded(
                       flex: 2,
-                      child: CenterSection(
-                        audioPlayerKit: _audioPlayerKit,
+                      child: Stack(
+                        children: [
+                          Visibility(
+                            visible: Preference.enableBackground,
+                            child: AnimatedBackground(
+                                audioPlayerKit: _audioPlayerKit),
+                          ),
+                          CenterSection(
+                            audioPlayerKit: _audioPlayerKit,
+                          ),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: BottomSection(
-                        audioPlayerKit: _audioPlayerKit,
+                    Visibility(
+                      visible: !Preference.enableFullScreen,
+                      child: Expanded(
+                        flex: 1,
+                        child: BottomSection(
+                          audioPlayerKit: _audioPlayerKit,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              ListSheet(audioPlayerKit: _audioPlayerKit),
+              Visibility(
+                visible: !Preference.enableFullScreen,
+                child: ListSheet(audioPlayerKit: _audioPlayerKit),
+              ),
             ],
           ),
         ),

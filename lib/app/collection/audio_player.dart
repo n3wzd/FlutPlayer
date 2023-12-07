@@ -53,6 +53,7 @@ class AudioPlayerKit {
   final _loopModeStreamController = StreamController<void>.broadcast();
   final _playListOrderStateStreamController =
       StreamController<void>.broadcast();
+  final _visualizerColorStreamController = StreamController<void>.broadcast();
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
 
@@ -227,12 +228,12 @@ class AudioPlayerKit {
             milliseconds:
                 (newDuration!.inMilliseconds * (Random().nextDouble() * 0.75))
                     .toInt()));
-        _trackStreamController.add(null);
       } else {
-        AudioSource source = audioSource(index);
-        await audioPlayer.setAudioSource(source);
-        _trackStreamController.add(null);
+        await audioPlayer.setAudioSource(audioSource(index));
       }
+      _trackStreamController.add(null);
+      _visualizerColorStreamController.add(null);
+
       play();
       _playList.currentIndex = index;
       setCurrentByteData();
@@ -512,6 +513,7 @@ class AudioPlayerKit {
 
   void updateDBTrackColor(AudioTrack track, VisualizerColor color) async {
     _playList.updateDBTrackColor(track, color);
+    _visualizerColorStreamController.add(null);
   }
 
   void setCurrentAudioColor(int color) {
@@ -550,6 +552,12 @@ class AudioPlayerKit {
   StreamBuilder<void> playListOrderStateStreamBuilder(builder) =>
       StreamBuilder<void>(
         stream: _playListOrderStateStreamController.stream,
+        builder: builder,
+      );
+
+  StreamBuilder<void> visualizerColorStreamBuilder(builder) =>
+      StreamBuilder<void>(
+        stream: _visualizerColorStreamController.stream,
         builder: builder,
       );
 

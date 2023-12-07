@@ -53,6 +53,12 @@ class _VisualizerControllerState extends State<VisualizerController>
     });
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   double extractRMS(List<int> bytes) {
     double sample = 0;
     int position = widget.audioPlayerKit.position.inMilliseconds;
@@ -92,7 +98,7 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   void updateVisualizerSize() {
-    maxSize = min(widget.widgetWidth, widget.widgetHeight) * 0.8;
+    maxSize = min(widget.widgetWidth, widget.widgetHeight) * 0.75;
     minSize = maxSize * 0.88;
   }
 

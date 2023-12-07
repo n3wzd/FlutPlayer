@@ -8,6 +8,7 @@ import '../component/listtile.dart';
 import '../collection/audio_player.dart';
 import '../collection/preference.dart';
 import '../style/color.dart';
+import '../global.dart' as global;
 
 class PageDrawer extends StatelessWidget {
   const PageDrawer({Key? key, required this.audioPlayerKit}) : super(key: key);
@@ -17,7 +18,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorMaker.black,
         child: ListView.separated(
-          itemCount: 19,
+          itemCount: 24,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorMaker.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -143,6 +144,47 @@ class PageDrawer extends StatelessWidget {
                       },
                     ));
                   }),
+              ListTileMaker.title(text: 'Visualizer'),
+              ListTileMaker.contentSwitch(
+                title: 'Visualizer',
+                subtitle: 'enable visualizer.',
+                initialValue: Preference.enableVisualizer,
+                onChanged: (bool value) {
+                  Preference.enableVisualizer = !Preference.enableVisualizer;
+                  Preference.save();
+                  global.rebuildAll();
+                },
+              ),
+              ListTileMaker.contentSwitch(
+                title: 'Background',
+                subtitle: 'enable background.',
+                initialValue: Preference.enableBackground,
+                onChanged: (bool value) {
+                  Preference.enableBackground = !Preference.enableBackground;
+                  Preference.save();
+                  global.rebuildAll();
+                },
+              ),
+              ListTileMaker.contentSwitch(
+                title: 'NCS Logo',
+                subtitle: 'enable NCS Logo.',
+                initialValue: Preference.enableNCSLogo,
+                onChanged: (bool value) {
+                  Preference.enableNCSLogo = !Preference.enableNCSLogo;
+                  Preference.save();
+                  global.rebuildAll();
+                },
+              ),
+              ListTileMaker.contentSwitch(
+                title: 'Full Screen',
+                subtitle: 'enter full scrren.',
+                initialValue: Preference.enableFullScreen,
+                onChanged: (bool value) {
+                  Preference.enableFullScreen = !Preference.enableFullScreen;
+                  Preference.save();
+                  global.rebuildAll();
+                },
+              ),
               ListTileMaker.title(text: 'Other'),
               ListTileMaker.contentSwitch(
                 title: 'Instantly Play',

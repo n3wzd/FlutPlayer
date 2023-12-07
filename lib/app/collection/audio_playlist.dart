@@ -6,7 +6,7 @@ import './file_audio_source.dart';
 import './preference.dart';
 import 'dart:io';
 
-import '../log.dart' as globals;
+import '../global.dart' as global;
 
 class PlayList {
   final Map<String, AudioTrack> _playMap = {};
@@ -73,8 +73,8 @@ class PlayList {
           }
         });
       } catch (e) {
-        globals.debugLog = e.toString();
-        globals.debugLogStreamController.add(null);
+        global.debugLog = e.toString();
+        global.debugLogStreamController.add(null);
       }
     }
   }
@@ -250,7 +250,7 @@ class PlayList {
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
       return await database.rawQuery(
-          'SELECT title, path, value AS color FROM $mainDBTableName, $colorDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id AND $colorDBTableName.id = ${_customDBtableName(tableName)}.color ORDER BY sortIdx ASC;');
+          'SELECT title, path, value AS color FROM $mainDBTableName, $colorDBTableName, ${_customDBtableName(tableName)} WHERE $mainDBTableName.id = ${_customDBtableName(tableName)}.id AND $colorDBTableName.id = $mainDBTableName.color ORDER BY sortIdx ASC;');
     }
     return [];
   }
@@ -262,8 +262,8 @@ class PlayList {
   }
 
   Future<List<Map>> selectAllDBColor() async {
-    return await database
-        .rawQuery('SELECT * FROM $colorDBTableName ORDER BY name ASC;');
+    return await database.rawQuery(
+        'SELECT * FROM $colorDBTableName WHERE id != 0 ORDER BY id ASC;');
   }
 
   void toggleDBTableFavorite(String tableName) async {

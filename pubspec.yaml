@@ -26,7 +26,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-  # assets:
+  assets:
+    - assets/images/NoCopyrightSounds_logo.png
   # fonts:
   #   - family: Schyler
   #     fonts:
