@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/database_manager.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
@@ -168,7 +168,7 @@ class _TagSelectPageState extends State<TagSelectPage> {
                         onPressed: () {
                           for (int index = 0; index < length; index++) {
                             if (_selectedList[index]) {
-                              AudioPlayerKit.instance
+                              AudioManager.instance
                                   .importTagList(_tagList[index]['name']);
                             }
                           }

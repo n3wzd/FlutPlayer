@@ -1,6 +1,7 @@
 import 'package:flutbeat/app/utils/stream_controller.dart';
 import 'package:flutter/material.dart';
 
+import '../global.dart' as global;
 import './tag_select.dart';
 import './equalizer.dart';
 import '../components/tag_export_dialog.dart';
@@ -17,7 +18,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 24,
+          itemCount: 22,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -112,13 +113,15 @@ class PageDrawer extends StatelessWidget {
               ListTileFactory.title(text: 'Equalizer'),
               ListTileFactory.content(
                   title: 'Equalizer',
-                  subtitle: 'open equalizer page.',
+                  subtitle: 'open equalizer page. (only android)',
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute<void>(
-                      builder: (BuildContext context) {
-                        return const EqualizerControls();
-                      },
-                    ));
+                    if (global.isAndroid) {
+                      Navigator.push(context, MaterialPageRoute<void>(
+                        builder: (BuildContext context) {
+                          return const EqualizerControls();
+                        },
+                      ));
+                    }
                   }),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(
@@ -195,7 +198,7 @@ class PageDrawer extends StatelessWidget {
                   onTap: () {
                     DatabaseManager.instance.importDBFile();
                   }),
-              ListTileFactory.content(
+              /*ListTileFactory.content(
                   title: 'Export All Tag to csv',
                   subtitle: 'export all tag to csv file.',
                   onTap: () {
@@ -207,7 +210,7 @@ class PageDrawer extends StatelessWidget {
                   onTap: () {
                     DatabaseManager.instance.tagCsvToDB();
                   }),
-              /*ListTileFactory.contentSlider(
+              ListTileFactory.contentSlider(
                 title: 'Master Volume',
                 initialValue: Preference.volumeMasterRate,
                 sliderMin: 0.0,

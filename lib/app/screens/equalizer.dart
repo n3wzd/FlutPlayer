@@ -3,7 +3,7 @@ import 'package:just_audio/just_audio.dart';
 
 import 'dart:async';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/preference.dart';
 import '../widgets/text.dart';
 import '../widgets/slider.dart';
@@ -31,7 +31,8 @@ class _EqualizerControlsState extends State<EqualizerControls> {
   }
 
   void init() async {
-    final parameters = await AudioPlayerKit.instance.equalizer.parameters;
+    final parameters =
+        await AudioManager.instance.audioPlayer.equalizer.parameters;
     bandsLength = parameters.bands.length;
     bands = List<BandItem>.generate(
         bandsLength,
@@ -65,7 +66,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
         hi++;
       }
     }
-    AudioPlayerKit.instance.syncEqualizer();
+    AudioManager.instance.syncEqualizer();
   }
 
   void gainReset() {
@@ -73,7 +74,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
       bandItem.sliderValue = (bandItem.maxDecibels + bandItem.minDecibels) / 2;
       bandItem.band.setGain(bandItem.sliderValue);
     }
-    AudioPlayerKit.instance.syncEqualizer();
+    AudioManager.instance.syncEqualizer();
   }
 
   @override
@@ -90,7 +91,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                 onChanged: (bool? value) {
                   Preference.enableEqualizer = !Preference.enableEqualizer;
                   Preference.save('enableEqualizer');
-                  AudioPlayerKit.instance.setEnabledEqualizer();
+                  AudioManager.instance.setEnabledEqualizer();
                   setState(() {});
                 },
               ),

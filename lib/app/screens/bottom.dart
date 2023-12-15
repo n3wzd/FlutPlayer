@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 import '../components/action_button.dart';
@@ -31,8 +31,8 @@ class ControlSection extends StatelessWidget {
   Widget build(BuildContext context) => AudioStreamBuilder.track(
         (context, duration) => AudioStreamBuilder.position(
           (context, position) => ControlUI(
-            trackDuration: AudioPlayerKit.instance.duration,
-            trackPosition: position.data ?? const Duration(),
+            trackDuration: AudioManager.instance.duration,
+            trackPosition: position.data ?? const Duration(milliseconds: 0),
           ),
         ),
       );
@@ -84,7 +84,7 @@ class _ControlUIState extends State<ControlUI> {
               });
             },
             onChangeEnd: (double value) {
-              AudioPlayerKit.instance
+              AudioManager.instance
                   .seekPosition(Duration(milliseconds: value.toInt()));
               _isSliderChanging = false;
               _afterChangedCount = 2;

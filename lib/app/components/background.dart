@@ -1,26 +1,44 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'dart:io';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
+import '../utils/playlist.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 
-class AnimatedBackground extends StatelessWidget {
-  const AnimatedBackground({Key? key}) : super(key: key);
-
+class Background extends StatelessWidget {
+  const Background({Key? key}) : super(key: key);
   @override
-  Widget build(BuildContext context) =>
-      const Opacity(opacity: 0.25, child: GradientBackground());
+  Widget build(BuildContext context) => Opacity(
+      opacity: 0.4,
+      child: AudioStreamBuilder.backgroundFile((context, value) {
+        var backgroundPath = PlayList.instance.currentAudioBackground;
+        if (backgroundPath != null) {
+          var file = File(backgroundPath);
+          if (file.existsSync()) {
+            return Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: FileImage(file),
+                ),
+              ),
+            );
+          }
+        }
+        return const DefaultBackground();
+      }));
 }
 
-class GradientBackground extends StatefulWidget {
-  const GradientBackground({Key? key}) : super(key: key);
+class DefaultBackground extends StatefulWidget {
+  const DefaultBackground({Key? key}) : super(key: key);
 
   @override
-  State<GradientBackground> createState() => _GradientBackgroundState();
+  State<DefaultBackground> createState() => _DefaultBackgroundState();
 }
 
-class _GradientBackgroundState extends State<GradientBackground>
+class _DefaultBackgroundState extends State<DefaultBackground>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _animation;
@@ -49,8 +67,8 @@ class _GradientBackgroundState extends State<GradientBackground>
   @override
   Widget build(BuildContext context) {
     return AudioStreamBuilder.visualizerColor((context, value) {
-      Color startColor = Color(AudioPlayerKit.instance.currentAudioColor ??
-          ColorPalette.white.value);
+      Color startColor = Color(
+          AudioManager.instance.currentAudioColor ?? ColorPalette.white.value);
       Color endColor = ColorPalette.black;
       if (startColor == ColorPalette.black) {
         startColor = ColorPalette.black;

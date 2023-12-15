@@ -23,8 +23,9 @@ class _FadeInOutWidgetState extends State<FadeInOutWidget> {
 
   void setNextTrigger() {
     _trigger = Stream<void>.fromFuture(
-            Future<void>.delayed(const Duration(seconds: 3), () {}))
+            Future<void>.delayed(const Duration(seconds: 2), () {}))
         .listen((x) {
+      if (!mounted) return;
       setState(() {
         _isVisible = false;
       });
@@ -46,8 +47,7 @@ class _FadeInOutWidgetState extends State<FadeInOutWidget> {
       child: Center(
         child: AnimatedOpacity(
           opacity: _isVisible ? 1.0 : 0.0,
-          duration: const Duration(
-              milliseconds: 250), // Adjust the duration as needed
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
           child: widget.child,
         ),

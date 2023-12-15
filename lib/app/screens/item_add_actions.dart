@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 
 import '../components/tag_export_dialog.dart';
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/playlist.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
+import '../utils/permission_handler.dart';
 import '../models/audio_track.dart';
 import '../models/visualizer_color.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/text.dart';
 import '../models/color.dart';
+import '../global.dart' as global;
 
 class TagSelector extends StatefulWidget {
   const TagSelector({Key? key, required this.trackTitle}) : super(key: key);
@@ -129,38 +132,68 @@ class _ColorSelectorState extends State<ColorSelector> {
       home: Scaffold(
         backgroundColor: ColorPalette.black,
         appBar: AppBar(
-          automaticallyImplyLeading: true,
           backgroundColor: ColorPalette.darkWine,
-          actions: const [],
+          leading: ButtonFactory.iconButton(
+            icon: const Icon(Icons.arrow_back),
+            iconColor: ColorPalette.lightGrey,
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
-        body: Wrap(
-          children: _colorList.map((data) {
-            return GestureDetector(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Chip(
-                    label: TextFactory.outlineText(data["name"], fontSize: 24),
-                    backgroundColor: Color(data["value"]),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        body: SafeArea(
+          child: Wrap(
+            children: _colorList.map((data) {
+              return GestureDetector(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Chip(
+                      label:
+                          TextFactory.outlineText(data["name"], fontSize: 24),
+                      backgroundColor: Color(data["value"]),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
                   ),
-                ),
-                onTap: () {
-                  AudioTrack? audio =
-                      AudioPlayerKit.instance.audioTrack(widget.trackIndex);
-                  if (audio != null) {
-                    DatabaseManager.instance.updateDBTrackColor(
-                        audio,
-                        VisualizerColor(
-                            name: data["name"], value: data["value"]));
-                    PlayList.instance.setCurrentAudioColor(data["value"]);
-                    AudioStreamController.visualizerColor.add(null);
-                    Navigator.pop(context);
-                  }
-                });
-          }).toList(),
+                  onTap: () {
+                    AudioTrack? audio =
+                        AudioManager.instance.audioTrack(widget.trackIndex);
+                    if (audio != null) {
+                      DatabaseManager.instance.updateDBTrackColor(
+                          audio,
+                          VisualizerColor(
+                              name: data["name"], value: data["value"]));
+                      PlayList.instance.setCurrentAudioColor(data["value"]);
+                      AudioStreamController.visualizerColor.add(null);
+                      Navigator.pop(context);
+                    }
+                  });
+            }).toList(),
+          ),
         ),
       ),
     );
+  }
+}
+
+void backgroundSelector(int trackIndex) async {
+  if (global.isAndroid) {
+    if (!PermissionHandler.instance.isPermissionAccepted) {
+      return;
+    }
+  }
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    allowMultiple: false,
+    type: FileType.custom,
+    allowedExtensions: ['png', 'jpg', 'gif'],
+  );
+  if (result != null) {
+    String path = result.files[0].path ?? '';
+    AudioTrack? audio = AudioManager.instance.audioTrack(trackIndex);
+    if (audio != null) {
+      DatabaseManager.instance.updateDBTrackBackground(audio, path);
+      PlayList.instance.setCurrentAudioBackground(path);
+      AudioStreamController.backgroundFile.add(null);
+    }
   }
 }

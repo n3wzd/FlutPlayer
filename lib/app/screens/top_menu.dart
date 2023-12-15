@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/preference.dart';
 import '../widgets/slider.dart';
 import '../widgets/button.dart';
@@ -20,16 +20,16 @@ class TopMenu extends StatelessWidget {
         ButtonFactory.iconButton(
           icon: const Icon(Icons.file_open),
           iconSize: 30,
-          onPressed: AudioPlayerKit.instance.filesOpen,
+          onPressed: AudioManager.instance.filesOpen,
           outline: false,
         ),
         const SizedBox(width: 6),
         const Icon(Icons.nightlife, color: ColorPalette.lightWine),
         StatefulBuilder(
           builder: (context, setState) => CheckboxFactory.checkbox(
-            value: AudioPlayerKit.instance.mashupMode,
+            value: AudioManager.instance.mashupMode,
             onChanged: (bool? value) {
-              AudioPlayerKit.instance.toggleMashupMode();
+              AudioManager.instance.toggleMashupMode();
               setState(() {});
             },
           ),
@@ -60,7 +60,7 @@ class TopMenu extends StatelessWidget {
                           max: silderMax,
                           onChanged: (double value) {
                             silderValue = value;
-                            AudioPlayerKit.instance.masterVolume = value;
+                            AudioManager.instance.masterVolume = value;
                             setState(() {});
                           },
                           onChangeEnd: (double value) {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../widgets/text.dart';
 import '../components/visualizer.dart';
 import '../components/optional_visibility.dart';
@@ -68,7 +68,7 @@ class CenterSection extends StatelessWidget {
                 child: Center(
                   child: AudioStreamBuilder.track((context, duration) =>
                       TextFactory.scrollAnimationText(
-                          text: AudioPlayerKit.instance.currentAudioTitle,
+                          text: AudioManager.instance.currentAudioTitle,
                           fontSize: 30)),
                 ),
               ),

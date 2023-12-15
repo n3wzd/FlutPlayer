@@ -6,6 +6,7 @@ class AudioTrack {
       required this.path,
       required this.modifiedDateTime,
       this.color,
+      this.background,
       this.id,
       this.file});
   final String title;
@@ -14,4 +15,5 @@ class AudioTrack {
   final int? id;
   final PlatformFile? file;
   int? color;
+  String? background;
 }

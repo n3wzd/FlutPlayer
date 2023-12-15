@@ -12,7 +12,7 @@ import './components/optional_visibility.dart';
 import './components/action_button.dart';
 import './components/stream_builder.dart';
 import './components/fade_inout_widget.dart';
-import './utils/audio_player.dart';
+import './utils/audio_manager.dart';
 import './widgets/dialog.dart';
 import './widgets/text.dart';
 import './widgets/button.dart';
@@ -36,7 +36,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    AudioPlayerKit.instance.dispose();
+    AudioManager.instance.dispose();
     super.dispose();
   }
 
@@ -70,7 +70,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
         DialogFactory.choiceDialog(
             context: context,
             onOkPressed: () {
-              AudioPlayerKit.instance.dispose();
+              AudioManager.instance.dispose();
               SystemNavigator.pop();
             },
             onCancelPressed: () {},
@@ -184,10 +184,7 @@ class ScreenPageCenter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Stack(
         children: [
-          OptionalVisibility.background(
-            context,
-            const AnimatedBackground(),
-          ),
+          OptionalVisibility.background(context, const Background()),
           const CenterSection(),
         ],
       );

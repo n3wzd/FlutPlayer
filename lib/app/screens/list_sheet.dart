@@ -2,7 +2,7 @@ import 'package:flutbeat/app/components/stream_builder.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/preference.dart';
 import '../utils/playlist.dart';
 import '../widgets/listtile.dart';
@@ -109,10 +109,10 @@ class _ListSheetState extends State<ListSheet> {
                     visible: _isExpand && Preference.showPlayListOrderButton,
                     child: ButtonFactory.iconButton(
                       icon: Icon(
-                        AudioPlayerKit.instance.playListOrderState ==
+                        AudioManager.instance.playListOrderState ==
                                 PlayListOrderState.ascending
                             ? Icons.vertical_align_top
-                            : (AudioPlayerKit.instance.playListOrderState ==
+                            : (AudioManager.instance.playListOrderState ==
                                     PlayListOrderState.descending
                                 ? Icons.vertical_align_bottom
                                 : Icons.sort),
@@ -138,23 +138,23 @@ class _ListSheetState extends State<ListSheet> {
                       PlayList.instance.shift(oldIndex, newIndex);
                     });
                   },
-                  itemCount: AudioPlayerKit.instance.playListLength,
+                  itemCount: AudioManager.instance.playListLength,
                   itemBuilder: (context, index) => Dismissible(
-                    key: Key(AudioPlayerKit.instance.audioTitle(index)),
+                    key: Key(AudioManager.instance.audioTitle(index)),
                     onDismissed: (DismissDirection direction) {
                       setListState(() {
-                        AudioPlayerKit.instance.removePlayListItem(index);
+                        AudioManager.instance.removePlayListItem(index);
                       });
                     },
                     child: ListTileFactory.multiItem(
-                      key: Key(AudioPlayerKit.instance.audioTitle(index)),
+                      key: Key(AudioManager.instance.audioTitle(index)),
                       index: index,
-                      text: AudioPlayerKit.instance.audioTitle(index),
+                      text: AudioManager.instance.audioTitle(index),
                       onTap: () async {
-                        await AudioPlayerKit.instance.seekTrack(index);
+                        await AudioManager.instance.seekTrack(index);
                       },
-                      selected: AudioPlayerKit.instance
-                          .compareIndexWithCurrent(index),
+                      selected:
+                          AudioManager.instance.compareIndexWithCurrent(index),
                       trailing: PopupMenuButton(
                         color: ColorPalette.lightBlack,
                         icon: const Icon(Icons.add, color: ColorPalette.grey),
@@ -164,8 +164,8 @@ class _ListSheetState extends State<ListSheet> {
                                 context,
                                 MaterialPageRoute<void>(
                                   builder: (context) => TagSelector(
-                                    trackTitle: AudioPlayerKit.instance
-                                        .audioTitle(index),
+                                    trackTitle:
+                                        AudioManager.instance.audioTitle(index),
                                   ),
                                 ));
                           } else if (value == 1) {
@@ -176,6 +176,10 @@ class _ListSheetState extends State<ListSheet> {
                                     trackIndex: index,
                                   ),
                                 ));
+                          } else if (value == 2) {
+                            backgroundSelector(
+                              index,
+                            );
                           }
                         },
                         itemBuilder: (context) => <PopupMenuEntry>[
@@ -186,6 +190,10 @@ class _ListSheetState extends State<ListSheet> {
                           PopupMenuItem(
                             value: 1,
                             child: TextFactory.text('color'),
+                          ),
+                          PopupMenuItem(
+                            value: 2,
+                            child: TextFactory.text('background'),
                           ),
                         ],
                       ),

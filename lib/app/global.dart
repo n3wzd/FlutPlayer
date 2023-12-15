@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
-import './utils/audio_player.dart';
+import './utils/audio_manager.dart';
 import './utils/database_manager.dart';
 import './utils/audio_handler.dart';
 import './utils/preference.dart';
@@ -11,10 +12,23 @@ final debugLogStreamController = StreamController<void>.broadcast();
 
 void initApp() async {
   await Preference.init();
-  DatabaseManager.instance.init();
-  PermissionHandler.instance.init();
-  AudioPlayerKit.instance.init();
-  createAudioSerivce();
+  if (!isWeb) {
+    DatabaseManager.instance.init();
+  }
+  if (isAndroid) {
+    PermissionHandler.instance.init();
+  }
+  AudioManager.instance.init();
+  if (isAndroid) {
+    createAudioSerivce();
+  }
 }
+
+/*bool get isAndroid => Platform.isAndroid;
+bool get isWindows => Platform.isWindows;
+bool get isWeb => !isAndroid && !isWindows;*/
+bool get isAndroid => false;
+bool get isWindows => true;
+bool get isWeb => false;
 
 bool isFullScreen = false;

@@ -1,6 +1,4 @@
-import 'package:just_audio/just_audio.dart';
 import '../models/audio_track.dart';
-import '../models/file_audio_source.dart';
 import './preference.dart';
 import './stream_controller.dart';
 import '../models/play_list_order.dart';
@@ -27,6 +25,8 @@ class PlayList {
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.path : '';
   int? get currentAudioColor =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.color : null;
+  String? get currentAudioBackground =>
+      isNotEmpty ? _playMap[(_playList[currentIndex])]!.background : null;
   PlayListOrderState get playListOrderState => _playListOrderState;
   AudioTrack? get currentAudioTrack =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
@@ -34,16 +34,21 @@ class PlayList {
   String audioTitle(int index) => _playMap[_playList[index]]!.title;
   AudioTrack? audioTrack(int index) =>
       isNotEmpty ? _playMap[(_playList[index])]! : null;
-  AudioSource audioSource(int index, {bool androidMode = true}) => androidMode
-      ? AudioSource.file(_playMap[_playList[index]]!.path)
-      : FileAudioSource(
-          bytes: _playMap[_playList[index]]!.file!.bytes!.cast<int>());
   void setCurrentAudioColor(int color) =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.color = color : null;
+  void setCurrentAudioBackground(String background) => isNotEmpty
+      ? _playMap[(_playList[currentIndex])]!.background = background
+      : null;
 
   // only Web Mode
   List<int> get currentbyteData =>
       _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
+
+  void updateTrack(int index, AudioTrack? track) {
+    if (isNotEmpty && track != null) {
+      _playMap[(_playList[index])] = track;
+    }
+  }
 
   void addAll(List<AudioTrack> files) {
     for (AudioTrack file in files) {

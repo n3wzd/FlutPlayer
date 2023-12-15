@@ -1,7 +1,7 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 
-import './audio_player.dart';
+import './audio_manager.dart';
 
 Future<AudioHandler> createAudioSerivce() async => await AudioService.init(
       builder: () => AudioHandlerKit(),
@@ -20,37 +20,38 @@ class AudioHandlerKit extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
-    AudioPlayerKit.instance.play();
+    AudioManager.instance.play();
   }
 
   @override
   Future<void> pause() async {
-    AudioPlayerKit.instance.pause();
+    AudioManager.instance.pause();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    AudioPlayerKit.instance.seekPosition(position);
+    AudioManager.instance.seekPosition(position);
   }
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    AudioPlayerKit.instance.seekTrack(index);
+    AudioManager.instance.seekTrack(index);
   }
 
   @override
   Future<void> skipToNext() async {
-    AudioPlayerKit.instance.seekToNext();
+    AudioManager.instance.seekToNext();
   }
 
   @override
   Future<void> skipToPrevious() async {
-    AudioPlayerKit.instance.seekToPrevious();
+    AudioManager.instance.seekToPrevious();
   }
 
   void _notifyAudioHandler() {
-    bool isPlaying = AudioPlayerKit.instance.isPlaying;
-    AudioPlayerKit.instance.playbackEventStream.listen((PlaybackEvent event) {
+    bool isPlaying = AudioManager.instance.isPlaying;
+    AudioManager.instance.audioPlayer.playbackEventStream
+        .listen((PlaybackEvent event) {
       playbackState.add(PlaybackState(
         controls: [
           MediaControl.skipToPrevious,
@@ -64,7 +65,7 @@ class AudioHandlerKit extends BaseAudioHandler {
         },
         androidCompactActionIndices: const [0, 1, 3],
         playing: isPlaying,
-        updatePosition: AudioPlayerKit.instance.position,
+        // updatePosition: AudioManager.instance.position,
       ));
     });
   }

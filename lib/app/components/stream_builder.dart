@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../utils/stream_controller.dart';
 
 typedef BuildParameter<T> = Widget Function(BuildContext, AsyncSnapshot<T>);
 
 class AudioStreamBuilder {
-  static StreamBuilder<bool> playing(BuildParameter<bool> builder) =>
-      StreamBuilder<bool>(
-        stream: AudioPlayerKit.instance.audioPlayer.playingStream,
-        builder: (context, data) => StreamBuilder<bool>(
-          stream: AudioPlayerKit.instance.audioPlayerSub.playingStream,
+  static StreamBuilder<void> playing(BuildParameter<void> builder) =>
+      StreamBuilder<void>(
+        stream: AudioManager.instance.audioPlayer.playingStream,
+        builder: (context, data) => StreamBuilder<void>(
+          stream: AudioManager.instance.audioPlayerSub.playingStream,
           builder: builder,
         ),
       );
 
   static StreamBuilder<Duration> position(BuildParameter<Duration> builder) =>
       StreamBuilder<Duration>(
-        stream: AudioPlayerKit.instance.audioPlayer.positionStream,
+        stream: AudioManager.instance.audioPlayer.positionStream,
         builder: builder,
       );
 
@@ -47,6 +47,12 @@ class AudioStreamBuilder {
   static StreamBuilder<void> visualizerColor(BuildParameter<void> builder) =>
       StreamBuilder<void>(
         stream: AudioStreamController.visualizerColor.stream,
+        builder: builder,
+      );
+
+  static StreamBuilder<void> backgroundFile(BuildParameter<void> builder) =>
+      StreamBuilder<void>(
+        stream: AudioStreamController.backgroundFile.stream,
         builder: builder,
       );
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
-import '../utils/audio_player.dart';
+import '../utils/audio_manager.dart';
 import '../models/color.dart';
 
 class VisualizerController extends StatefulWidget {
@@ -27,13 +27,15 @@ class _VisualizerControllerState extends State<VisualizerController>
   late Animation<double> _animation;
   late double _currentSize = minSize;
   late double _previousSize = minSize;
+  int _position = 0;
+  int _duration = 0;
 
   @override
   void initState() {
     super.initState();
     _controller.addStatusListener((AnimationStatus status) {
       if (status == AnimationStatus.completed) {
-        List<int> bytes = AudioPlayerKit.instance.currentByteData;
+        List<int> bytes = AudioManager.instance.currentByteData;
         double sample = 0;
         if (bytes.isNotEmpty) {
           sample = extractRMS(bytes);
@@ -57,15 +59,24 @@ class _VisualizerControllerState extends State<VisualizerController>
 
   double extractRMS(List<int> bytes) {
     double sample = 0;
-    int position = AudioPlayerKit.instance.position.inMilliseconds;
-    int duration = AudioPlayerKit.instance.duration.inMilliseconds;
-    if (position > duration) {
-      position = duration;
+    int position = AudioManager.instance.position.inMilliseconds;
+    if (_position - position <= 300 &&
+        _position - position >= 0 &&
+        AudioManager.instance.isPlaying) {
+      _position += sampleLength;
+    } else {
+      _position = position;
     }
-    for (int p = position; p > position - sampleLength && p >= 0; p--) {
+    _duration = AudioManager.instance.duration.inMilliseconds;
+    if (_duration <= 0) _duration = 1;
+    if (_position > _duration) {
+      _position = _duration;
+    }
+
+    for (int p = _position; p > _position - sampleLength && p >= 0; p--) {
       sample += pow(
           extractSample(
-              bytes, ((position / duration) * (bytes.length - 1)).toInt()),
+              bytes, ((_position / _duration) * (bytes.length - 1)).toInt()),
           2);
     }
     return sqrt(sample / sampleLength);
@@ -99,7 +110,7 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   Color getColor() {
-    int? color = AudioPlayerKit.instance.currentAudioColor;
+    int? color = AudioManager.instance.currentAudioColor;
     if (color != null) {
       if (color != 0) {
         return Color(color);
@@ -128,8 +139,8 @@ class CircleVisualizer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size, // Adjust the size as needed
-        height: size, // Adjust the size as needed
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(

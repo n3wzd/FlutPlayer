@@ -6,6 +6,7 @@ class AudioStreamController {
   static final loopMode = StreamController<void>.broadcast();
   static final playListOrderState = StreamController<void>.broadcast();
   static final visualizerColor = StreamController<void>.broadcast();
+  static final backgroundFile = StreamController<void>.broadcast();
 
   static final enabledVisualizer = StreamController<void>.broadcast();
   static final enabledBackground = StreamController<void>.broadcast();
