@@ -370,7 +370,7 @@ class AudioManager {
         newList.add(AudioTrack(
           title: data['title'],
           path: data['path'],
-          modifiedDateTime: data['modified_time'],
+          modifiedDateTime: DateTime.parse(datas[0]['modified_time']),
           color: data['color'],
           background: data['background_path'],
         ));

@@ -337,8 +337,7 @@ class DatabaseManager {
         String? path = result.files[0].path;
         if (path != null) {
           File file = File(path);
-          file.copySync(databasesPath);
-          init();
+          File(databasesPath).writeAsBytesSync(file.readAsBytesSync());
         }
       }
     }
