@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:math';
 import 'dart:io';
 
-import '../utils/audio_manager.dart';
 import '../utils/playlist.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 
 class Background extends StatelessWidget {
   const Background({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) => Opacity(
       opacity: 0.4,
       child: AudioStreamBuilder.backgroundFile((context, value) {
+        const videoExtensions = ['mp4'];
         var backgroundPath = PlayList.instance.currentAudioBackground;
         if (backgroundPath != null) {
           var file = File(backgroundPath);
           if (file.existsSync()) {
-            return Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: FileImage(file),
+            if (videoExtensions.contains(backgroundPath.split('.').last)) {
+              return VideoBackground(path: backgroundPath);
+            } else {
+              return Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: FileImage(file),
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           }
         }
         return const DefaultBackground();
@@ -67,13 +74,18 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   @override
   Widget build(BuildContext context) {
     return AudioStreamBuilder.visualizerColor((context, value) {
-      Color startColor = Color(
-          AudioManager.instance.currentAudioColor ?? ColorPalette.white.value);
+      int colorValue =
+          PlayList.instance.currentAudioColor ?? ColorPalette.white.value;
+      if (colorValue == 0) {
+        colorValue = ColorPalette.white.value;
+      }
+      Color startColor = Color(colorValue);
       Color endColor = ColorPalette.black;
       if (startColor == ColorPalette.black) {
         startColor = ColorPalette.black;
         endColor = ColorPalette.white;
       }
+
       return AnimatedBuilder(
         animation: _animation,
         builder: (context, child) => Container(
@@ -98,5 +110,45 @@ class _DefaultBackgroundState extends State<DefaultBackground>
         ),
       );
     });
+  }
+}
+
+class VideoBackground extends StatefulWidget {
+  const VideoBackground({Key? key, required this.path}) : super(key: key);
+  final String path;
+
+  @override
+  State<VideoBackground> createState() => VideoBackgroundState();
+}
+
+class VideoBackgroundState extends State<VideoBackground> {
+  late final player = Player();
+  late final controller = VideoController(player);
+
+  @override
+  void initState() {
+    super.initState();
+    player.setPlaylistMode(PlaylistMode.single);
+    player.setVolume(0);
+  }
+
+  @override
+  void dispose() {
+    player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    player.open(Media(widget.path));
+    return Center(
+      child: Video(
+        controller: controller,
+        controls: (state) {
+          return Container();
+        },
+        fit: BoxFit.cover,
+      ),
+    );
   }
 }

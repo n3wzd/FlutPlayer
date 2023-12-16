@@ -40,8 +40,6 @@ class AudioManager {
   PlayerLoopMode get loopMode => _loopMode;
   bool get mashupMode => _mashupMode;
   int get playListLength => PlayList.instance.playListLength;
-  String get currentAudioTitle => PlayList.instance.currentAudioTitle;
-  int? get currentAudioColor => PlayList.instance.currentAudioColor;
   bool get isPlaying => audioPlayer.isPlaying;
   Duration get duration => audioPlayer.duration;
   Duration get position => audioPlayer.position;
@@ -121,6 +119,8 @@ class AudioManager {
       AudioStreamController.backgroundFile.add(null);
       if (!Preference.instantlyPlay) {
         pause();
+      } else {
+        play();
       }
     }
   }
@@ -229,9 +229,7 @@ class AudioManager {
   }
 
   Future<void> replay() async {
-    await seekPosition(const Duration());
-    await pause();
-    play();
+    audioPlayer.replay();
   }
 
   void updateAudioPlayerVolume() {

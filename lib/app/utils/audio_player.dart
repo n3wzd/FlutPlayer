@@ -3,6 +3,7 @@ import 'package:audioplayers/audioplayers.dart' as audio_players;
 import '../global.dart' as global;
 import '../models/audio_track.dart';
 import '../models/file_audio_source.dart';
+import './playlist.dart';
 import './preference.dart';
 
 class AudioPlayer {
@@ -106,6 +107,17 @@ class AudioPlayer {
       await _audioPlayerJust.pause();
     } else {
       await _audioPlayerAudio.pause();
+    }
+  }
+
+  Future<void> replay() async {
+    if (usingJustAudio) {
+      await seek(const Duration());
+      await pause();
+      play();
+    } else {
+      await setAudioSource(PlayList.instance.currentAudioTrack);
+      play();
     }
   }
 

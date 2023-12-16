@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 import '../utils/audio_manager.dart';
+import '../utils/playlist.dart';
 import '../models/color.dart';
 
 class VisualizerController extends StatefulWidget {
@@ -110,7 +111,7 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   Color getColor() {
-    int? color = AudioManager.instance.currentAudioColor;
+    int? color = PlayList.instance.currentAudioColor;
     if (color != null) {
       if (color != 0) {
         return Color(color);

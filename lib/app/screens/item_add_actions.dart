@@ -136,6 +136,7 @@ class _ColorSelectorState extends State<ColorSelector> {
           leading: ButtonFactory.iconButton(
             icon: const Icon(Icons.arrow_back),
             iconColor: ColorPalette.lightGrey,
+            outline: false,
             onPressed: () {
               Navigator.pop(context);
             },
@@ -148,8 +149,7 @@ class _ColorSelectorState extends State<ColorSelector> {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Chip(
-                      label:
-                          TextFactory.outlineText(data["name"], fontSize: 24),
+                      label: TextFactory.text(data["name"], fontSize: 24),
                       backgroundColor: Color(data["value"]),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
@@ -185,7 +185,7 @@ void backgroundSelector(int trackIndex) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowMultiple: false,
     type: FileType.custom,
-    allowedExtensions: ['png', 'jpg', 'gif'],
+    allowedExtensions: ['png', 'jpg', 'gif', 'mp4'],
   );
   if (result != null) {
     String path = result.files[0].path ?? '';

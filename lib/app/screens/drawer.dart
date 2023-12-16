@@ -18,7 +18,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 22,
+          itemCount: 24,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -198,7 +198,7 @@ class PageDrawer extends StatelessWidget {
                   onTap: () {
                     DatabaseManager.instance.importDBFile();
                   }),
-              /*ListTileFactory.content(
+              ListTileFactory.content(
                   title: 'Export All Tag to csv',
                   subtitle: 'export all tag to csv file.',
                   onTap: () {
@@ -210,7 +210,7 @@ class PageDrawer extends StatelessWidget {
                   onTap: () {
                     DatabaseManager.instance.tagCsvToDB();
                   }),
-              ListTileFactory.contentSlider(
+              /*ListTileFactory.contentSlider(
                 title: 'Master Volume',
                 initialValue: Preference.volumeMasterRate,
                 sliderMin: 0.0,
