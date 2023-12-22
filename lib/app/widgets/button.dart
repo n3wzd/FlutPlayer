@@ -33,6 +33,7 @@ class ButtonFactory {
       required VoidCallback? onPressed,
       Color? iconColor,
       bool outline = true,
+      bool hasOverlay = true,
       bool? isSelected,
       Icon? selectedIcon}) {
     return Theme(
@@ -54,10 +55,12 @@ class ButtonFactory {
                 : null,
             overlayColor: MaterialStateProperty.resolveWith(
               (Set<MaterialState> states) {
-                if (states.contains(MaterialState.pressed)) {
-                  return ColorPalette.overlayPressedGrey;
-                } else if (states.contains(MaterialState.hovered)) {
-                  return ColorPalette.overlayHoveredGrey;
+                if (hasOverlay) {
+                  if (states.contains(MaterialState.pressed)) {
+                    return ColorPalette.overlayPressedGrey;
+                  } else if (states.contains(MaterialState.hovered)) {
+                    return ColorPalette.overlayHoveredGrey;
+                  }
                 }
                 return ColorPalette.transparent;
               },

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../global.dart' as global;
 import '../utils/stream_controller.dart';
 import '../utils/audio_manager.dart';
+import '../utils/playlist.dart';
 import './stream_builder.dart';
 import '../widgets/button.dart';
 import '../models/play_list_order.dart';
@@ -30,6 +31,7 @@ class FullscreenButton extends StatelessWidget {
         iconSize: 30,
         onPressed: toggleFullscreen,
         outline: false,
+        hasOverlay: false,
       );
 }
 
@@ -92,7 +94,7 @@ class ShuffleButton extends StatelessWidget {
   Widget build(BuildContext context) => AudioStreamBuilder.playListOrderState(
         (context, value) => ButtonFactory.iconButton(
           icon: Icon(Icons.shuffle,
-              color: AudioManager.instance.playListOrderState ==
+              color: PlayList.instance.playListOrderState ==
                       PlayListOrderState.shuffled
                   ? ColorPalette.lightGrey
                   : ColorPalette.disableGrey),

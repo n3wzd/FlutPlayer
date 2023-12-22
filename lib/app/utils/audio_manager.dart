@@ -12,7 +12,6 @@ import './database_manager.dart';
 import './preference.dart';
 import './stream_controller.dart';
 import './permission_handler.dart';
-import '../models/play_list_order.dart';
 import '../models/loop_mode.dart';
 
 class AudioManager {
@@ -43,8 +42,6 @@ class AudioManager {
   bool get isPlaying => audioPlayer.isPlaying;
   Duration get duration => audioPlayer.duration;
   Duration get position => audioPlayer.position;
-  PlayListOrderState get playListOrderState =>
-      PlayList.instance.playListOrderState;
   bool get isAudioPlayerEmpty => audioPlayer.isAudioPlayerEmpty;
   List<int> get currentByteData => _currentByteData;
 

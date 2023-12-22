@@ -8,6 +8,7 @@ import './utils/permission_handler.dart';
 
 String debugLog = '';
 final debugLogStreamController = StreamController<void>.broadcast();
+double playListSavedScrollPosition = 0;
 
 void initApp() async {
   await Preference.init();
@@ -27,7 +28,7 @@ void initApp() async {
 bool get isWindows => Platform.isWindows;
 bool get isWeb => !isAndroid && !isWindows;*/
 bool get isAndroid => false;
-bool get isWindows => true;
-bool get isWeb => false;
+bool get isWindows => false;
+bool get isWeb => true;
 
 bool isFullScreen = false;

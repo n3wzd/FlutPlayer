@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+// import 'package:media_kit/media_kit.dart';
+// import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:math';
 import 'dart:io';
 
@@ -13,7 +13,7 @@ class Background extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Opacity(
-      opacity: 0.4,
+      opacity: 0.75,
       child: AudioStreamBuilder.backgroundFile((context, value) {
         const videoExtensions = ['mp4'];
         var backgroundPath = PlayList.instance.currentAudioBackground;
@@ -21,7 +21,8 @@ class Background extends StatelessWidget {
           var file = File(backgroundPath);
           if (file.existsSync()) {
             if (videoExtensions.contains(backgroundPath.split('.').last)) {
-              return VideoBackground(path: backgroundPath);
+              // return VideoBackground(path: backgroundPath);
+              return const Spacer();
             } else {
               return Container(
                 decoration: BoxDecoration(
@@ -113,7 +114,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   }
 }
 
-class VideoBackground extends StatefulWidget {
+/*class VideoBackground extends StatefulWidget {
   const VideoBackground({Key? key, required this.path}) : super(key: key);
   final String path;
 
@@ -151,4 +152,4 @@ class VideoBackgroundState extends State<VideoBackground> {
       ),
     );
   }
-}
+}*/

@@ -9,7 +9,8 @@ import '../components/action_button.dart';
 import '../models/color.dart';
 
 class TopMenu extends StatelessWidget {
-  const TopMenu({Key? key}) : super(key: key);
+  const TopMenu({Key? key, required this.onDrawTap}) : super(key: key);
+  final VoidCallback onDrawTap;
 
   @override
   Widget build(BuildContext context) {
@@ -18,13 +19,21 @@ class TopMenu extends StatelessWidget {
     return Row(
       children: [
         ButtonFactory.iconButton(
-          icon: const Icon(Icons.file_open),
-          iconSize: 30,
+          icon: const Icon(Icons.settings,
+              color: ColorPalette.lightGrey, size: 26),
+          onPressed: onDrawTap,
+          outline: false,
+          hasOverlay: false,
+        ),
+        const SizedBox(width: 2),
+        ButtonFactory.iconButton(
+          icon: const Icon(Icons.add),
+          iconSize: 28,
           onPressed: AudioManager.instance.filesOpen,
           outline: false,
+          hasOverlay: false,
         ),
         const SizedBox(width: 6),
-        const Icon(Icons.nightlife, color: ColorPalette.lightWine),
         StatefulBuilder(
           builder: (context, setState) => CheckboxFactory.checkbox(
             value: AudioManager.instance.mashupMode,
@@ -34,9 +43,8 @@ class TopMenu extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 2),
         const FullscreenButton(),
-        const SizedBox(width: 16),
         Expanded(
           child: Align(
             alignment: Alignment.centerRight,

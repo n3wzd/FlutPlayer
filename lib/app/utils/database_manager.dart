@@ -1,5 +1,6 @@
-import 'package:sqflite/sqflite.dart' as sqflite;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart';
+// import 'package:sqflite/sqflite.dart' as sqflite;
+// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/audio_track.dart';
 import '../models/visualizer_color.dart';
@@ -28,17 +29,17 @@ class DatabaseManager {
       return;
     }
     if (global.isWindows) {
-      sqfliteFfiInit();
+      // sqfliteFfiInit();
     }
-    databaseFactory = databaseFactoryFfi;
+    // databaseFactory = databaseFactoryFfi;
 
     final path = await getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
 
     if (await databaseExists(databasesPath)) {
-      await openDatabase(databasesPath);
+      await openDatabaseFile(databasesPath);
     } else {
-      await openDatabase(databasesPath);
+      await openDatabaseFile(databasesPath);
       await database.execute(
           'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT, modified_time TINYTEXT, color INTEGER NOT NULL DEFAULT 0, background_path TINYTEXT);');
       await database.execute(
@@ -62,11 +63,12 @@ class DatabaseManager {
     database.close();
   }
 
-  Future<void> openDatabase(String databasesPath) async {
+  Future<void> openDatabaseFile(String databasesPath) async {
+    database = await openDatabase(databasesPath);
     if (global.isAndroid) {
-      database = await sqflite.openDatabase(databasesPath);
+      // database = await sqflite.openDatabase(databasesPath);
     } else {
-      database = await databaseFactoryFfi.openDatabase(databasesPath);
+      // database = await databaseFactoryFfi.openDatabase(databasesPath);
     }
   }
 
@@ -266,7 +268,7 @@ class DatabaseManager {
   Future<void> _insertTrackToDBMainTable(
       Transaction? txn, AudioTrack track) async {
     String sql =
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime.toString()}")';
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime.toString().substring(0, 19)}")';
     if (txn != null) {
       await txn.rawInsert(sql);
     } else {

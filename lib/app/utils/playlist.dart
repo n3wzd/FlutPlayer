@@ -139,28 +139,27 @@ class PlayList {
 
       if (_playListOrderState == PlayListOrderState.none) {
         rollback();
-        return;
-      }
-
-      String currentKey = _playList[currentIndex];
-      switch (Preference.playListOrderMethod) {
-        case PlayListOrderMethod.title:
-          _playListOrderState == PlayListOrderState.ascending
-              ? sortByTitleAscending()
-              : sortByTitleDescending();
-          break;
-        case PlayListOrderMethod.modifiedDateTime:
-          _playListOrderState == PlayListOrderState.ascending
-              ? sortByModifiedDateTimeAscending()
-              : sortByModifiedDateTimeDescending();
-          break;
-        default:
-          break;
-      }
-      for (int i = 0; i < _playList.length; i++) {
-        if (currentKey == _playList[i]) {
-          currentIndex = i;
-          break;
+      } else {
+        String currentKey = _playList[currentIndex];
+        switch (Preference.playListOrderMethod) {
+          case PlayListOrderMethod.title:
+            _playListOrderState == PlayListOrderState.ascending
+                ? sortByTitleAscending()
+                : sortByTitleDescending();
+            break;
+          case PlayListOrderMethod.modifiedDateTime:
+            _playListOrderState == PlayListOrderState.ascending
+                ? sortByModifiedDateTimeAscending()
+                : sortByModifiedDateTimeDescending();
+            break;
+          default:
+            break;
+        }
+        for (int i = 0; i < _playList.length; i++) {
+          if (currentKey == _playList[i]) {
+            currentIndex = i;
+            break;
+          }
         }
       }
     }

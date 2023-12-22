@@ -15,7 +15,6 @@ import './components/fade_inout_widget.dart';
 import './utils/audio_manager.dart';
 import './widgets/dialog.dart';
 import './widgets/text.dart';
-import './widgets/button.dart';
 import './models/color.dart';
 
 class MainPage extends StatefulWidget {
@@ -48,13 +47,10 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
           key: _scaffoldKey,
           appBar: !global.isFullScreen
               ? AppBar(
-                  leading: ButtonFactory.iconButton(
-                    icon: const Icon(Icons.settings,
-                        color: ColorPalette.lightGrey, size: 30),
-                    onPressed: () => _scaffoldKey.currentState!.openDrawer(),
-                    outline: false,
-                  ),
-                  title: const TopMenu(),
+                  automaticallyImplyLeading: false,
+                  title: TopMenu(onDrawTap: () {
+                    _scaffoldKey.currentState!.openDrawer();
+                  }),
                   backgroundColor: ColorPalette.black,
                   elevation: 0.0,
                   titleSpacing: 0,
@@ -102,8 +98,7 @@ class ScreenPageFullscreen extends StatelessWidget {
             const ScreenPageCenter(),
             FadeInOutWidget(
               child: Container(
-                color: Colors
-                    .transparent, // Transparent container to cover the screen
+                color: Colors.transparent,
                 child: const Stack(
                   children: [
                     Align(

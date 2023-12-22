@@ -11,16 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
   just_audio: ^0.9.35
-  audioplayers: ^5.2.1
+  # audioplayers: ^5.2.1
   file_picker: ^6.0.0
   permission_handler: ^11.0.1
   audio_service: ^0.18.12
   sqflite: ^2.3.0
   sqflite_common_ffi: ^2.3.0
   shared_preferences: ^2.2.2
-  media_kit: ^1.1.10
-  media_kit_video: ^1.2.4
-  media_kit_libs_video: ^1.0.4 
+  # media_kit: ^1.1.10
+  # media_kit_video: ^1.2.4
+  # media_kit_libs_video: ^1.0.4 
 
 dev_dependencies:
   flutter_test:
