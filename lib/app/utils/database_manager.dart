@@ -6,7 +6,6 @@ import '../models/audio_track.dart';
 import '../models/visualizer_color.dart';
 import './playlist.dart';
 import './stream_controller.dart';
-import './permission_handler.dart';
 import 'dart:io';
 import '../global.dart' as global;
 
@@ -311,11 +310,6 @@ class DatabaseManager {
   }
 
   Future<void> exportDBFile() async {
-    if (global.isAndroid) {
-      if (!PermissionHandler.instance.isPermissionAccepted) {
-        return;
-      }
-    }
     String? selectedDirectoryPath =
         await FilePicker.platform.getDirectoryPath();
     if (selectedDirectoryPath != null) {
@@ -325,11 +319,6 @@ class DatabaseManager {
   }
 
   Future<void> importDBFile() async {
-    if (global.isAndroid) {
-      if (!PermissionHandler.instance.isPermissionAccepted) {
-        return;
-      }
-    }
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
     );
@@ -366,30 +355,84 @@ class DatabaseManager {
 
   Future<void> tagCsvToDB() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+    if (result != null) {
+      for (PlatformFile file in result.files) {
+        String? path = file.path;
+        String tableName = file.name;
+        tableName = tableName.substring(0, tableName.length - 4);
+        if (path != null) {
+          File file = File(path);
+          List<String> datas = file.readAsLinesSync();
+          if (!(await checkDBTableExist(tableName))) {
+            await database.transaction((txn) async {
+              await _createDBTable(txn, tableName);
+              int cnt = 0;
+              for (String data in datas) {
+                if (cnt++ == 0) {
+                  continue;
+                }
+                await _insertTrackToDBTagTable(
+                    txn, tableName, data.substring(1, data.length - 1));
+              }
+            });
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> mainDBToCsv() async {
+    String? selectedDirectoryPath =
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      List<Map> datas = await database.rawQuery(
+          'SELECT title, path, modified_time, value AS color, background_path FROM $mainDBTableName, $colorDBTableName WHERE $colorDBTableName.id = $mainDBTableName.color;');
+      File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
+      String buffer = '';
+      buffer += '"title","path","modified_time","color","background_path"\n';
+      for (Map data in datas) {
+        buffer +=
+            '"${data["title"]}","${data["path"]}","${data["modified_time"]}","${data["color"]}","${data["background_path"]}"\n';
+      }
+      file.writeAsStringSync(buffer);
+    }
+  }
+
+  Future<void> mainCsvToDB() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
     if (result != null) {
       String? path = result.files[0].path;
-      String tableName = result.files[0].name;
-      tableName = tableName.substring(0, tableName.length - 4);
       if (path != null) {
         File file = File(path);
         List<String> datas = file.readAsLinesSync();
-        if (!(await checkDBTableExist(tableName))) {
-          await database.transaction((txn) async {
-            await _createDBTable(txn, tableName);
-            int cnt = 0;
-            for (String data in datas) {
-              if (cnt++ == 0) {
-                continue;
-              }
-              await _insertTrackToDBTagTable(
-                  txn, tableName, data.substring(1, data.length - 1));
+        await database.transaction((txn) async {
+          int cnt = 0;
+          for (String data in datas) {
+            if (cnt++ == 0) {
+              continue;
             }
-          });
-        }
+            List<String> substrings = data.split(RegExp(r'"'));
+            if (substrings.length == 11) {
+              await _insertTrackToDBMainTable(
+                  txn,
+                  AudioTrack(
+                    title: substrings[1],
+                    path: substrings[3],
+                    modifiedDateTime: DateTime.parse(substrings[5]),
+                    color: int.parse(substrings[7]),
+                    background: substrings[9],
+                  ));
+            }
+          }
+        });
       }
     }
   }

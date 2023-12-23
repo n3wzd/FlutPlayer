@@ -5,6 +5,7 @@ import '../utils/database_manager.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/text.dart';
+import '../widgets/dialog.dart';
 import '../models/color.dart';
 
 class TagSelectPage extends StatefulWidget {
@@ -82,9 +83,16 @@ class _TagSelectPageState extends State<TagSelectPage> {
             onPressed: _selectedItemCount == 1
                 ? () {
                     int selectedItemIndex = findUniqueItemIndex();
-                    DatabaseManager.instance
-                        .updateList(_tagList[selectedItemIndex]['name']);
-                    setState(() {});
+                    String name = _tagList[selectedItemIndex]['name'];
+                    DialogFactory.choiceDialog(
+                      context: context,
+                      onOkPressed: () {
+                        DatabaseManager.instance.updateList(name);
+                        setState(() {});
+                      },
+                      onCancelPressed: () {},
+                      content: TextFactory.text('update $name?'),
+                    );
                   }
                 : null,
             outline: false,
@@ -95,10 +103,18 @@ class _TagSelectPageState extends State<TagSelectPage> {
             onPressed: _selectedItemCount == 1
                 ? () {
                     int selectedItemIndex = findUniqueItemIndex();
-                    DatabaseManager.instance
-                        .deleteList(_tagList[selectedItemIndex]['name']);
-                    deletePlayListItem(selectedItemIndex);
-                    setState(() {});
+                    String name = _tagList[selectedItemIndex]['name'];
+                    DialogFactory.choiceDialog(
+                      context: context,
+                      onOkPressed: () {
+                        DatabaseManager.instance
+                            .deleteList(_tagList[selectedItemIndex]['name']);
+                        deletePlayListItem(selectedItemIndex);
+                        setState(() {});
+                      },
+                      onCancelPressed: () {},
+                      content: TextFactory.text('delete $name?'),
+                    );
                   }
                 : null,
             outline: false,

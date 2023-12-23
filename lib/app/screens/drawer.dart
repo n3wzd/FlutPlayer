@@ -18,7 +18,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 24,
+          itemCount: 26,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -193,10 +193,21 @@ class PageDrawer extends StatelessWidget {
                   }),
               ListTileFactory.content(
                   title: 'Import Database',
-                  subtitle:
-                      'import database file. name of the file is must "audio_track.db".',
+                  subtitle: 'import database file.',
                   onTap: () {
                     DatabaseManager.instance.importDBFile();
+                  }),
+              ListTileFactory.content(
+                  title: 'Export Main List to csv',
+                  subtitle: 'export main list to csv file.',
+                  onTap: () {
+                    DatabaseManager.instance.mainDBToCsv();
+                  }),
+              ListTileFactory.content(
+                  title: 'Import Main List from csv',
+                  subtitle: 'import main list from csv file.',
+                  onTap: () {
+                    DatabaseManager.instance.mainCsvToDB();
                   }),
               ListTileFactory.content(
                   title: 'Export All Tag to csv',
@@ -205,23 +216,11 @@ class PageDrawer extends StatelessWidget {
                     DatabaseManager.instance.tagDBToCsv();
                   }),
               ListTileFactory.content(
-                  title: 'Import Tag from csv',
+                  title: 'Import Tags from csv',
                   subtitle: 'import tag from csv file.',
                   onTap: () {
                     DatabaseManager.instance.tagCsvToDB();
                   }),
-              /*ListTileFactory.contentSlider(
-                title: 'Master Volume',
-                initialValue: Preference.volumeMasterRate,
-                sliderMin: 0.0,
-                sliderMax: 1.0,
-                onChanged: (double value) {
-                  audioPlayerKit.masterVolume = value;
-                },
-                onChangeEnd: (double value) {
-                  Preference.save();
-                },
-              ),*/
             ];
             return widgetList[index];
           },

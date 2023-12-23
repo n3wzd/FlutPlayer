@@ -27,8 +27,8 @@ void initApp() async {
 /*bool get isAndroid => Platform.isAndroid;
 bool get isWindows => Platform.isWindows;
 bool get isWeb => !isAndroid && !isWindows;*/
-bool get isAndroid => false;
+bool get isAndroid => true;
 bool get isWindows => false;
-bool get isWeb => true;
+bool get isWeb => false;
 
 bool isFullScreen = false;

@@ -10,48 +10,63 @@ class FadeInOutWidget extends StatefulWidget {
 }
 
 class _FadeInOutWidgetState extends State<FadeInOutWidget> {
+  final Duration triggerVisibleTime = const Duration(milliseconds: 2000);
+  final Duration triggerActiveTime = const Duration(milliseconds: 2250);
+  final Duration animationTime = const Duration(milliseconds: 250);
   bool _isVisible = false;
-  StreamSubscription<void>? _trigger;
+  bool _isActive = false;
+  StreamSubscription<void>? _triggerVisible;
+  StreamSubscription<void>? _triggerActive;
 
   void _activeVisibility() {
     cancelTrigger();
     setNextTrigger();
     setState(() {
       _isVisible = true;
+      _isActive = true;
     });
   }
 
   void setNextTrigger() {
-    _trigger = Stream<void>.fromFuture(
-            Future<void>.delayed(const Duration(seconds: 2), () {}))
-        .listen((x) {
+    _triggerVisible =
+        Stream<void>.fromFuture(Future<void>.delayed(triggerVisibleTime, () {}))
+            .listen((x) {
       if (!mounted) return;
       setState(() {
         _isVisible = false;
       });
     });
+    _triggerActive =
+        Stream<void>.fromFuture(Future<void>.delayed(triggerActiveTime, () {}))
+            .listen((x) {
+      if (!mounted) return;
+      setState(() {
+        _isActive = false;
+      });
+    });
   }
 
   void cancelTrigger() {
-    if (_trigger != null) {
-      _trigger!.cancel();
+    if (_triggerVisible != null) {
+      _triggerVisible!.cancel();
+    }
+    if (_triggerActive != null) {
+      _triggerActive!.cancel();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        _activeVisibility();
-      },
-      child: Center(
+        onTap: () {
+          _activeVisibility();
+        },
         child: AnimatedOpacity(
           opacity: _isVisible ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          child: widget.child,
-        ),
-      ),
-    );
+          child:
+              _isActive ? widget.child : Container(color: Colors.transparent),
+        ));
   }
 }
