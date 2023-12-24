@@ -1,7 +1,7 @@
 import '../models/audio_track.dart';
 import './preference.dart';
 import './stream_controller.dart';
-import '../models/play_list_order.dart';
+import '../models/enum.dart';
 
 class PlayList {
   PlayList._();
@@ -23,27 +23,27 @@ class PlayList {
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.title : '';
   String get currentAudioPath =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.path : '';
-  int? get currentAudioColor =>
+  String? get currentAudioColor =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.color : null;
   String? get currentAudioBackground =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.background : null;
-  PlayListOrderState get playListOrderState => _playListOrderState;
   AudioTrack? get currentAudioTrack =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
+  PlayListOrderState get playListOrderState => _playListOrderState;
 
   String audioTitle(int index) => _playMap[_playList[index]]!.title;
   AudioTrack? audioTrack(int index) =>
       isNotEmpty ? _playMap[(_playList[index])]! : null;
-  void setCurrentAudioColor(int color) =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]!.color = color : null;
-  void setCurrentAudioBackground(String background) => isNotEmpty
-      ? _playMap[(_playList[currentIndex])]!.background = background
-      : null;
+  void setAudioColor(int index, String color) =>
+      isNotEmpty ? _playMap[(_playList[index])]!.color = color : null;
+  void setAudioBackground(int index, String background) =>
+      isNotEmpty ? _playMap[(_playList[index])]!.background = background : null;
 
   // only Web Mode
   List<int> get currentbyteData =>
       _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
 
+  bool compareIndexWithCurrent(int index) => currentIndex == index;
   void updateTrack(int index, AudioTrack? track) {
     if (isNotEmpty && track != null) {
       _playMap[(_playList[index])] = track;
@@ -170,12 +170,14 @@ class PlayList {
 
   void sortByTitleAscending() => _playList.sort((a, b) => a.compareTo(b));
   void sortByTitleDescending() => _playList.sort((a, b) => b.compareTo(a));
-  void sortByModifiedDateTimeAscending() => _playList.sort((a, b) =>
-      _playMap[a]!.modifiedDateTime.isBefore(_playMap[b]!.modifiedDateTime)
+  void sortByModifiedDateTimeAscending() =>
+      _playList.sort((a, b) => stringToDateTime(_playMap[a]!.modifiedDateTime)
+              .isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
           ? 1
           : -1);
-  void sortByModifiedDateTimeDescending() => _playList.sort((a, b) =>
-      _playMap[a]!.modifiedDateTime.isBefore(_playMap[b]!.modifiedDateTime)
+  void sortByModifiedDateTimeDescending() =>
+      _playList.sort((a, b) => stringToDateTime(_playMap[a]!.modifiedDateTime)
+              .isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
           ? -1
           : 1);
 

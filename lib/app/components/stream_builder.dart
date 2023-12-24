@@ -56,6 +56,13 @@ class AudioStreamBuilder {
         builder: builder,
       );
 
+  static StreamBuilder<void> imageBackgroundAnimation(
+          BuildParameter<void> builder) =>
+      StreamBuilder<void>(
+        stream: AudioStreamController.imageBackgroundAnimation.stream,
+        builder: builder,
+      );
+
   static StreamBuilder<void> playListSheet(BuildParameter<void> builder) =>
       playListOrderState(
           (context, value) => playList((context, value) => track(builder)));

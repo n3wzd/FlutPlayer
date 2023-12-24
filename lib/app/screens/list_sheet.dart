@@ -11,7 +11,7 @@ import '../widgets/button.dart';
 import '../widgets/text.dart';
 import '../widgets/scrollbar.dart';
 import '../models/color.dart';
-import '../models/play_list_order.dart';
+import '../models/enum.dart';
 
 import '../global.dart' as global;
 
@@ -152,22 +152,22 @@ class _ListSheetState extends State<ListSheet> {
                             PlayList.instance.shift(oldIndex, newIndex);
                           });
                         },
-                        itemCount: AudioManager.instance.playListLength,
+                        itemCount: PlayList.instance.playListLength,
                         itemBuilder: (context, index) => Dismissible(
-                          key: Key(AudioManager.instance.audioTitle(index)),
+                          key: Key(PlayList.instance.audioTitle(index)),
                           onDismissed: (DismissDirection direction) {
                             setListState(() {
                               AudioManager.instance.removePlayListItem(index);
                             });
                           },
                           child: ListTileFactory.multiItem(
-                            key: Key(AudioManager.instance.audioTitle(index)),
+                            key: Key(PlayList.instance.audioTitle(index)),
                             index: index,
-                            text: AudioManager.instance.audioTitle(index),
+                            text: PlayList.instance.audioTitle(index),
                             onTap: () async {
                               await AudioManager.instance.seekTrack(index);
                             },
-                            selected: AudioManager.instance
+                            selected: PlayList.instance
                                 .compareIndexWithCurrent(index),
                             trailing: PopupMenuButton(
                               color: ColorPalette.lightBlack,
@@ -179,7 +179,7 @@ class _ListSheetState extends State<ListSheet> {
                                       context,
                                       MaterialPageRoute<void>(
                                         builder: (context) => TagSelector(
-                                          trackTitle: AudioManager.instance
+                                          trackTitle: PlayList.instance
                                               .audioTitle(index),
                                         ),
                                       ));

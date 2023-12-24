@@ -1,18 +1,16 @@
 import 'package:file_picker/file_picker.dart';
-
 import 'dart:math';
 import 'dart:async';
 import 'dart:io';
-
-import '../global.dart' as global;
-import '../models/audio_track.dart';
 import './audio_player.dart';
 import './playlist.dart';
 import './database_manager.dart';
 import './preference.dart';
 import './stream_controller.dart';
 import './permission_handler.dart';
-import '../models/loop_mode.dart';
+import '../models/audio_track.dart';
+import '../models/enum.dart';
+import '../global.dart' as global;
 
 class AudioManager {
   AudioManager._();
@@ -54,11 +52,6 @@ class AudioManager {
     _volumeTransitionRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
     updateAudioPlayerVolume();
   }
-
-  bool compareIndexWithCurrent(int index) =>
-      PlayList.instance.currentIndex == index;
-  String audioTitle(int index) => PlayList.instance.audioTitle(index);
-  AudioTrack? audioTrack(int index) => PlayList.instance.audioTrack(index);
 
   void init() {
     audioPlayer.init(0, nextEventWhenPlayerCompleted);
@@ -178,6 +171,7 @@ class AudioManager {
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
       AudioStreamController.backgroundFile.add(null);
+      global.setbackgroundPathListCurrentIndex();
 
       play();
       PlayList.instance.currentIndex = index;
@@ -258,7 +252,7 @@ class AudioManager {
               newList.add(AudioTrack(
                 title: name.substring(0, name.length - 4),
                 path: path,
-                modifiedDateTime: fileStat.modified,
+                modifiedDateTime: dateTimeToString(fileStat.modified),
               ));
             }
           }
@@ -277,7 +271,7 @@ class AudioManager {
           newList.add(AudioTrack(
               title: track.name.substring(0, track.name.length - 4),
               path: '',
-              modifiedDateTime: DateTime.now(),
+              modifiedDateTime: dateTimeToString(DateTime.now()),
               file: track));
         }
         playListAddList(newList);
@@ -367,7 +361,7 @@ class AudioManager {
         newList.add(AudioTrack(
           title: data['title'],
           path: data['path'],
-          modifiedDateTime: DateTime.parse(datas[0]['modified_time']),
+          modifiedDateTime: datas[0]['modified_time'],
           color: data['color'],
           background: data['background_path'],
         ));

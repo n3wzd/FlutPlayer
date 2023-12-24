@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import './stream_builder.dart';
 import '../global.dart' as global;
 import '../utils/stream_controller.dart';
 import '../utils/audio_manager.dart';
 import '../utils/playlist.dart';
-import './stream_builder.dart';
 import '../widgets/button.dart';
-import '../models/play_list_order.dart';
-import '../models/loop_mode.dart';
+import '../models/enum.dart';
 import '../models/color.dart';
 
 class FullscreenButton extends StatelessWidget {

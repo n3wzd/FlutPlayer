@@ -3,17 +3,15 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 
 import '../components/tag_export_dialog.dart';
-import '../utils/audio_manager.dart';
 import '../utils/playlist.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
 import '../utils/permission_handler.dart';
 import '../models/audio_track.dart';
-import '../models/visualizer_color.dart';
+import '../models/color.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/text.dart';
-import '../models/color.dart';
 import '../global.dart' as global;
 
 class TagSelector extends StatefulWidget {
@@ -113,7 +111,7 @@ class ColorSelector extends StatefulWidget {
 }
 
 class _ColorSelectorState extends State<ColorSelector> {
-  List<Map> _colorList = [];
+  final List<Map<String, String>> _colorList = [];
 
   @override
   void initState() {
@@ -121,8 +119,11 @@ class _ColorSelectorState extends State<ColorSelector> {
     setPlayList();
   }
 
-  Future<void> setPlayList() async {
-    _colorList = await DatabaseManager.instance.selectAllDBColor();
+  void setPlayList() {
+    defaultVisualizerColors.forEach((key, value) {
+      Map<String, String> map = {'name': key, 'value': value};
+      _colorList.add(map);
+    });
     setState(() {});
   }
 
@@ -149,21 +150,20 @@ class _ColorSelectorState extends State<ColorSelector> {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Chip(
-                      label: TextFactory.text(data["name"], fontSize: 24),
-                      backgroundColor: Color(data["value"]),
+                      label: TextFactory.text(data['name']!, fontSize: 24),
+                      backgroundColor: stringToColor(data['value']!),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                     ),
                   ),
                   onTap: () {
                     AudioTrack? audio =
-                        AudioManager.instance.audioTrack(widget.trackIndex);
+                        PlayList.instance.audioTrack(widget.trackIndex);
                     if (audio != null) {
-                      DatabaseManager.instance.updateDBTrackColor(
-                          audio,
-                          VisualizerColor(
-                              name: data["name"], value: data["value"]));
-                      PlayList.instance.setCurrentAudioColor(data["value"]);
+                      DatabaseManager.instance
+                          .updateDBTrackColor(audio, data["value"]!);
+                      PlayList.instance
+                          .setAudioColor(widget.trackIndex, data["value"]!);
                       AudioStreamController.visualizerColor.add(null);
                       Navigator.pop(context);
                     }
@@ -185,14 +185,14 @@ void backgroundSelector(int trackIndex) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowMultiple: false,
     type: FileType.custom,
-    allowedExtensions: ['png', 'jpg', 'gif', 'mp4'],
+    allowedExtensions: global.backgroundAllowedExtensions,
   );
   if (result != null) {
     String path = result.files[0].path ?? '';
-    AudioTrack? audio = AudioManager.instance.audioTrack(trackIndex);
+    AudioTrack? audio = PlayList.instance.audioTrack(trackIndex);
     if (audio != null) {
       DatabaseManager.instance.updateDBTrackBackground(audio, path);
-      PlayList.instance.setCurrentAudioBackground(path);
+      PlayList.instance.setAudioBackground(trackIndex, path);
       AudioStreamController.backgroundFile.add(null);
     }
   }

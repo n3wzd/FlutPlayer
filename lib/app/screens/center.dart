@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../utils/playlist.dart';
 import '../widgets/text.dart';
 import '../components/visualizer.dart';
@@ -7,8 +6,7 @@ import '../components/optional_visibility.dart';
 import '../components/stream_builder.dart';
 import 'dart:math';
 
-// import '../component/text.dart';
-// import '../log.dart' as global;
+// import '../global.dart' as global;
 
 class CenterSection extends StatelessWidget {
   const CenterSection({super.key});
@@ -21,9 +19,9 @@ class CenterSection extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 45),
               child: StreamBuilder(
-                  stream: globals.debugLogStreamController.stream,
-                  builder: (context, data) => TextMaker.normal(global.debugLog,
-                      fontSize: 8, allowLineBreak: true)),
+                  stream: global.debugLogStreamController.stream,
+                  builder: (context, data) => TextFactory.text(global.debugLog,
+                      fontSize: 8, allowLineBreak: true, color: Colors.red)),
             ),
           ),*/
           Expanded(

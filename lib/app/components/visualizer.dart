@@ -111,13 +111,9 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   Color getColor() {
-    int? color = PlayList.instance.currentAudioColor;
-    if (color != null) {
-      if (color != 0) {
-        return Color(color);
-      }
-    }
-    return ColorPalette.white;
+    String color = PlayList.instance.currentAudioColor ?? 'ffffff';
+    color = (color != 'null') ? color : 'ffffff';
+    return stringToColor(color);
   }
 
   @override

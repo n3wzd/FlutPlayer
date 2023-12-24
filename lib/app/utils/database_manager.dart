@@ -2,11 +2,10 @@ import 'package:sqflite/sqflite.dart';
 // import 'package:sqflite/sqflite.dart' as sqflite;
 // import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:file_picker/file_picker.dart';
-import '../models/audio_track.dart';
-import '../models/visualizer_color.dart';
+import 'dart:io';
 import './playlist.dart';
 import './stream_controller.dart';
-import 'dart:io';
+import '../models/audio_track.dart';
 import '../global.dart' as global;
 
 class DatabaseManager {
@@ -17,7 +16,6 @@ class DatabaseManager {
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
-  final String colorDBTableName = '_color';
   late final Database database;
   late final String databasesPath;
 
@@ -40,18 +38,9 @@ class DatabaseManager {
     } else {
       await openDatabaseFile(databasesPath);
       await database.execute(
-          'CREATE TABLE IF NOT EXISTS $mainDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, title TINYTEXT UNIQUE, path TINYTEXT, modified_time TINYTEXT, color INTEGER NOT NULL DEFAULT 0, background_path TINYTEXT);');
+          'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT, background_path TEXT);');
       await database.execute(
-          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT NOT NULL UNIQUE, favorite BOOL NOT NULL DEFAULT FALSE);');
-      await database.execute(
-          'CREATE TABLE IF NOT EXISTS $colorDBTableName (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TINYTEXT NOT NULL UNIQUE, value INTEGER NOT NULL);');
-      await database.transaction((txn) async {
-        await txn.rawInsert(
-            'INSERT OR IGNORE INTO $colorDBTableName(name, value, id) VALUES("null", 0, 0);');
-        for (VisualizerColor color in defaultVisualizerColors) {
-          _insertColorToDBColorTable(txn, color);
-        }
-      });
+          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite BOOL NOT NULL DEFAULT FALSE);');
     }
   }
 
@@ -115,7 +104,7 @@ class DatabaseManager {
     }
     if (await checkDBTableExist(tableName)) {
       return await database.rawQuery(
-          'SELECT title, path, modified_time, value AS color, background_path FROM $mainDBTableName, $colorDBTableName, ${_tagDBtableName(tableName)} WHERE $mainDBTableName.id = ${_tagDBtableName(tableName)}.id AND $colorDBTableName.id = $mainDBTableName.color ORDER BY sortIdx ASC;');
+          'SELECT $mainDBTableName.title, path, modified_time, color, background_path FROM $mainDBTableName, ${_tagDBtableName(tableName)} WHERE $mainDBTableName.title = ${_tagDBtableName(tableName)}.title ORDER BY sortIdx ASC;');
     }
     return [];
   }
@@ -127,15 +116,6 @@ class DatabaseManager {
     String extraQuery = favoriteFilter ? 'WHERE favorite=TRUE' : '';
     var list = await database.rawQuery(
         'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;');
-    return List<Map>.from(list);
-  }
-
-  Future<List<Map>> selectAllDBColor() async {
-    if (global.isWeb) {
-      return [];
-    }
-    var list = await database.rawQuery(
-        'SELECT * FROM $colorDBTableName WHERE id != 0 ORDER BY id ASC;');
     return List<Map>.from(list);
   }
 
@@ -161,6 +141,7 @@ class DatabaseManager {
           'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
       return data[0]['favorite'] == 0 ? false : true;
     }
+
     return null;
   }
 
@@ -200,22 +181,15 @@ class DatabaseManager {
     }
   }
 
-  void updateDBTrackColor(AudioTrack track, VisualizerColor color) async {
+  void updateDBTrackColor(AudioTrack track, String color) async {
     if (global.isWeb) {
       return;
     }
     await database.transaction((txn) async {
       await _insertTrackToDBMainTable(txn, track);
-      await _insertColorToDBColorTable(txn, color);
     });
-    List<Map> trackData = await database.rawQuery(
-        'SELECT id FROM $mainDBTableName WHERE title="${track.title}";');
-    List<Map> colorData = await database.rawQuery(
-        'SELECT id FROM $colorDBTableName WHERE name="${color.name}";');
-    if (trackData.isNotEmpty && colorData.isNotEmpty) {
-      await database.execute(
-          'UPDATE $mainDBTableName SET color=${colorData[0]["id"]} WHERE id=${trackData[0]["id"]};');
-    }
+    await database.execute(
+        'UPDATE $mainDBTableName SET color="$color" WHERE title="${track.title}";');
     AudioStreamController.visualizerColor.add(null);
   }
 
@@ -226,12 +200,8 @@ class DatabaseManager {
     await database.transaction((txn) async {
       await _insertTrackToDBMainTable(txn, track);
     });
-    List<Map> trackData = await database.rawQuery(
-        'SELECT id FROM $mainDBTableName WHERE title="${track.title}";');
-    if (trackData.isNotEmpty) {
-      await database.execute(
-          'UPDATE $mainDBTableName SET background_path="$background" WHERE id=${trackData[0]["id"]};');
-    }
+    await database.execute(
+        'UPDATE $mainDBTableName SET background_path="$background" WHERE title="${track.title}";');
     AudioStreamController.backgroundFile.add(null);
   }
 
@@ -240,12 +210,12 @@ class DatabaseManager {
       return null;
     }
     List<Map> datas = await database.rawQuery(
-        'SELECT title, path, modified_time, value AS color, background_path FROM $mainDBTableName, $colorDBTableName WHERE title="$trackName" AND $colorDBTableName.id = $mainDBTableName.color;');
+        'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName WHERE title="$trackName";');
     if (datas.isNotEmpty) {
       return AudioTrack(
         title: datas[0]['title'],
         path: datas[0]['path'],
-        modifiedDateTime: DateTime.parse(datas[0]['modified_time']),
+        modifiedDateTime: datas[0]['modified_time'],
         color: datas[0]['color'],
         background: datas[0]['background_path'],
       );
@@ -267,18 +237,7 @@ class DatabaseManager {
   Future<void> _insertTrackToDBMainTable(
       Transaction? txn, AudioTrack track) async {
     String sql =
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime.toString().substring(0, 19)}")';
-    if (txn != null) {
-      await txn.rawInsert(sql);
-    } else {
-      await database.rawQuery(sql);
-    }
-  }
-
-  Future<void> _insertColorToDBColorTable(
-      Transaction? txn, VisualizerColor color) async {
-    String sql =
-        'INSERT OR IGNORE INTO $colorDBTableName(name, value) VALUES("${color.name}", ${color.value})';
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color, background_path) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime}", "${track.color}", "${track.background}")';
     if (txn != null) {
       await txn.rawInsert(sql);
     } else {
@@ -289,17 +248,16 @@ class DatabaseManager {
   Future<void> _insertTrackToDBTagTable(
       Transaction txn, String tableName, String title) async {
     List<Map> data = await txn
-        .rawQuery('SELECT id FROM $mainDBTableName WHERE title = "$title";');
+        .rawQuery('SELECT * FROM $mainDBTableName WHERE title = "$title";');
     if (data.isNotEmpty) {
-      int id = data[0]['id'];
       await txn.rawInsert(
-          'INSERT OR IGNORE INTO ${_tagDBtableName(tableName)}(id) VALUES($id);');
+          'INSERT OR IGNORE INTO ${_tagDBtableName(tableName)}(title) VALUES("$title");');
     }
   }
 
   Future<void> _createDBTable(Transaction txn, String tableName) async {
     txn.rawInsert(
-        'CREATE TABLE ${_tagDBtableName(tableName)} (sortIdx INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, id INTEGER NOT NULL UNIQUE);');
+        'CREATE TABLE ${_tagDBtableName(tableName)} (sortIdx INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT UNIQUE);');
     txn.rawInsert(
         'INSERT INTO $tableMasterDBTableName(name) VALUES("$tableName");');
   }
@@ -390,7 +348,7 @@ class DatabaseManager {
         await FilePicker.platform.getDirectoryPath();
     if (selectedDirectoryPath != null) {
       List<Map> datas = await database.rawQuery(
-          'SELECT title, path, modified_time, value AS color, background_path FROM $mainDBTableName, $colorDBTableName WHERE $colorDBTableName.id = $mainDBTableName.color;');
+          'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName;');
       File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
       String buffer = '';
       buffer += '"title","path","modified_time","color","background_path"\n';
@@ -426,8 +384,8 @@ class DatabaseManager {
                   AudioTrack(
                     title: substrings[1],
                     path: substrings[3],
-                    modifiedDateTime: DateTime.parse(substrings[5]),
-                    color: int.parse(substrings[7]),
+                    modifiedDateTime: substrings[5],
+                    color: substrings[7],
                     background: substrings[9],
                   ));
             }

@@ -1,6 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/play_list_order.dart';
+import '../models/enum.dart';
 
 class Preference {
   Preference._();
@@ -44,11 +43,24 @@ class Preference {
         await prefs.setBool(target, smoothSliderEqualizer);
         break;
 
-      case 'enableVisualizer':
-        await prefs.setBool(target, enableVisualizer);
-        break;
       case 'enableBackground':
         await prefs.setBool(target, enableBackground);
+        break;
+      case 'backgroundMethod':
+        await prefs.setString(target, backgroundMethod.toString());
+        break;
+      case 'backgroundDirectoryPath':
+        await prefs.setString(target, backgroundDirectoryPath);
+        break;
+      case 'rotateBackground':
+        await prefs.setBool(target, rotateBackground);
+        break;
+      case 'scaleBackground':
+        await prefs.setBool(target, scaleBackground);
+        break;
+
+      case 'enableVisualizer':
+        await prefs.setBool(target, enableVisualizer);
         break;
       case 'enableNCSLogo':
         await prefs.setBool(target, enableNCSLogo);
@@ -86,9 +98,16 @@ class Preference {
     smoothSliderEqualizer =
         prefs.getBool('smoothSliderEqualizer') ?? smoothSliderEqualizer;
 
+    enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
+    backgroundMethod = BackgroundMethod.toEnum(
+        prefs.getString('BackgroundMethod') ?? backgroundMethod.toString());
+    backgroundDirectoryPath =
+        prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
+    rotateBackground = prefs.getBool('rotateBackground') ?? rotateBackground;
+    scaleBackground = prefs.getBool('scaleBackground') ?? scaleBackground;
+
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
-    enableEqualizer = prefs.getBool('enableBackground') ?? enableEqualizer;
-    enableEqualizer = prefs.getBool('enableNCSLogo') ?? enableEqualizer;
+    enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
 
     instantlyPlay = prefs.getBool('instantlyPlay') ?? instantlyPlay;
     shuffleReload = prefs.getBool('shuffleReload') ?? shuffleReload;
@@ -109,12 +128,18 @@ class Preference {
   static int mashupNextTriggerMaxTime = 40;
 
   // Equalizer
-  static bool enableEqualizer = true;
+  static bool enableEqualizer = false;
   static bool smoothSliderEqualizer = true;
+
+  // Background
+  static bool enableBackground = true;
+  static BackgroundMethod backgroundMethod = BackgroundMethod.normal;
+  static String backgroundDirectoryPath = '';
+  static bool rotateBackground = false;
+  static bool scaleBackground = false;
 
   // Visualizer
   static bool enableVisualizer = true;
-  static bool enableBackground = true;
   static bool enableNCSLogo = true;
 
   // Other

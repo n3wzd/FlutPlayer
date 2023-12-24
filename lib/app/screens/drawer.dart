@@ -1,15 +1,16 @@
-import 'package:flutbeat/app/utils/stream_controller.dart';
 import 'package:flutter/material.dart';
-
+import 'package:file_picker/file_picker.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
 import './equalizer.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
+import '../widgets/button.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
+import '../utils/stream_controller.dart';
 import '../models/color.dart';
-import '../models/play_list_order.dart';
+import '../models/enum.dart';
 
 class PageDrawer extends StatelessWidget {
   const PageDrawer({Key? key}) : super(key: key);
@@ -18,7 +19,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 26,
+          itemCount: 31,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -123,6 +124,73 @@ class PageDrawer extends StatelessWidget {
                       ));
                     }
                   }),
+              ListTileFactory.title(text: 'Background'),
+              ListTileFactory.contentSwitch(
+                title: 'Enable Background',
+                subtitle: 'enable background.',
+                initialValue: Preference.enableBackground,
+                onChanged: (bool value) {
+                  Preference.enableBackground = !Preference.enableBackground;
+                  Preference.save('enableBackground');
+                  AudioStreamController.enabledBackground.add(null);
+                },
+              ),
+              ListTileFactory.contentDropDownMenu<BackgroundMethod>(
+                title: 'Background Method',
+                subtitle:
+                    'normal: show default background.\nrandom: show random background in the directory.\nspecific: show custom background each track.',
+                initialSelection: Preference.backgroundMethod,
+                onSelected: (BackgroundMethod? value) {
+                  if (value != null) {
+                    Preference.backgroundMethod = value;
+                    Preference.save('backgroundMethod');
+                    AudioStreamController.backgroundFile.add(null);
+                  }
+                },
+                valueList: [
+                  {'value': BackgroundMethod.normal, 'label': 'normal'},
+                  {'value': BackgroundMethod.random, 'label': 'random'},
+                  {'value': BackgroundMethod.specific, 'label': 'specific'},
+                ],
+              ),
+              ListTileFactory.contentContainer(
+                title: 'Directory Path',
+                subtitle: 'change background directory path.',
+                child: ButtonFactory.textButton(
+                  onPressed: () async {
+                    String? selectedDirectoryPath =
+                        await FilePicker.platform.getDirectoryPath();
+                    if (selectedDirectoryPath != null) {
+                      Preference.backgroundDirectoryPath =
+                          selectedDirectoryPath;
+                      Preference.save('backgroundDirectoryPath');
+                      global.setBackgroundPathList();
+                      AudioStreamController.backgroundFile.add(null);
+                    }
+                  },
+                  text: 'change',
+                ),
+              ),
+              ListTileFactory.contentSwitch(
+                title: 'Rotate Picture',
+                subtitle: 'add rotation effect on picture background.',
+                initialValue: Preference.rotateBackground,
+                onChanged: (bool value) {
+                  Preference.rotateBackground = !Preference.rotateBackground;
+                  Preference.save('rotateBackground');
+                  AudioStreamController.imageBackgroundAnimation.add(null);
+                },
+              ),
+              ListTileFactory.contentSwitch(
+                title: 'Scale Picture',
+                subtitle: 'add scale effect on picture background.',
+                initialValue: Preference.scaleBackground,
+                onChanged: (bool value) {
+                  Preference.scaleBackground = !Preference.scaleBackground;
+                  Preference.save('scaleBackground');
+                  AudioStreamController.imageBackgroundAnimation.add(null);
+                },
+              ),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(
                 title: 'Visualizer',
@@ -132,16 +200,6 @@ class PageDrawer extends StatelessWidget {
                   Preference.enableVisualizer = !Preference.enableVisualizer;
                   Preference.save('enableVisualizer');
                   AudioStreamController.enabledVisualizer.add(null);
-                },
-              ),
-              ListTileFactory.contentSwitch(
-                title: 'Background',
-                subtitle: 'enable background.',
-                initialValue: Preference.enableBackground,
-                onChanged: (bool value) {
-                  Preference.enableBackground = !Preference.enableBackground;
-                  Preference.save('enableBackground');
-                  AudioStreamController.enabledBackground.add(null);
                 },
               ),
               ListTileFactory.contentSwitch(

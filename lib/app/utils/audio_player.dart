@@ -1,9 +1,8 @@
 import 'package:just_audio/just_audio.dart' as just_audio;
-import '../global.dart' as global;
-import '../models/audio_track.dart';
-import '../models/file_audio_source.dart';
 import './playlist.dart';
 import './preference.dart';
+import '../models/audio_track.dart';
+import '../global.dart' as global;
 
 class AudioPlayer {
   late final _audioPlayerJust = just_audio.AudioPlayer(
