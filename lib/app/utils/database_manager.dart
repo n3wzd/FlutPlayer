@@ -24,12 +24,10 @@ class DatabaseManager {
     databasesPath = '$path/$databaseFileName';
     await DatabaseInterface.instance.openDatabaseFile(databasesPath);
 
-    if (!(await DatabaseInterface.instance.databaseExists(databasesPath))) {
-      await DatabaseInterface.instance.execute(
-          'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT, background_path TEXT);');
-      await DatabaseInterface.instance.execute(
-          'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite BOOL NOT NULL DEFAULT FALSE);');
-    }
+    await DatabaseInterface.instance.execute(
+        'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT, background_path TEXT);');
+    await DatabaseInterface.instance.execute(
+        'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite BOOL NOT NULL DEFAULT FALSE);');
   }
 
   void dispose() {

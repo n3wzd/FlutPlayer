@@ -37,6 +37,7 @@ class DatabaseInterface {
           ? sqflite_ffi.getDatabasesPath()
           : sqflite.getDatabasesPath();
     }
+
     return '';
   }
 
@@ -53,7 +54,12 @@ class DatabaseInterface {
 
   Future<bool> databaseExists(String path) async {
     if (activeDatabase) {
-      return database.databaseExists(path);
+      bool dd = await (usingFfi
+          ? sqflite_ffi.databaseExists(path)
+          : sqflite.databaseExists(path));
+      global.debugLog = dd.toString();
+      global.debugLogStreamController.add(null);
+      return dd;
     }
     return false;
   }
