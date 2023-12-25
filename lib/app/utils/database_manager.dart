@@ -1,8 +1,6 @@
-import 'package:sqflite/sqflite.dart';
-// import 'package:sqflite/sqflite.dart' as sqflite;
-// import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import './database_interface.dart';
 import './playlist.dart';
 import './stream_controller.dart';
 import '../models/audio_track.dart';
@@ -16,48 +14,26 @@ class DatabaseManager {
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
-  late final Database database;
   late final String databasesPath;
 
   String _tagDBtableName(String name) => '_tag_${name.replaceAll(' ', '_')}';
 
   void init() async {
-    if (global.isWeb) {
-      return;
-    }
-    if (global.isWindows) {
-      // sqfliteFfiInit();
-    }
-    // databaseFactory = databaseFactoryFfi;
-
-    final path = await getDatabasesPath();
+    DatabaseInterface.instance.init();
+    final path = await DatabaseInterface.instance.getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
+    await DatabaseInterface.instance.openDatabaseFile(databasesPath);
 
-    if (await databaseExists(databasesPath)) {
-      await openDatabaseFile(databasesPath);
-    } else {
-      await openDatabaseFile(databasesPath);
-      await database.execute(
+    if (!(await DatabaseInterface.instance.databaseExists(databasesPath))) {
+      await DatabaseInterface.instance.execute(
           'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT, background_path TEXT);');
-      await database.execute(
+      await DatabaseInterface.instance.execute(
           'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite BOOL NOT NULL DEFAULT FALSE);');
     }
   }
 
   void dispose() {
-    if (global.isWeb) {
-      return;
-    }
-    database.close();
-  }
-
-  Future<void> openDatabaseFile(String databasesPath) async {
-    database = await openDatabase(databasesPath);
-    if (global.isAndroid) {
-      // database = await sqflite.openDatabase(databasesPath);
-    } else {
-      // database = await databaseFactoryFfi.openDatabase(databasesPath);
-    }
+    DatabaseInterface.instance.dispose();
   }
 
   void exportList(String tableName, bool autoAddPlaylist) async {
@@ -65,7 +41,7 @@ class DatabaseManager {
       return;
     }
     if (!(await checkDBTableExist(tableName))) {
-      await database.transaction((txn) async {
+      await DatabaseInterface.instance.transaction((txn) async {
         await _createDBTable(txn, tableName);
         if (autoAddPlaylist) {
           await _insertListToDBTagTable(txn, tableName);
@@ -79,7 +55,7 @@ class DatabaseManager {
       return;
     }
     if (await checkDBTableExist(tableName)) {
-      await database.transaction((txn) async {
+      await DatabaseInterface.instance.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
       });
     }
@@ -90,7 +66,7 @@ class DatabaseManager {
       return;
     }
     if (await checkDBTableExist(tableName)) {
-      await database.transaction((txn) async {
+      await DatabaseInterface.instance.transaction((txn) async {
         await _deleteDBTable(txn, tableName);
         await _createDBTable(txn, tableName);
         await _insertListToDBTagTable(txn, tableName);
@@ -103,7 +79,7 @@ class DatabaseManager {
       return [];
     }
     if (await checkDBTableExist(tableName)) {
-      return await database.rawQuery(
+      return await DatabaseInterface.instance.rawQuery(
           'SELECT $mainDBTableName.title, path, modified_time, color, background_path FROM $mainDBTableName, ${_tagDBtableName(tableName)} WHERE $mainDBTableName.title = ${_tagDBtableName(tableName)}.title ORDER BY sortIdx ASC;');
     }
     return [];
@@ -114,7 +90,7 @@ class DatabaseManager {
       return [];
     }
     String extraQuery = favoriteFilter ? 'WHERE favorite=TRUE' : '';
-    var list = await database.rawQuery(
+    var list = await DatabaseInterface.instance.rawQuery(
         'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;');
     return List<Map>.from(list);
   }
@@ -126,7 +102,7 @@ class DatabaseManager {
     if (await checkDBTableExist(tableName)) {
       bool? fav = await selectDBTableFavorite(tableName);
       if (fav != null) {
-        await database.execute(
+        await DatabaseInterface.instance.execute(
             'UPDATE $tableMasterDBTableName SET favorite=${!fav} WHERE name="$tableName";');
       }
     }
@@ -137,7 +113,7 @@ class DatabaseManager {
       return null;
     }
     if (await checkDBTableExist(tableName)) {
-      List<Map> data = await database.rawQuery(
+      List<Map> data = await DatabaseInterface.instance.rawQuery(
           'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";');
       return data[0]['favorite'] == 0 ? false : true;
     }
@@ -149,7 +125,7 @@ class DatabaseManager {
     if (global.isWeb) {
       return false;
     }
-    List<Map> data = await database.rawQuery(
+    List<Map> data = await DatabaseInterface.instance.rawQuery(
         'SELECT name FROM $tableMasterDBTableName WHERE name="$tableName";');
     return data.isNotEmpty;
   }
@@ -162,7 +138,7 @@ class DatabaseManager {
     AudioTrack? track = PlayList.instance.playMap[trackTitle];
     if (track != null) {
       if (await checkDBTableExist(tableName)) {
-        await database.transaction((txn) async {
+        await DatabaseInterface.instance.transaction((txn) async {
           await _insertTrackToDBMainTable(txn, track);
           await _insertTrackToDBTagTable(txn, tableName, track.title);
         });
@@ -175,7 +151,7 @@ class DatabaseManager {
       return;
     }
     if (!(await checkDBTableExist(tableName))) {
-      await database.transaction((txn) async {
+      await DatabaseInterface.instance.transaction((txn) async {
         await _createDBTable(txn, tableName);
       });
     }
@@ -185,10 +161,10 @@ class DatabaseManager {
     if (global.isWeb) {
       return;
     }
-    await database.transaction((txn) async {
+    await DatabaseInterface.instance.transaction((txn) async {
       await _insertTrackToDBMainTable(txn, track);
     });
-    await database.execute(
+    await DatabaseInterface.instance.execute(
         'UPDATE $mainDBTableName SET color="$color" WHERE title="${track.title}";');
     AudioStreamController.visualizerColor.add(null);
   }
@@ -197,10 +173,10 @@ class DatabaseManager {
     if (global.isWeb) {
       return;
     }
-    await database.transaction((txn) async {
+    await DatabaseInterface.instance.transaction((txn) async {
       await _insertTrackToDBMainTable(txn, track);
     });
-    await database.execute(
+    await DatabaseInterface.instance.execute(
         'UPDATE $mainDBTableName SET background_path="$background" WHERE title="${track.title}";');
     AudioStreamController.backgroundFile.add(null);
   }
@@ -209,7 +185,7 @@ class DatabaseManager {
     if (global.isWeb) {
       return null;
     }
-    List<Map> datas = await database.rawQuery(
+    List<Map> datas = await DatabaseInterface.instance.rawQuery(
         'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName WHERE title="$trackName";');
     if (datas.isNotEmpty) {
       return AudioTrack(
@@ -223,8 +199,7 @@ class DatabaseManager {
     return null;
   }
 
-  Future<void> _insertListToDBTagTable(
-      Transaction txn, String tableName) async {
+  Future<void> _insertListToDBTagTable(txn, String tableName) async {
     for (String trackTitle in PlayList.instance.playList) {
       AudioTrack? track = PlayList.instance.playMap[trackTitle];
       if (track != null) {
@@ -234,19 +209,18 @@ class DatabaseManager {
     }
   }
 
-  Future<void> _insertTrackToDBMainTable(
-      Transaction? txn, AudioTrack track) async {
+  Future<void> _insertTrackToDBMainTable(txn, AudioTrack track) async {
     String sql =
         'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color, background_path) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime}", "${track.color}", "${track.background}")';
     if (txn != null) {
       await txn.rawInsert(sql);
     } else {
-      await database.rawQuery(sql);
+      await DatabaseInterface.instance.rawQuery(sql);
     }
   }
 
   Future<void> _insertTrackToDBTagTable(
-      Transaction txn, String tableName, String title) async {
+      txn, String tableName, String title) async {
     List<Map> data = await txn
         .rawQuery('SELECT * FROM $mainDBTableName WHERE title = "$title";');
     if (data.isNotEmpty) {
@@ -255,14 +229,14 @@ class DatabaseManager {
     }
   }
 
-  Future<void> _createDBTable(Transaction txn, String tableName) async {
+  Future<void> _createDBTable(txn, String tableName) async {
     txn.rawInsert(
         'CREATE TABLE ${_tagDBtableName(tableName)} (sortIdx INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT UNIQUE);');
     txn.rawInsert(
         'INSERT INTO $tableMasterDBTableName(name) VALUES("$tableName");');
   }
 
-  Future<void> _deleteDBTable(Transaction txn, String tableName) async {
+  Future<void> _deleteDBTable(txn, String tableName) async {
     txn.execute('DROP TABLE ${_tagDBtableName(tableName)};');
     txn.execute('DELETE FROM $tableMasterDBTableName WHERE name="$tableName";');
   }
@@ -326,7 +300,7 @@ class DatabaseManager {
           File file = File(path);
           List<String> datas = file.readAsLinesSync();
           if (!(await checkDBTableExist(tableName))) {
-            await database.transaction((txn) async {
+            await DatabaseInterface.instance.transaction((txn) async {
               await _createDBTable(txn, tableName);
               int cnt = 0;
               for (String data in datas) {
@@ -347,7 +321,7 @@ class DatabaseManager {
     String? selectedDirectoryPath =
         await FilePicker.platform.getDirectoryPath();
     if (selectedDirectoryPath != null) {
-      List<Map> datas = await database.rawQuery(
+      List<Map> datas = await DatabaseInterface.instance.rawQuery(
           'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName;');
       File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
       String buffer = '';
@@ -371,7 +345,7 @@ class DatabaseManager {
       if (path != null) {
         File file = File(path);
         List<String> datas = file.readAsLinesSync();
-        await database.transaction((txn) async {
+        await DatabaseInterface.instance.transaction((txn) async {
           int cnt = 0;
           for (String data in datas) {
             if (cnt++ == 0) {
