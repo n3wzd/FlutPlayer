@@ -32,8 +32,11 @@ class AudioPlayer {
   Stream<Duration> get positionStream => usingJustAudio
       ? _audioPlayerJust.positionStream
       : _audioPlayerJust.positionStream;
+
   Stream<just_audio.PlaybackEvent> get playbackEventStream =>
       _audioPlayerJust.playbackEventStream;
+  just_audio.ProcessingState get processingState =>
+      _audioPlayerJust.processingState;
 
   Duration get position =>
       usingJustAudio ? _audioPlayerJust.position : _positionAudio;
@@ -167,8 +170,11 @@ class AudioPlayer {
   Stream<Duration> get positionStream => usingJustAudio
       ? _audioPlayerJust.positionStream
       : _audioPlayerAudio.onPositionChanged;
+  
   Stream<just_audio.PlaybackEvent> get playbackEventStream =>
       _audioPlayerJust.playbackEventStream;
+  just_audio.ProcessingState get processingState =>
+      _audioPlayerJust.processingState;
 
   Duration get position =>
       usingJustAudio ? _audioPlayerJust.position : _positionAudio;

@@ -1,20 +1,23 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 import './audio_manager.dart';
+import './playlist.dart';
+import './stream_controller.dart';
 
 Future<AudioHandler> createAudioSerivce() async => await AudioService.init(
-      builder: () => AudioHandlerKit(),
+      builder: () => AudioHandlerManager(),
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'FlutBeat.myapp.channel.audio',
+        androidNotificationChannelId: 'com.mycompany.myapp.channel.audio',
         androidNotificationChannelName: 'Music playback',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
       ),
     );
 
-class AudioHandlerKit extends BaseAudioHandler {
-  AudioHandlerKit() {
+class AudioHandlerManager extends BaseAudioHandler {
+  AudioHandlerManager() {
     _notifyAudioHandler();
+    _listenForTrackChanges();
   }
 
   @override
@@ -33,11 +36,6 @@ class AudioHandlerKit extends BaseAudioHandler {
   }
 
   @override
-  Future<void> skipToQueueItem(int index) async {
-    AudioManager.instance.seekTrack(index);
-  }
-
-  @override
   Future<void> skipToNext() async {
     AudioManager.instance.seekToNext();
   }
@@ -48,10 +46,10 @@ class AudioHandlerKit extends BaseAudioHandler {
   }
 
   void _notifyAudioHandler() {
-    bool isPlaying = AudioManager.instance.isPlaying;
     AudioManager.instance.audioPlayer.playbackEventStream
         .listen((PlaybackEvent event) {
-      playbackState.add(PlaybackState(
+      bool isPlaying = AudioManager.instance.isPlaying;
+      playbackState.add(playbackState.value.copyWith(
         controls: [
           MediaControl.skipToPrevious,
           isPlaying ? MediaControl.pause : MediaControl.play,
@@ -59,13 +57,32 @@ class AudioHandlerKit extends BaseAudioHandler {
         ],
         systemActions: const {
           MediaAction.seek,
-          MediaAction.seekForward,
-          MediaAction.seekBackward,
         },
-        androidCompactActionIndices: const [0, 1, 3],
+        androidCompactActionIndices: const [0, 1, 2],
         playing: isPlaying,
-        // updatePosition: AudioManager.instance.position,
+        processingState: const {
+          ProcessingState.idle: AudioProcessingState.idle,
+          ProcessingState.loading: AudioProcessingState.loading,
+          ProcessingState.buffering: AudioProcessingState.buffering,
+          ProcessingState.ready: AudioProcessingState.ready,
+          ProcessingState.completed: AudioProcessingState.completed,
+        }[AudioManager.instance.audioPlayer.processingState]!,
+        updatePosition: AudioManager.instance.position,
+        bufferedPosition: AudioManager.instance.duration,
       ));
+    });
+  }
+
+  void _listenForTrackChanges() {
+    AudioStreamController.track.stream.listen((value) {
+      if (PlayList.instance.isNotEmpty) {
+        var media = MediaItem(
+          id: PlayList.instance.currentAudioTitle,
+          title: PlayList.instance.currentAudioTitle,
+          duration: AudioManager.instance.duration,
+        );
+        mediaItem.add(media);
+      }
     });
   }
 }

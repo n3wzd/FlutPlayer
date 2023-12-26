@@ -19,31 +19,31 @@ class TopMenu extends StatelessWidget {
     return Row(
       children: [
         ButtonFactory.iconButton(
-          icon: const Icon(Icons.settings,
-              color: ColorPalette.lightGrey, size: 26),
+          icon: const Icon(Icons.settings),
+          iconSize: 26,
           onPressed: onDrawTap,
           outline: false,
           hasOverlay: false,
         ),
-        const SizedBox(width: 2),
         ButtonFactory.iconButton(
-          icon: const Icon(Icons.add),
-          iconSize: 28,
+          icon: const Icon(Icons.search),
+          iconSize: 26,
           onPressed: AudioManager.instance.filesOpen,
           outline: false,
           hasOverlay: false,
         ),
-        const SizedBox(width: 6),
         StatefulBuilder(
-          builder: (context, setState) => CheckboxFactory.checkbox(
-            value: AudioManager.instance.mashupMode,
-            onChanged: (bool? value) {
-              AudioManager.instance.toggleMashupMode();
-              setState(() {});
-            },
+          builder: (context, setState) => ButtonFactory.iconButton(
+            icon: Icon(Icons.tornado,
+                color: AudioManager.instance.mashupMode
+                    ? ColorPalette.lightWine
+                    : ColorPalette.lightGrey),
+            iconSize: 26,
+            onPressed: AudioManager.instance.toggleMashupMode,
+            outline: false,
+            hasOverlay: false,
           ),
         ),
-        const SizedBox(width: 2),
         const FullscreenButton(),
         Expanded(
           child: Align(
