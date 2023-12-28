@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.flutbeat"
+    package="com.example.flutplayer"
     xmlns:tools="http://schemas.android.com/tools">
    <application
-        android:label="FlutBeat"
+        android:label="FlutPlayer"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

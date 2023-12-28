@@ -150,7 +150,8 @@ class _ColorSelectorState extends State<ColorSelector> {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Chip(
-                      label: TextFactory.text(data['name']!, fontSize: 24),
+                      label:
+                          TextFactory.outlineText(data['name']!, fontSize: 24),
                       backgroundColor: stringToColor(data['value']!),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),

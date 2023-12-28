@@ -25,7 +25,7 @@ class SliderFactory {
           overlayColor:
               MaterialStateProperty.resolveWith((Set<MaterialState> states) {
             if (states.contains(MaterialState.hovered)) {
-              return ColorPalette.overlayHoveredPurple;
+              return ColorPalette.purple;
             }
             return ColorPalette.transparent;
           }),
@@ -56,7 +56,7 @@ class SliderFactory {
           overlayColor:
               MaterialStateProperty.resolveWith((Set<MaterialState> states) {
             if (states.contains(MaterialState.hovered)) {
-              return ColorPalette.overlayHoveredPurple;
+              return ColorPalette.purple;
             }
             return ColorPalette.transparent;
           }),

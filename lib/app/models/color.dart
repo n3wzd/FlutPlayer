@@ -8,14 +8,14 @@ class ColorPalette {
   static const grey = Color(0xffaaaaaa);
   static const darkGrey = Color(0xff1d1d1d);
   static const lightBlack = Color(0xff111111);
+  static const overlayHoveredGrey = Color(0x33ffffff);
+  static const overlayPressedGrey = Color(0x44ffffff);
+  static const disableGrey = Color(0xff474747);
+  static const lightGreySeparator = Color(0x44d9d9d9);
+
   static const lightWine = Color(0xff8c003a);
   static const darkWine = Color(0xff36081b);
   static const purple = Color(0xff5b2ec5);
-  static const overlayHoveredGrey = Color(0x33ffffff);
-  static const overlayPressedGrey = Color(0x44ffffff);
-  static const overlayHoveredPurple = Color(0x445b2ec5);
-  static const disableGrey = Color(0xff474747);
-  static const lightGreySeparator = Color(0x44d9d9d9);
 }
 
 String colorToString(Color data) => data.toString().substring(10, 16);

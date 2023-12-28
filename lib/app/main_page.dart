@@ -149,26 +149,33 @@ class ScreenPageFullscreen extends StatelessWidget {
 
 class ScreenPageNormalScreen extends StatelessWidget {
   const ScreenPageNormalScreen({super.key});
+  final int minHeight = 600;
 
   @override
   Widget build(BuildContext context) => Stack(
         children: [
           Container(
             color: ColorPalette.black,
-            child: const Column(
+            child: Column(
               children: [
-                Expanded(
+                const Expanded(
                   flex: 2,
                   child: ScreenPageCenter(),
                 ),
-                Expanded(
-                  flex: 1,
-                  child: BottomSection(),
+                Visibility(
+                  visible: MediaQuery.of(context).size.height >= minHeight,
+                  child: const Expanded(
+                    flex: 1,
+                    child: BottomSection(),
+                  ),
                 ),
               ],
             ),
           ),
-          const ListSheet(),
+          Visibility(
+            visible: MediaQuery.of(context).size.height >= minHeight,
+            child: const ListSheet(),
+          ),
         ],
       );
 }

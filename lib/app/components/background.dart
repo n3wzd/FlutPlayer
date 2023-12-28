@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-//import 'package:media_kit/media_kit.dart';
-//import 'package:media_kit_video/media_kit_video.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
@@ -33,8 +33,7 @@ class Background extends StatelessWidget {
           if (file.existsSync()) {
             const videoExtensions = ['mp4'];
             if (videoExtensions.contains(backgroundPath.split('.').last)) {
-              //return VideoBackground(path: backgroundPath);
-              return Container();
+              return VideoBackground(path: backgroundPath);
             } else {
               return ImageBackground(file: file);
             }
@@ -210,8 +209,10 @@ class _ImageBackgroundState extends State<ImageBackground>
         double b = max(constraints.maxWidth, constraints.maxHeight);
         rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
       }
-      return AudioStreamBuilder.imageBackgroundAnimation(
-        (context, data) => AnimatedSwitcher(
+      return AudioStreamBuilder.imageBackgroundAnimation((context, data) {
+        _angle = 0;
+        _scale = 1;
+        return AnimatedSwitcher(
           duration: const Duration(seconds: 1),
           child: Transform.scale(
             key: ValueKey<bool>(_toggleImage),
@@ -228,13 +229,13 @@ class _ImageBackgroundState extends State<ImageBackground>
               ),
             ),
           ),
-        ),
-      );
+        );
+      });
     });
   }
 }
 
-/*class VideoBackground extends StatefulWidget {
+class VideoBackground extends StatefulWidget {
   const VideoBackground({Key? key, required this.path}) : super(key: key);
   final String path;
 
@@ -272,4 +273,4 @@ class VideoBackgroundState extends State<VideoBackground> {
       ),
     );
   }
-}*/
+}

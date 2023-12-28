@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-
 import '../utils/audio_manager.dart';
 import '../utils/preference.dart';
 import '../widgets/slider.dart';
 import '../widgets/button.dart';
-import '../widgets/checkbox.dart';
 import '../components/action_button.dart';
 import '../models/color.dart';
 
@@ -39,7 +37,11 @@ class TopMenu extends StatelessWidget {
                     ? ColorPalette.lightWine
                     : ColorPalette.lightGrey),
             iconSize: 26,
-            onPressed: AudioManager.instance.toggleMashupMode,
+            onPressed: () {
+              setState(() {
+                AudioManager.instance.toggleMashupMode();
+              });
+            },
             outline: false,
             hasOverlay: false,
           ),

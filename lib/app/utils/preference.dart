@@ -100,7 +100,7 @@ class Preference {
 
     enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
-        prefs.getString('BackgroundMethod') ?? backgroundMethod.toString());
+        prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
     backgroundDirectoryPath =
         prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
     rotateBackground = prefs.getBool('rotateBackground') ?? rotateBackground;
