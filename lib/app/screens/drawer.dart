@@ -6,14 +6,32 @@ import './equalizer.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
+import '../widgets/text.dart';
+import '../widgets/dialog.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
+import '../models/api.dart';
 
 class PageDrawer extends StatelessWidget {
   const PageDrawer({Key? key}) : super(key: key);
+
+  void apiProcess(
+      BuildContext context, Future<APIResult> Function() process) async {
+    APIResult res = await process();
+    if (context.mounted) {
+      DialogFactory.alertDialog(
+        context: context,
+        onPressed: () async {
+          return true;
+        },
+        content:
+            TextFactory.text(res.success ? 'Success!' : 'Failed!\n${res.msg}'),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Drawer(
@@ -244,41 +262,47 @@ class PageDrawer extends StatelessWidget {
               ),
               ListTileFactory.title(text: 'Advance'),
               ListTileFactory.content(
-                  title: 'Export Database',
-                  subtitle: 'export database file.',
-                  onTap: () {
-                    DatabaseManager.instance.exportDBFile();
-                  }),
+                title: 'Export Database',
+                subtitle: 'export database file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.exportDBFile);
+                },
+              ),
               ListTileFactory.content(
-                  title: 'Import Database',
-                  subtitle: 'import database file.',
-                  onTap: () {
-                    DatabaseManager.instance.importDBFile();
-                  }),
+                title: 'Import Database',
+                subtitle: 'import database file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.importDBFile);
+                },
+              ),
               ListTileFactory.content(
-                  title: 'Export Main List to csv',
-                  subtitle: 'export main list to csv file.',
-                  onTap: () {
-                    DatabaseManager.instance.mainDBToCsv();
-                  }),
+                title: 'Export Main List to csv',
+                subtitle: 'export main list to csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.mainDBToCsv);
+                },
+              ),
               ListTileFactory.content(
-                  title: 'Import Main List from csv',
-                  subtitle: 'import main list from csv file.',
-                  onTap: () {
-                    DatabaseManager.instance.mainCsvToDB();
-                  }),
+                title: 'Import Main List from csv',
+                subtitle: 'import main list from csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.mainCsvToDB);
+                },
+              ),
               ListTileFactory.content(
-                  title: 'Export All Tag to csv',
-                  subtitle: 'export all tag to csv file.',
-                  onTap: () {
-                    DatabaseManager.instance.tagDBToCsv();
-                  }),
+                title: 'Export All Tag to csv',
+                subtitle: 'export all tag to csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.tagDBToCsv);
+                },
+              ),
               ListTileFactory.content(
-                  title: 'Import Tags from csv',
-                  subtitle: 'import tag from csv file.',
-                  onTap: () {
-                    DatabaseManager.instance.tagCsvToDB();
-                  }),
+                title: 'Import Tags from csv',
+                subtitle: 'import tag from csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.tagCsvToDB);
+                },
+              ),
             ];
             return widgetList[index];
           },

@@ -7,6 +7,7 @@ import 'dart:async';
 import '../global.dart' as global;
 import '../utils/playlist.dart';
 import '../utils/preference.dart';
+import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
@@ -16,31 +17,44 @@ class Background extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Opacity(
-      opacity: 0.75,
-      child: AudioStreamBuilder.backgroundFile((context, value) {
-        String? backgroundPath;
-        if (Preference.backgroundMethod == BackgroundMethod.specific) {
-          backgroundPath = PlayList.instance.currentAudioBackground;
-        } else if (Preference.backgroundMethod == BackgroundMethod.random) {
-          if (global.backgroundPathList.isNotEmpty) {
-            backgroundPath = global
-                .backgroundPathList[global.backgroundPathListCurrentIndex];
-          }
-        }
-
-        if (backgroundPath != null && backgroundPath != 'null') {
-          File file = File(backgroundPath);
-          if (file.existsSync()) {
-            const videoExtensions = ['mp4'];
-            if (videoExtensions.contains(backgroundPath.split('.').last)) {
-              return VideoBackground(path: backgroundPath);
-            } else {
-              return ImageBackground(file: file);
+        opacity: 0.75,
+        child: AudioStreamBuilder.backgroundFile((context, value) {
+          String? backgroundPath;
+          if (Preference.backgroundMethod == BackgroundMethod.specific) {
+            backgroundPath = PlayList.instance.currentAudioBackground;
+          } else if (Preference.backgroundMethod == BackgroundMethod.random) {
+            if (global.backgroundPathList.isNotEmpty) {
+              backgroundPath = global
+                  .backgroundPathList[global.backgroundPathListCurrentIndex];
             }
           }
-        }
-        return const DefaultBackground();
-      }));
+
+          if (backgroundPath != null && backgroundPath != 'null') {
+            File imageFile = File(backgroundPath);
+            if (imageFile.existsSync()) {
+              const videoExtensions = ['mp4'];
+              if (videoExtensions.contains(backgroundPath.split('.').last)) {
+                return AnimatedSwitcher(
+                  duration: const Duration(seconds: 1),
+                  child: Container(
+                    key: ValueKey<String>(backgroundPath),
+                    child: VideoBackground(path: backgroundPath),
+                  ),
+                );
+              } else {
+                return AnimatedSwitcher(
+                  duration: const Duration(seconds: 1),
+                  child: Container(
+                    key: ValueKey<String>(backgroundPath),
+                    child: ImageBackground(file: imageFile),
+                  ),
+                );
+              }
+            }
+          }
+          return const DefaultBackground();
+        }),
+      );
 }
 
 class DefaultBackground extends StatefulWidget {
@@ -127,8 +141,8 @@ class ImageBackground extends StatefulWidget {
 class _ImageBackgroundState extends State<ImageBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  StreamSubscription<void>? _triggerRotation;
-  StreamSubscription<void>? _triggerScale;
+  late StreamSubscription<void> _triggerRotation;
+  late StreamSubscription<void> _triggerScale;
   double _rotateSpeed = 1;
   double _rotateDirection = 1;
   double _angle = 0;
@@ -162,23 +176,23 @@ class _ImageBackgroundState extends State<ImageBackground>
 
     _triggerRotation = setRotationTrigger();
     _triggerScale = setScaleTrigger();
+
+    AudioStreamController.imageBackgroundAnimation.stream.listen((data) {
+      reset();
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    if (_triggerRotation != null) {
-      _triggerRotation!.cancel();
-    }
-    if (_triggerScale != null) {
-      _triggerScale!.cancel();
-    }
+    _triggerRotation.cancel();
+    _triggerScale.cancel();
     super.dispose();
   }
 
-  StreamSubscription<void>? setRotationTrigger() {
+  StreamSubscription<void> setRotationTrigger() {
     return Stream<void>.fromFuture(Future<void>.delayed(
-            Duration(seconds: 20 + Random().nextInt(20)), () {}))
+            Duration(seconds: 15 + Random().nextInt(15)), () {}))
         .listen((x) {
       if (Preference.rotateBackground) {
         _rotateSpeed = 0.25 + Random().nextDouble() * 1.5;
@@ -188,7 +202,7 @@ class _ImageBackgroundState extends State<ImageBackground>
     });
   }
 
-  StreamSubscription<void>? setScaleTrigger() {
+  StreamSubscription<void> setScaleTrigger() {
     return Stream<void>.fromFuture(
             Future<void>.delayed(const Duration(seconds: 10), () {}))
         .listen((x) {
@@ -200,6 +214,16 @@ class _ImageBackgroundState extends State<ImageBackground>
     });
   }
 
+  void reset() async {
+    await _triggerRotation.cancel();
+    await _triggerScale.cancel();
+    _angle = 0;
+    _scale = 1;
+    _triggerRotation = setRotationTrigger();
+    _triggerScale = setScaleTrigger();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
@@ -209,28 +233,24 @@ class _ImageBackgroundState extends State<ImageBackground>
         double b = max(constraints.maxWidth, constraints.maxHeight);
         rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
       }
-      return AudioStreamBuilder.imageBackgroundAnimation((context, data) {
-        _angle = 0;
-        _scale = 1;
-        return AnimatedSwitcher(
-          duration: const Duration(seconds: 1),
-          child: Transform.scale(
-            key: ValueKey<bool>(_toggleImage),
-            scale: _scale * rotationScale,
-            child: Transform.rotate(
-              angle: _angle * 2 * pi,
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: FileImage(widget.file),
-                  ),
+      return AnimatedSwitcher(
+        duration: const Duration(seconds: 1),
+        child: Transform.scale(
+          key: ValueKey<bool>(_toggleImage),
+          scale: _scale * rotationScale,
+          child: Transform.rotate(
+            angle: _angle * 2 * pi,
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: FileImage(widget.file),
                 ),
               ),
             ),
           ),
-        );
-      });
+        ),
+      );
     });
   }
 }
@@ -243,21 +263,31 @@ class VideoBackground extends StatefulWidget {
   State<VideoBackground> createState() => VideoBackgroundState();
 }
 
-class VideoBackgroundState extends State<VideoBackground> {
+class VideoBackgroundState extends State<VideoBackground>
+    with WidgetsBindingObserver {
   late final player = Player();
   late final controller = VideoController(player);
 
   @override
   void initState() {
     super.initState();
-    player.setPlaylistMode(PlaylistMode.single);
     player.setVolume(0);
+    player.setPlaylistMode(PlaylistMode.single);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     player.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      player.play();
+    }
   }
 
   @override

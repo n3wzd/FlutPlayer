@@ -4,6 +4,7 @@ import './database_interface.dart';
 import './playlist.dart';
 import './stream_controller.dart';
 import '../models/audio_track.dart';
+import '../models/api.dart';
 import '../global.dart' as global;
 
 class DatabaseManager {
@@ -239,131 +240,179 @@ class DatabaseManager {
     txn.execute('DELETE FROM $tableMasterDBTableName WHERE name="$tableName";');
   }
 
-  Future<void> exportDBFile() async {
-    String? selectedDirectoryPath =
-        await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectoryPath != null) {
-      File file = File(databasesPath);
-      file.copySync('$selectedDirectoryPath/$databaseFileName');
+  Future<APIResult> exportDBFile() async {
+    bool success = true;
+    String msg = '';
+    try {
+      String? selectedDirectoryPath =
+          await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        File file = File(databasesPath);
+        file.copySync('$selectedDirectoryPath/$databaseFileName');
+      }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
     }
+    return APIResult(success: success, msg: msg);
   }
 
-  Future<void> importDBFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-    );
-    if (result != null) {
-      String name = result.files[0].name;
-      if (name == databaseFileName) {
-        String? path = result.files[0].path;
-        if (path != null) {
-          File file = File(path);
-          File(databasesPath).writeAsBytesSync(file.readAsBytesSync());
+  Future<APIResult> importDBFile() async {
+    bool success = true;
+    String msg = '';
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+      );
+      if (result != null) {
+        String name = result.files[0].name;
+        if (name == databaseFileName) {
+          String? path = result.files[0].path;
+          if (path != null) {
+            File file = File(path);
+            File(databasesPath).writeAsBytesSync(file.readAsBytesSync());
+          }
         }
       }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
     }
+    return APIResult(success: success, msg: msg);
   }
 
-  Future<void> tagDBToCsv() async {
-    String? selectedDirectoryPath =
-        await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectoryPath != null) {
-      List<Map> tables = await selectAllDBTable();
-      for (Map table in tables) {
-        String tableName = table['name'];
-        List<Map>? datas = await importList(tableName);
-        File file = File('$selectedDirectoryPath/$tableName.csv');
+  Future<APIResult> tagDBToCsv() async {
+    bool success = true;
+    String msg = '';
+    try {
+      String? selectedDirectoryPath =
+          await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        List<Map> tables = await selectAllDBTable();
+        for (Map table in tables) {
+          String tableName = table['name'];
+          List<Map>? datas = await importList(tableName);
+          File file = File('$selectedDirectoryPath/$tableName.csv');
+          String buffer = '';
+          buffer += '"title"\n';
+          for (Map data in datas) {
+            buffer += '"${data["title"]}"\n';
+          }
+          file.writeAsStringSync(buffer);
+        }
+      }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
+    }
+    return APIResult(success: success, msg: msg);
+  }
+
+  Future<APIResult> tagCsvToDB() async {
+    bool success = true;
+    String msg = '';
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (result != null) {
+        for (PlatformFile file in result.files) {
+          String? path = file.path;
+          String tableName = file.name;
+          tableName = tableName.substring(0, tableName.length - 4);
+          if (path != null) {
+            File file = File(path);
+            List<String> datas = file.readAsLinesSync();
+            if (!(await checkDBTableExist(tableName))) {
+              await DatabaseInterface.instance.transaction((txn) async {
+                await _createDBTable(txn, tableName);
+                int cnt = 0;
+                for (String data in datas) {
+                  if (cnt++ == 0) {
+                    continue;
+                  }
+                  await _insertTrackToDBTagTable(
+                      txn, tableName, data.substring(1, data.length - 1));
+                }
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
+    }
+    return APIResult(success: success, msg: msg);
+  }
+
+  Future<APIResult> mainDBToCsv() async {
+    bool success = true;
+    String msg = '';
+    try {
+      String? selectedDirectoryPath =
+          await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        List<Map> datas = await DatabaseInterface.instance.rawQuery(
+            'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName;');
+        File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
         String buffer = '';
-        buffer += '"title"\n';
+        buffer += '"title","path","modified_time","color","background_path"\n';
         for (Map data in datas) {
-          buffer += '"${data["title"]}"\n';
+          buffer +=
+              '"${data["title"]}","${data["path"]}","${data["modified_time"]}","${data["color"]}","${data["background_path"]}"\n';
         }
         file.writeAsStringSync(buffer);
       }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
     }
+    return APIResult(success: success, msg: msg);
   }
 
-  Future<void> tagCsvToDB() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
-    if (result != null) {
-      for (PlatformFile file in result.files) {
-        String? path = file.path;
-        String tableName = file.name;
-        tableName = tableName.substring(0, tableName.length - 4);
+  Future<APIResult> mainCsvToDB() async {
+    bool success = true;
+    String msg = '';
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+      if (result != null) {
+        String? path = result.files[0].path;
         if (path != null) {
           File file = File(path);
           List<String> datas = file.readAsLinesSync();
-          if (!(await checkDBTableExist(tableName))) {
-            await DatabaseInterface.instance.transaction((txn) async {
-              await _createDBTable(txn, tableName);
-              int cnt = 0;
-              for (String data in datas) {
-                if (cnt++ == 0) {
-                  continue;
-                }
-                await _insertTrackToDBTagTable(
-                    txn, tableName, data.substring(1, data.length - 1));
+          await DatabaseInterface.instance.transaction((txn) async {
+            int cnt = 0;
+            for (String data in datas) {
+              if (cnt++ == 0) {
+                continue;
               }
-            });
-          }
+              List<String> substrings = data.split(RegExp(r'"'));
+              if (substrings.length == 11) {
+                await _insertTrackToDBMainTable(
+                    txn,
+                    AudioTrack(
+                      title: substrings[1],
+                      path: substrings[3],
+                      modifiedDateTime: substrings[5],
+                      color: substrings[7],
+                      background: substrings[9],
+                    ));
+              }
+            }
+          });
         }
       }
+    } catch (e) {
+      success = true;
+      msg = e.toString();
     }
-  }
-
-  Future<void> mainDBToCsv() async {
-    String? selectedDirectoryPath =
-        await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectoryPath != null) {
-      List<Map> datas = await DatabaseInterface.instance.rawQuery(
-          'SELECT title, path, modified_time, color, background_path FROM $mainDBTableName;');
-      File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
-      String buffer = '';
-      buffer += '"title","path","modified_time","color","background_path"\n';
-      for (Map data in datas) {
-        buffer +=
-            '"${data["title"]}","${data["path"]}","${data["modified_time"]}","${data["color"]}","${data["background_path"]}"\n';
-      }
-      file.writeAsStringSync(buffer);
-    }
-  }
-
-  Future<void> mainCsvToDB() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
-    if (result != null) {
-      String? path = result.files[0].path;
-      if (path != null) {
-        File file = File(path);
-        List<String> datas = file.readAsLinesSync();
-        await DatabaseInterface.instance.transaction((txn) async {
-          int cnt = 0;
-          for (String data in datas) {
-            if (cnt++ == 0) {
-              continue;
-            }
-            List<String> substrings = data.split(RegExp(r'"'));
-            if (substrings.length == 11) {
-              await _insertTrackToDBMainTable(
-                  txn,
-                  AudioTrack(
-                    title: substrings[1],
-                    path: substrings[3],
-                    modifiedDateTime: substrings[5],
-                    color: substrings[7],
-                    background: substrings[9],
-                  ));
-            }
-          }
-        });
-      }
-    }
+    return APIResult(success: success, msg: msg);
   }
 }
