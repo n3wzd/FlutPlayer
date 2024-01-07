@@ -1,7 +1,7 @@
 import 'package:just_audio/just_audio.dart' as just_audio;
 import 'package:audioplayers/audioplayers.dart' as audio_players;
 import '../global.dart' as global;
-import '../models/audio_track.dart';
+import '../models/data.dart';
 import './playlist.dart';
 import './preference.dart';
 
@@ -160,7 +160,7 @@ class AudioPlayer {
 
 /*import 'package:just_audio/just_audio.dart' as just_audio;
 import '../global.dart' as global;
-import '../models/audio_track.dart';
+import '../models/data.dart';
 import './playlist.dart';
 import './preference.dart';
 

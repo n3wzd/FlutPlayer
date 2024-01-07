@@ -52,12 +52,6 @@ class Preference {
       case 'backgroundDirectoryPath':
         await prefs.setString(target, backgroundDirectoryPath);
         break;
-      case 'rotateBackground':
-        await prefs.setBool(target, rotateBackground);
-        break;
-      case 'scaleBackground':
-        await prefs.setBool(target, scaleBackground);
-        break;
 
       case 'enableVisualizer':
         await prefs.setBool(target, enableVisualizer);
@@ -103,8 +97,6 @@ class Preference {
         prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
     backgroundDirectoryPath =
         prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
-    rotateBackground = prefs.getBool('rotateBackground') ?? rotateBackground;
-    scaleBackground = prefs.getBool('scaleBackground') ?? scaleBackground;
 
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
     enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
@@ -133,10 +125,8 @@ class Preference {
 
   // Background
   static bool enableBackground = true;
-  static BackgroundMethod backgroundMethod = BackgroundMethod.normal;
+  static BackgroundMethod backgroundMethod = BackgroundMethod.specific;
   static String backgroundDirectoryPath = '';
-  static bool rotateBackground = false;
-  static bool scaleBackground = false;
 
   // Visualizer
   static bool enableVisualizer = true;

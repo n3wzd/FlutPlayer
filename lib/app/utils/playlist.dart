@@ -1,4 +1,4 @@
-import '../models/audio_track.dart';
+import '../models/data.dart';
 import './preference.dart';
 import './stream_controller.dart';
 import '../models/enum.dart';
@@ -25,7 +25,7 @@ class PlayList {
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.path : '';
   String? get currentAudioColor =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.color : null;
-  String? get currentAudioBackground =>
+  BackgroundData? get currentAudioBackground =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]!.background : null;
   AudioTrack? get currentAudioTrack =>
       isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
@@ -36,7 +36,7 @@ class PlayList {
       isNotEmpty ? _playMap[(_playList[index])]! : null;
   void setAudioColor(int index, String color) =>
       isNotEmpty ? _playMap[(_playList[index])]!.color = color : null;
-  void setAudioBackground(int index, String background) =>
+  void setAudioBackground(int index, BackgroundData background) =>
       isNotEmpty ? _playMap[(_playList[index])]!.background = background : null;
 
   // only Web Mode

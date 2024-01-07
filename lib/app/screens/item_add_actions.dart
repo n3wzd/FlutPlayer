@@ -6,8 +6,7 @@ import '../components/tag_export_dialog.dart';
 import '../utils/playlist.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
-import '../utils/permission_handler.dart';
-import '../models/audio_track.dart';
+import '../models/data.dart';
 import '../models/color.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
@@ -86,7 +85,7 @@ class _TagSelectorState extends State<TagSelector> {
                 onPressed: () {
                   for (int index = 0; index < length; index++) {
                     if (_selectedList[index]) {
-                      DatabaseManager.instance.addItemInDBTable(
+                      DatabaseManager.instance.addTrackInDBTable(
                           tableName: _tagList[index]['name'],
                           trackTitle: widget.trackTitle);
                     }
@@ -166,6 +165,7 @@ class _ColorSelectorState extends State<ColorSelector> {
                       PlayList.instance
                           .setAudioColor(widget.trackIndex, data["value"]!);
                       AudioStreamController.visualizerColor.add(null);
+                      AudioStreamController.backgroundFile.add(null);
                       Navigator.pop(context);
                     }
                   });
@@ -178,22 +178,20 @@ class _ColorSelectorState extends State<ColorSelector> {
 }
 
 void backgroundSelector(int trackIndex) async {
-  if (global.isAndroid) {
-    if (!PermissionHandler.instance.isPermissionAccepted) {
-      return;
-    }
-  }
+  String? path;
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowMultiple: false,
     type: FileType.custom,
     allowedExtensions: global.backgroundAllowedExtensions,
   );
   if (result != null) {
-    String path = result.files[0].path ?? '';
+    path = result.files[0].path;
     AudioTrack? audio = PlayList.instance.audioTrack(trackIndex);
-    if (audio != null) {
-      DatabaseManager.instance.updateDBTrackBackground(audio, path);
-      PlayList.instance.setAudioBackground(trackIndex, path);
+    if (audio != null && path != null) {
+      DatabaseManager.instance
+          .updateDBTrackBackground(audio.title, BackgroundData(path: path));
+      PlayList.instance
+          .setAudioBackground(trackIndex, BackgroundData(path: path));
       AudioStreamController.backgroundFile.add(null);
     }
   }

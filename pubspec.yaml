@@ -33,4 +33,3 @@ flutter:
   generate: true
   assets:
     - assets/images/NoCopyrightSounds_logo.png
-    - assets/icons/music.png

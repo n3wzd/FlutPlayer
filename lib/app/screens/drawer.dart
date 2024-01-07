@@ -27,8 +27,9 @@ class PageDrawer extends StatelessWidget {
         onPressed: () async {
           return true;
         },
-        content:
-            TextFactory.text(res.success ? 'Success!' : 'Failed!\n${res.msg}'),
+        content: TextFactory.text(
+            res.success ? 'Success!' : 'Failed!\n${res.msg}',
+            allowLineBreak: true),
       );
     }
   }
@@ -37,7 +38,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 31,
+          itemCount: 27,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -189,26 +190,6 @@ class PageDrawer extends StatelessWidget {
                   text: 'change',
                 ),
               ),
-              ListTileFactory.contentSwitch(
-                title: 'Rotate Picture',
-                subtitle: 'add rotation effect on picture background.',
-                initialValue: Preference.rotateBackground,
-                onChanged: (bool value) {
-                  Preference.rotateBackground = !Preference.rotateBackground;
-                  Preference.save('rotateBackground');
-                  AudioStreamController.imageBackgroundAnimation.add(null);
-                },
-              ),
-              ListTileFactory.contentSwitch(
-                title: 'Scale Picture',
-                subtitle: 'add scale effect on picture background.',
-                initialValue: Preference.scaleBackground,
-                onChanged: (bool value) {
-                  Preference.scaleBackground = !Preference.scaleBackground;
-                  Preference.save('scaleBackground');
-                  AudioStreamController.imageBackgroundAnimation.add(null);
-                },
-              ),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(
                 title: 'Visualizer',
@@ -276,20 +257,6 @@ class PageDrawer extends StatelessWidget {
                 },
               ),
               ListTileFactory.content(
-                title: 'Export Main List to csv',
-                subtitle: 'export main list to csv file.',
-                onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainDBToCsv);
-                },
-              ),
-              ListTileFactory.content(
-                title: 'Import Main List from csv',
-                subtitle: 'import main list from csv file.',
-                onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainCsvToDB);
-                },
-              ),
-              ListTileFactory.content(
                 title: 'Export All Tag to csv',
                 subtitle: 'export all tag to csv file.',
                 onTap: () {
@@ -303,6 +270,20 @@ class PageDrawer extends StatelessWidget {
                   apiProcess(context, DatabaseManager.instance.tagCsvToDB);
                 },
               ),
+              /*ListTileFactory.content(
+                title: 'Export Main List to csv',
+                subtitle: 'export main list to csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.mainDBToCsv);
+                },
+              ),
+              ListTileFactory.content(
+                title: 'Import Main List from csv',
+                subtitle: 'import main list from csv file.',
+                onTap: () {
+                  apiProcess(context, DatabaseManager.instance.mainCsvToDB);
+                },
+              ),*/
             ];
             return widgetList[index];
           },

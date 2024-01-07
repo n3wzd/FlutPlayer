@@ -54,12 +54,10 @@ class DatabaseInterface {
 
   Future<bool> databaseExists(String path) async {
     if (activeDatabase) {
-      bool dd = await (usingFfi
+      bool res = await (usingFfi
           ? sqflite_ffi.databaseExists(path)
           : sqflite.databaseExists(path));
-      global.debugLog = dd.toString();
-      global.debugLogStreamController.add(null);
-      return dd;
+      return res;
     }
     return false;
   }

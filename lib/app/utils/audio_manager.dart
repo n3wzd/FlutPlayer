@@ -8,7 +8,7 @@ import './database_manager.dart';
 import './preference.dart';
 import './stream_controller.dart';
 import './permission_handler.dart';
-import '../models/audio_track.dart';
+import '../models/data.dart';
 import '../models/enum.dart';
 import '../global.dart' as global;
 
@@ -363,7 +363,6 @@ class AudioManager {
           path: data['path'],
           modifiedDateTime: datas[0]['modified_time'],
           color: data['color'],
-          background: data['background_path'],
         ));
       }
     }

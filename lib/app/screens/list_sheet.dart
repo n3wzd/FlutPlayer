@@ -12,6 +12,7 @@ import '../widgets/text.dart';
 import '../widgets/scrollbar.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
+import '../screens/background_select.dart';
 
 import '../global.dart' as global;
 
@@ -192,9 +193,19 @@ class _ListSheetState extends State<ListSheet> {
                                         ),
                                       ));
                                 } else if (value == 2) {
-                                  backgroundSelector(
-                                    index,
-                                  );
+                                  if (global.isAndroid) {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute<void>(
+                                          builder: (context) =>
+                                              BackgroundSelectPage(
+                                                  trackIndex: index),
+                                        ));
+                                  } else {
+                                    backgroundSelector(
+                                      index,
+                                    );
+                                  }
                                 }
                               },
                               itemBuilder: (context) => <PopupMenuEntry>[

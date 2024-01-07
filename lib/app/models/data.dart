@@ -14,7 +14,19 @@ class AudioTrack {
   final String modifiedDateTime;
   final PlatformFile? file;
   String? color;
-  String? background;
+  BackgroundData? background;
+}
+
+class BackgroundData {
+  BackgroundData(
+      {required this.path,
+      this.rotate = false,
+      this.scale = false,
+      this.color = false});
+  final String path;
+  bool rotate;
+  bool scale;
+  bool color;
 }
 
 class FileAudioSource extends StreamAudioSource {

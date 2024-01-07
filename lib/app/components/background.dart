@@ -11,6 +11,7 @@ import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
+import '../models/data.dart';
 
 class Background extends StatelessWidget {
   const Background({Key? key}) : super(key: key);
@@ -19,37 +20,26 @@ class Background extends StatelessWidget {
   Widget build(BuildContext context) => Opacity(
         opacity: 0.75,
         child: AudioStreamBuilder.backgroundFile((context, value) {
-          String? backgroundPath;
+          BackgroundData? background;
           if (Preference.backgroundMethod == BackgroundMethod.specific) {
-            backgroundPath = PlayList.instance.currentAudioBackground;
+            background = PlayList.instance.currentAudioBackground;
           } else if (Preference.backgroundMethod == BackgroundMethod.random) {
             if (global.backgroundPathList.isNotEmpty) {
-              backgroundPath = global
+              String path = global
                   .backgroundPathList[global.backgroundPathListCurrentIndex];
+              background = BackgroundData(path: path);
             }
           }
-
-          if (backgroundPath != null && backgroundPath != 'null') {
-            File imageFile = File(backgroundPath);
+          if (background != null) {
+            File imageFile = File(background.path);
             if (imageFile.existsSync()) {
               const videoExtensions = ['mp4'];
-              if (videoExtensions.contains(backgroundPath.split('.').last)) {
-                return AnimatedSwitcher(
-                  duration: const Duration(seconds: 1),
-                  child: Container(
-                    key: ValueKey<String>(backgroundPath),
-                    child: VideoBackground(path: backgroundPath),
-                  ),
-                );
-              } else {
-                return AnimatedSwitcher(
-                  duration: const Duration(seconds: 1),
-                  child: Container(
-                    key: ValueKey<String>(backgroundPath),
-                    child: ImageBackground(file: imageFile),
-                  ),
-                );
-              }
+              return FileBackground(
+                background: background,
+                child: videoExtensions.contains(background.path.split('.').last)
+                    ? VideoBackground(path: background.path)
+                    : ImageBackground(background: background),
+              );
             }
           }
           return const DefaultBackground();
@@ -131,8 +121,8 @@ class _DefaultBackgroundState extends State<DefaultBackground>
 }
 
 class ImageBackground extends StatefulWidget {
-  const ImageBackground({Key? key, required this.file}) : super(key: key);
-  final File file;
+  const ImageBackground({Key? key, required this.background}) : super(key: key);
+  final BackgroundData background;
 
   @override
   State<ImageBackground> createState() => _ImageBackgroundState();
@@ -163,12 +153,12 @@ class _ImageBackgroundState extends State<ImageBackground>
       var value = _controller.value - _prevControllerValue;
       _prevControllerValue = _controller.value;
       value = (value < 0) ? value + 1 : value;
-      if (Preference.rotateBackground) {
+      if (widget.background.rotate) {
         _angle += value * _rotateSpeed * _rotateDirection;
         _angle = _angle % 1;
         setState(() {});
       }
-      if (Preference.scaleBackground) {
+      if (widget.background.scale) {
         _scale += value * _scaleSpeed;
         setState(() {});
       }
@@ -194,7 +184,7 @@ class _ImageBackgroundState extends State<ImageBackground>
     return Stream<void>.fromFuture(Future<void>.delayed(
             Duration(seconds: 15 + Random().nextInt(15)), () {}))
         .listen((x) {
-      if (Preference.rotateBackground) {
+      if (widget.background.rotate) {
         _rotateSpeed = 0.25 + Random().nextDouble() * 1.5;
         _rotateDirection *= -1;
       }
@@ -206,7 +196,7 @@ class _ImageBackgroundState extends State<ImageBackground>
     return Stream<void>.fromFuture(
             Future<void>.delayed(const Duration(seconds: 10), () {}))
         .listen((x) {
-      if (Preference.scaleBackground) {
+      if (widget.background.scale) {
         _scale = 1;
         _toggleImage = !_toggleImage;
       }
@@ -228,7 +218,7 @@ class _ImageBackgroundState extends State<ImageBackground>
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       double rotationScale = 1;
-      if (Preference.rotateBackground) {
+      if (widget.background.rotate) {
         double a = min(constraints.maxWidth, constraints.maxHeight);
         double b = max(constraints.maxWidth, constraints.maxHeight);
         rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
@@ -244,7 +234,7 @@ class _ImageBackgroundState extends State<ImageBackground>
               decoration: BoxDecoration(
                 image: DecorationImage(
                   fit: BoxFit.cover,
-                  image: FileImage(widget.file),
+                  image: FileImage(File(widget.background.path)),
                 ),
               ),
             ),
@@ -273,6 +263,7 @@ class VideoBackgroundState extends State<VideoBackground>
     super.initState();
     player.setVolume(0);
     player.setPlaylistMode(PlaylistMode.single);
+    player.open(Media(widget.path));
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -285,14 +276,13 @@ class VideoBackgroundState extends State<VideoBackground>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.inactive) {
       player.play();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    player.open(Media(widget.path));
     return Center(
       child: Video(
         controller: controller,
@@ -300,6 +290,41 @@ class VideoBackgroundState extends State<VideoBackground>
           return Container();
         },
         fit: BoxFit.cover,
+      ),
+    );
+  }
+}
+
+class FileBackground extends StatelessWidget {
+  const FileBackground(
+      {Key? key, required this.child, required this.background})
+      : super(key: key);
+  final Widget child;
+  final BackgroundData background;
+
+  static Color getColor() {
+    String color = PlayList.instance.currentAudioColor ?? 'ffffff';
+    color = (color != 'null') ? color : 'ffffff';
+    return stringToColor(color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(seconds: 1),
+      child: Container(
+        key: ValueKey<String>(background.path),
+        child: background.color
+            ? Stack(children: [
+                child,
+                Opacity(
+                  opacity: 0.5,
+                  child: Container(
+                    color: getColor(),
+                  ),
+                ),
+              ])
+            : child,
       ),
     );
   }

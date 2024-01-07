@@ -68,7 +68,7 @@ class ListTileFactory {
       title: title,
       subtitle: subtitle,
       trailing: StatefulBuilder(
-        builder: (context, setState) => SwitchMaker.switchWidget(
+        builder: (context, setState) => SwitchFactory.normal(
           value: switchValue,
           onChanged: (bool value) {
             setState(() {
