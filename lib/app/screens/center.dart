@@ -6,24 +6,12 @@ import '../components/optional_visibility.dart';
 import '../components/stream_builder.dart';
 import 'dart:math';
 
-// import '../global.dart' as global;
-
 class CenterSection extends StatelessWidget {
   const CenterSection({super.key});
 
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          /*Expanded(
-            flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 45),
-              child: StreamBuilder(
-                  stream: global.debugLogStreamController.stream,
-                  builder: (context, data) => TextFactory.text(global.debugLog,
-                      fontSize: 8, allowLineBreak: true, color: Colors.red)),
-            ),
-          ),*/
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8),

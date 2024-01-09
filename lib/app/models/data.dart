@@ -22,11 +22,13 @@ class BackgroundData {
       {required this.path,
       this.rotate = false,
       this.scale = false,
-      this.color = false});
+      this.color = false,
+      this.value = 75});
   final String path;
   bool rotate;
   bool scale;
   bool color;
+  int value;
 }
 
 class FileAudioSource extends StreamAudioSource {

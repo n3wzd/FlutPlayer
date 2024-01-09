@@ -30,7 +30,7 @@ class DatabaseManager {
     await DatabaseInterface.instance.execute(
         'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite INTEGER NOT NULL DEFAULT 0);');
     await DatabaseInterface.instance.execute(
-        'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0);');
+        'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
   }
 
   void dispose() {
@@ -142,7 +142,7 @@ class DatabaseManager {
       await _insertDataToDBBackgroundTable(txn, trackTitle, data);
     });
     await DatabaseInterface.instance.execute(
-        'UPDATE $backgroundDBTableName SET path="${data.path}", rotate=${data.rotate ? 1 : 0}, scale=${data.scale ? 1 : 0}, color=${data.color ? 1 : 0} WHERE track="$trackTitle";');
+        'UPDATE $backgroundDBTableName SET path="${data.path}", rotate=${data.rotate ? 1 : 0}, scale=${data.scale ? 1 : 0}, color=${data.color ? 1 : 0}, value=${data.value} WHERE track="$trackTitle";');
     AudioStreamController.backgroundFile.add(null);
   }
 
@@ -163,13 +163,14 @@ class DatabaseManager {
 
   Future<BackgroundData?> _importBackground(String trackName) async {
     List<Map> datas = await DatabaseInterface.instance.rawQuery(
-        'SELECT path, rotate, scale, color FROM $backgroundDBTableName WHERE track="$trackName";');
+        'SELECT path, rotate, scale, color, value FROM $backgroundDBTableName WHERE track="$trackName";');
     if (datas.isNotEmpty) {
       return BackgroundData(
         path: datas[0]['path'],
         rotate: datas[0]['rotate'] == 1 ? true : false,
         scale: datas[0]['scale'] == 1 ? true : false,
         color: datas[0]['color'] == 1 ? true : false,
+        value: datas[0]['value'],
       );
     }
     return null;
@@ -208,7 +209,7 @@ class DatabaseManager {
   Future<void> _insertDataToDBBackgroundTable(
       txn, String trackTitle, BackgroundData data) async {
     String sql =
-        'INSERT OR IGNORE INTO $backgroundDBTableName(track, path, rotate, scale, color) VALUES("$trackTitle", "${data.path}", ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0})';
+        'INSERT OR IGNORE INTO $backgroundDBTableName(track, path, rotate, scale, color, value) VALUES("$trackTitle", "${data.path}", ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
     if (txn != null) {
       await txn.rawInsert(sql);
     } else {

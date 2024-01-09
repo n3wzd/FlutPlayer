@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
@@ -17,34 +16,32 @@ class Background extends StatelessWidget {
   const Background({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: 0.75,
-        child: AudioStreamBuilder.backgroundFile((context, value) {
-          BackgroundData? background;
-          if (Preference.backgroundMethod == BackgroundMethod.specific) {
-            background = PlayList.instance.currentAudioBackground;
-          } else if (Preference.backgroundMethod == BackgroundMethod.random) {
-            if (global.backgroundPathList.isNotEmpty) {
-              String path = global
-                  .backgroundPathList[global.backgroundPathListCurrentIndex];
-              background = BackgroundData(path: path);
-            }
+  Widget build(BuildContext context) =>
+      AudioStreamBuilder.backgroundFile((context, value) {
+        BackgroundData? background;
+        if (Preference.backgroundMethod == BackgroundMethod.specific) {
+          background = PlayList.instance.currentAudioBackground;
+        } else if (Preference.backgroundMethod == BackgroundMethod.random) {
+          if (global.backgroundPathList.isNotEmpty) {
+            String path = global
+                .backgroundPathList[global.backgroundPathListCurrentIndex];
+            background = BackgroundData(path: path);
           }
-          if (background != null) {
-            File imageFile = File(background.path);
-            if (imageFile.existsSync()) {
-              const videoExtensions = ['mp4'];
-              return FileBackground(
-                background: background,
-                child: videoExtensions.contains(background.path.split('.').last)
-                    ? VideoBackground(path: background.path)
-                    : ImageBackground(background: background),
-              );
-            }
+        }
+        if (background != null) {
+          File imageFile = File(background.path);
+          if (imageFile.existsSync()) {
+            const videoExtensions = ['mp4'];
+            return FileBackground(
+              background: background,
+              child: videoExtensions.contains(background.path.split('.').last)
+                  ? VideoBackground(path: background.path)
+                  : ImageBackground(background: background),
+            );
           }
-          return const DefaultBackground();
-        }),
-      );
+        }
+        return const DefaultBackground();
+      });
 }
 
 class DefaultBackground extends StatefulWidget {
@@ -246,50 +243,57 @@ class _ImageBackgroundState extends State<ImageBackground>
 }
 
 class VideoBackground extends StatefulWidget {
-  const VideoBackground({Key? key, required this.path}) : super(key: key);
+  const VideoBackground({super.key, required this.path});
   final String path;
 
   @override
-  State<VideoBackground> createState() => VideoBackgroundState();
+  State<VideoBackground> createState() => _VideoBackgroundState();
 }
 
-class VideoBackgroundState extends State<VideoBackground>
+class _VideoBackgroundState extends State<VideoBackground>
     with WidgetsBindingObserver {
-  late final player = Player();
-  late final controller = VideoController(player);
+  late VideoPlayerController _controller;
 
   @override
   void initState() {
     super.initState();
-    player.setVolume(0);
-    player.setPlaylistMode(PlaylistMode.single);
-    player.open(Media(widget.path));
+    _controller = VideoPlayerController.file(File(widget.path),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
+      ..initialize().then((_) {
+        _controller.setVolume(0);
+        _controller.setLooping(true);
+        _controller.play();
+        setState(() {});
+      });
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    player.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
-      player.play();
+    if (state == AppLifecycleState.resumed) {
+      _controller.play();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Video(
-        controller: controller,
-        controls: (state) {
-          return Container();
-        },
-        fit: BoxFit.cover,
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _controller.value.size.width,
+            height: _controller.value.size.height,
+            child: VideoPlayer(_controller),
+          ),
+        ),
       ),
     );
   }
@@ -309,23 +313,22 @@ class FileBackground extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(seconds: 1),
-      child: Container(
-        key: ValueKey<String>(background.path),
-        child: background.color
-            ? Stack(children: [
-                child,
-                Opacity(
-                  opacity: 0.5,
-                  child: Container(
-                    color: getColor(),
-                  ),
+  Widget build(BuildContext context) => Opacity(
+        opacity: background.value.toDouble() / 100,
+        child: AnimatedSwitcher(
+          duration: const Duration(seconds: 1),
+          child: Container(
+            key: ValueKey<String>(background.path),
+            child: Stack(children: [
+              child,
+              Opacity(
+                opacity: background.color ? 0.4 : 0,
+                child: Container(
+                  color: getColor(),
                 ),
-              ])
-            : child,
-      ),
-    );
-  }
+              ),
+            ]),
+          ),
+        ),
+      );
 }

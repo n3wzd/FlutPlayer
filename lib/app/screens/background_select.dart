@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-
+import 'dart:io';
 import '../utils/playlist.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
@@ -10,6 +10,8 @@ import '../models/data.dart';
 import '../widgets/button.dart';
 import '../widgets/text.dart';
 import '../widgets/switch.dart';
+import '../widgets/text_field.dart';
+import '../widgets/slider.dart';
 import '../global.dart' as global;
 
 class BackgroundSelectPage extends StatefulWidget {
@@ -22,10 +24,15 @@ class BackgroundSelectPage extends StatefulWidget {
 }
 
 class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
+  final TextEditingController _textEditingController = TextEditingController();
+  final double valueSliderMax = 100;
+  final double valueSliderMin = 0;
   bool rotateSwitchValue = false;
   bool scaleSwitchValue = false;
   bool tintSwitchValue = false;
+  double valueSliderValue = 75;
   String? backgroundPath;
+  String currentText = '';
 
   @override
   void initState() {
@@ -40,6 +47,14 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
       rotateSwitchValue = data.rotate;
       scaleSwitchValue = data.scale;
       tintSwitchValue = data.color;
+      valueSliderValue = data.value.toDouble();
+      if (valueSliderValue > valueSliderMax) {
+        valueSliderValue = valueSliderMax;
+      }
+      if (valueSliderValue < valueSliderMin) {
+        valueSliderValue = valueSliderMin;
+      }
+      updateText(backgroundPath);
     }
   }
 
@@ -50,13 +65,31 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
         rotate: rotateSwitchValue,
         scale: scaleSwitchValue,
         color: tintSwitchValue,
+        value: valueSliderValue.toInt(),
       );
       await DatabaseManager.instance.updateDBTrackBackground(
           PlayList.instance.audioTitle(widget.trackIndex), background);
       PlayList.instance.setAudioBackground(widget.trackIndex, background);
       AudioStreamController.backgroundFile.add(null);
       AudioStreamController.imageBackgroundAnimation.add(null);
+      setState(() {});
     }
+  }
+
+  void updateText(String? text) {
+    if (text != null) {
+      setState(() {
+        _textEditingController.text = text;
+        currentText = text;
+      });
+    }
+  }
+
+  bool isVailedBackgroundFile(String path) {
+    File file = File(path);
+    String extension = path.split('.').last;
+    return file.existsSync() &&
+        global.backgroundAllowedExtensions.contains(extension);
   }
 
   @override
@@ -77,39 +110,74 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
       body: SafeArea(
         child: Column(
           children: [
+            const SizedBox(
+              height: 200,
+              child: ClipRRect(
+                child: Background(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                children: [
+                  TextFactory.text('url: '),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFieldFactory.textField(
+                      controller: _textEditingController,
+                      onChanged: (text) {
+                        currentText = text;
+                        if (isVailedBackgroundFile(text)) {
+                          backgroundPath = text;
+                          applyBackground();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ButtonFactory.textButton(
+                    text: 'add',
+                    onPressed: () async {
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles(
+                        allowMultiple: false,
+                        type: FileType.custom,
+                        allowedExtensions: global.backgroundAllowedExtensions,
+                      );
+                      if (result != null) {
+                        backgroundPath = result.files[0].path;
+                        updateText(backgroundPath);
+                        applyBackground();
+                      }
+                    }),
+                const SizedBox(width: 20),
+                ButtonFactory.textButton(
+                    text: 'remove',
+                    onPressed: () {
+                      backgroundPath = '';
+                      updateText(backgroundPath);
+                      applyBackground();
+                    }),
+              ],
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const SizedBox(
-                    height: 200,
-                    child: ClipRRect(
-                      child: Background(),
-                    ),
-                  ),
-                  ButtonFactory.textButton(
-                      text: 'change',
-                      onPressed: () async {
-                        FilePickerResult? result =
-                            await FilePicker.platform.pickFiles(
-                          allowMultiple: false,
-                          type: FileType.custom,
-                          allowedExtensions: global.backgroundAllowedExtensions,
-                        );
-                        if (result != null) {
-                          backgroundPath = result.files[0].path;
-                        }
-                        await applyBackground();
-                        setState(() {});
-                      }),
                   ListTile(
                     title: TextFactory.text('Rotate'),
                     trailing: SwitchFactory.normal(
                       value: rotateSwitchValue,
-                      onChanged: (newValue) async {
+                      onChanged: (newValue) {
                         rotateSwitchValue = newValue;
-                        await applyBackground();
-                        setState(() {});
+                        applyBackground();
                       },
                     ),
                   ),
@@ -117,10 +185,9 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
                     title: TextFactory.text('Scale'),
                     trailing: SwitchFactory.normal(
                       value: scaleSwitchValue,
-                      onChanged: (newValue) async {
+                      onChanged: (newValue) {
                         scaleSwitchValue = newValue;
-                        await applyBackground();
-                        setState(() {});
+                        applyBackground();
                       },
                     ),
                   ),
@@ -128,23 +195,44 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
                     title: TextFactory.text('Tint'),
                     trailing: SwitchFactory.normal(
                       value: tintSwitchValue,
-                      onChanged: (newValue) async {
+                      onChanged: (newValue) {
                         tintSwitchValue = newValue;
-                        await applyBackground();
-                        setState(() {});
+                        applyBackground();
                       },
                     ),
+                  ),
+                  ListTile(
+                    title: TextFactory.text('Value'),
+                    trailing:
+                        StatefulBuilder(builder: (context, setSliderState) {
+                      return SliderFactory.slider(
+                          value: valueSliderValue,
+                          max: valueSliderMax,
+                          onChanged: (value) {
+                            valueSliderValue = value;
+                            setSliderState(() {});
+                          },
+                          onChangeEnd: (value) {
+                            valueSliderValue = value;
+                            applyBackground();
+                          });
+                    }),
                   ),
                 ],
               ),
             ),
-            ButtonFactory.textButton(
-                onPressed: () {
-                  applyBackground();
-                  Navigator.pop(context);
-                },
-                text: 'ok',
-                fontSize: 24),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ButtonFactory.textButton(
+                    onPressed: () {
+                      applyBackground();
+                      Navigator.pop(context);
+                    },
+                    text: 'ok',
+                    fontSize: 24),
+              ],
+            ),
           ],
         ),
       ),
