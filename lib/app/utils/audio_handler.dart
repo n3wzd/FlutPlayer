@@ -9,8 +9,8 @@ Future<AudioHandler> createAudioSerivce() async => await AudioService.init(
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.mycompany.myapp.channel.audio',
         androidNotificationChannelName: 'Music playback',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
+        androidStopForegroundOnPause: false,
+        androidNotificationClickStartsActivity: false,
       ),
     );
 

@@ -65,6 +65,7 @@ class AudioManager {
   }
 
   void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
+    AudioStreamController.track.add(null);
     if (audioPlayerCode != _currentIndexAudioPlayerList) {
       return;
     }
