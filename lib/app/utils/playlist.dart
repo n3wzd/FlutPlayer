@@ -39,10 +39,6 @@ class PlayList {
   void setAudioBackground(int index, BackgroundData background) =>
       isNotEmpty ? _playMap[(_playList[index])]!.background = background : null;
 
-  // only Web Mode
-  List<int> get currentbyteData =>
-      _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
-
   bool compareIndexWithCurrent(int index) => currentIndex == index;
   void updateTrack(int index, AudioTrack? track) {
     if (isNotEmpty && track != null) {

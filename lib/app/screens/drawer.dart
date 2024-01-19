@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
-import './equalizer.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
@@ -38,7 +37,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 27,
+          itemCount: 25,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -130,19 +129,6 @@ class PageDrawer extends StatelessWidget {
                 sliderDivisions: 10,
                 sliderShowLabel: true,
               ),
-              ListTileFactory.title(text: 'Equalizer'),
-              ListTileFactory.content(
-                  title: 'Equalizer',
-                  subtitle: 'open equalizer page. (only android)',
-                  onTap: () {
-                    if (global.isAndroid) {
-                      Navigator.push(context, MaterialPageRoute<void>(
-                        builder: (BuildContext context) {
-                          return const EqualizerControls();
-                        },
-                      ));
-                    }
-                  }),
               ListTileFactory.title(text: 'Background'),
               ListTileFactory.contentSwitch(
                 title: 'Enable Background',

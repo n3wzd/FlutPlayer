@@ -7,7 +7,6 @@ import './playlist.dart';
 import './database_manager.dart';
 import './preference.dart';
 import './stream_controller.dart';
-import './permission_handler.dart';
 import '../models/data.dart';
 import '../models/enum.dart';
 import '../global.dart' as global;
@@ -231,13 +230,7 @@ class AudioManager {
   }
 
   void filesOpen() async {
-    if (!global.isWeb) {
-      if (global.isAndroid) {
-        if (!PermissionHandler.instance.isPermissionAccepted) {
-          return;
-        }
-      }
-      String? selectedDirectoryPath =
+    String? selectedDirectoryPath =
           await FilePicker.platform.getDirectoryPath();
       if (selectedDirectoryPath != null) {
         List<AudioTrack> newList = [];
@@ -260,24 +253,6 @@ class AudioManager {
         }
         playListAddList(newList);
       }
-    } else {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: _allowedExtensions,
-      );
-      if (result != null) {
-        List<AudioTrack> newList = [];
-        for (PlatformFile track in result.files) {
-          newList.add(AudioTrack(
-              title: track.name.substring(0, track.name.length - 4),
-              path: '',
-              modifiedDateTime: dateTimeToString(DateTime.now()),
-              file: track));
-        }
-        playListAddList(newList);
-      }
-    }
   }
 
   List<int> _readBytesFromFile(String filePath) {
@@ -293,10 +268,6 @@ class AudioManager {
   }
 
   void setCurrentByteData() {
-    if (global.isWeb) {
-      _currentByteData = PlayList.instance.currentbyteData;
-      return;
-    }
     _currentByteData = _readBytesFromFile(PlayList.instance.currentAudioPath);
   }
 
@@ -368,14 +339,5 @@ class AudioManager {
       }
     }
     playListAddList(newList);
-  }
-
-  void setEnabledEqualizer() {
-    audioPlayer.setEnabledEqualizer();
-    audioPlayerSub.setEnabledEqualizer();
-  }
-
-  Future<void> syncEqualizer() async {
-    audioPlayer.syncEqualizer(audioPlayerSub);
   }
 }

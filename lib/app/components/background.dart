@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
@@ -243,57 +244,40 @@ class _ImageBackgroundState extends State<ImageBackground>
 }
 
 class VideoBackground extends StatefulWidget {
-  const VideoBackground({super.key, required this.path});
+  const VideoBackground({Key? key, required this.path}) : super(key: key);
   final String path;
 
   @override
-  State<VideoBackground> createState() => _VideoBackgroundState();
+  State<VideoBackground> createState() => VideoBackgroundState();
 }
 
-class _VideoBackgroundState extends State<VideoBackground>
-    with WidgetsBindingObserver {
-  late VideoPlayerController _controller;
+class VideoBackgroundState extends State<VideoBackground> {
+  late final player = Player();
+  late final controller = VideoController(player);
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(File(widget.path),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
-      ..initialize().then((_) {
-        _controller.setVolume(0);
-        _controller.setLooping(true);
-        _controller.play();
-        setState(() {});
-      });
-    WidgetsBinding.instance.addObserver(this);
+    player.setPlaylistMode(PlaylistMode.single);
+    player.setVolume(0);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
+    player.dispose();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _controller.play();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    player.open(Media(widget.path));
     return Center(
-      child: SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _controller.value.size.width,
-            height: _controller.value.size.height,
-            child: VideoPlayer(_controller),
-          ),
-        ),
+      child: Video(
+        controller: controller,
+        controls: (state) {
+          return Container();
+        },
+        fit: BoxFit.cover,
       ),
     );
   }
