@@ -120,11 +120,11 @@ app/
 
 |위젯|기능|
 |---|---|
-|MainPage|메인 화면을 담당하는 위젯입니다. 초기화와 메모리 해제를 담당하며, WillPopScope를 이용하여 뒤로 가기 버튼을 처리합니다.|
-|ScreenPage|메인 화면의 내용을 담당하는 StatelessWidget입니다. 전체 화면 여부에 따라 ScreenPageNormalScreen 또는 ScreenPageFullscreen를 반환합니다.|
-|ScreenPageFullscreen|전체 화면 모드에서의 화면을 구성합니다. 전체 화면으로 보여지는 재생 컨트롤러와 버튼 등이 포함됩니다.|
-|ScreenPageNormalScreen|전체 화면이 아닐 때의 화면을 구성합니다. 하단 섹션을 표시합니다.|
-|ScreenPageCenter|화면 중앙에 배치되는 내용을 구성합니다. 배경과 함께 중앙 섹션을 표시합니다.|
+|`MainPage`|메인 화면을 담당하는 위젯입니다. 초기화와 메모리 해제를 담당하며, WillPopScope를 이용하여 뒤로 가기 버튼을 처리합니다.|
+|`ScreenPage`|메인 화면의 내용을 담당하는 StatelessWidget입니다. 전체 화면 여부에 따라 ScreenPageNormalScreen 또는 ScreenPageFullscreen를 반환합니다.|
+|`ScreenPageFullscreen`|전체 화면 모드에서의 화면을 구성합니다. 전체 화면으로 보여지는 재생 컨트롤러와 버튼 등이 포함됩니다.|
+|`ScreenPageNormalScreen`|전체 화면이 아닐 때의 화면을 구성합니다. 하단 섹션을 표시합니다.|
+|`ScreenPageCenter`|화면 중앙에 배치되는 내용을 구성합니다. 배경과 함께 중앙 섹션을 표시합니다.|
 
 ### components
 재사용 가능한 기능 UI 위젯들을 포함합니다.
@@ -173,8 +173,8 @@ app/
 
 |위젯|기능|
 |---|---|
-|VisualizerController|오디오 시각화를 제어하는 위젯입니다. 오디오의 바이트 스트림에 따라 원 모양의 비주얼라이저가 부드럽게 변화합니다.|
-|CircleVisualizer|실제 시각화를 나타내는 비주얼라이저 위젯입니다. 지정된 크기와 색상의 원 모양을 그립니다.|
+|`VisualizerController`|오디오 시각화를 제어하는 위젯입니다. 오디오의 바이트 스트림에 따라 원 모양의 비주얼라이저가 부드럽게 변화합니다.|
+|`CircleVisualizer`|실제 시각화를 나타내는 비주얼라이저 위젯입니다. 지정된 크기와 색상의 원 모양을 그립니다.|
 
 
 비주얼라이저 제어 과정은 다음과 같습니다:
@@ -405,8 +405,8 @@ mashup 모드의 동작 과정은 다음과 같습니다:
 
 |위젯|기능|
 |---|---|
-|textButton|텍스트 버튼|
-|iconButton|아이콘 버튼|
+|`textButton`|텍스트 버튼|
+|`iconButton`|아이콘 버튼|
 
 #### checkbox.dart
 체크박스를 생성하는 클래스입니다.
@@ -416,22 +416,22 @@ mashup 모드의 동작 과정은 다음과 같습니다:
 
 |위젯|기능|
 |---|---|
-|alertDialog|단일 버튼 다이얼로그|
-|choiceDialog|2개의 버튼 다이얼로그|
+|`alertDialog`|단일 버튼 다이얼로그|
+|`choiceDialog`|2개의 버튼 다이얼로그|
 
 #### listtile.dart
 리스트타일을 생성하는 클래스입니다.
 
 |위젯|기능|
 |---|---|
-|multiItem|여러 항목을 표시할 때 사용되는 ListTile|
-|title|제목을 포함하는 ListTile|
-|content|컨테이너 ListTile|
-|contentSwitch|스위치를 포함하는 ListTile|
-|contentContainer|`Container` 위젯을 포함하는 컨테이너 ListTile|
-|contentDropDownMenu|드롭다운 메뉴를 포함하는 ListTile|
-|contentSlider|슬라이더를 포함하는 ListTile|
-|contentRangeSlider|범위 슬라이더를 포함하는 ListTile|
+|`multiItem`|여러 항목을 표시할 때 사용되는 ListTile|
+|`title`|제목을 포함하는 ListTile|
+|`content`|컨테이너 ListTile|
+|`contentSwitch`|스위치를 포함하는 ListTile|
+|`contentContainer`|`Container` 위젯을 포함하는 컨테이너 ListTile|
+|`contentDropDownMenu`|드롭다운 메뉴를 포함하는 ListTile|
+|`contentSlider`|슬라이더를 포함하는 ListTile|
+|`contentRangeSlider`|범위 슬라이더를 포함하는 ListTile|
 
 #### scrollbar.dart
 스크롤바를 생성하는 클래스입니다.
@@ -441,8 +441,8 @@ mashup 모드의 동작 과정은 다음과 같습니다:
 
 |위젯|기능|
 |---|---|
-|slider|일반 슬라이더|
-|rangeSlider|범위 슬라이더|
+|`slider`|일반 슬라이더|
+|`rangeSlider`|범위 슬라이더|
 
 #### switch.dart
 스위치 버튼을 생성하는 클래스입니다.
@@ -452,10 +452,10 @@ mashup 모드의 동작 과정은 다음과 같습니다:
 
 |위젯|기능|
 |---|---|
-|text|일반적인 텍스트 위젯|
-|timeFormatText:|시간 형식 텍스트 위젯|
-|outlineText|윤곽선이 추가된 텍스트 위젯|
-|scrollAnimationText|스크롤 애니메이션이 적용된 텍스트 위젯으로, 텍스트가 화면 너비를 초과하는 경우 스크롤 애니메이션이 적용됩니다.|
+|`text`|일반적인 텍스트 위젯|
+|`timeFormatText`|시간 형식 텍스트 위젯|
+|`outlineText`|윤곽선이 추가된 텍스트 위젯|
+|`scrollAnimationText`|스크롤 애니메이션이 적용된 텍스트 위젯으로, 텍스트가 화면 너비를 초과하는 경우 스크롤 애니메이션이 적용됩니다.|
 
 #### text_field.dart
 텍스트 박스를 생성하는 클래스입니다.
