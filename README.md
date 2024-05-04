@@ -88,7 +88,7 @@ app/
 │   ├── database_interface.dart: 외부 데이터베이스 패키지, DatabaseManager간 인터페이스 클래스
 │   ├── database_manager.dart: 데이터베이스 관리 싱글톤 클래스
 │   ├── playlist.dart: 재생 목록 싱글톤 클래스
-│   ├── preference.dart: 설정 관리 싱글톤 클래스입니다.
+│   ├── preference.dart: 설정 관리 싱글톤 클래스
 │   └── stream_controller.dart: StreamController 제공 클래스
 │
 ├── widgets/: 공통 위젯
