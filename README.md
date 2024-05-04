@@ -1,5 +1,5 @@
 # FlutPlayer
-음원을 재생하는 안드로이드 애플리케이션입니다.
+> 음원을 재생하는 안드로이드 애플리케이션입니다.
 
 ![example](example.png)
 
@@ -36,10 +36,10 @@
 	- 백그라운드 프로세스 지원
 	- 알림바 UI 제공
 
-## 기술 스택
+## Stack
 - Flutter
 
-## Dependency
+### Dependency
 - just_audio: ^0.9.35
 - audioplayers: ^5.2.0
 - file_picker: ^6.0.0
@@ -50,7 +50,7 @@
 - shared_preferences: ^2.2.2
 - video_player: ^2.8.2
 
-## 파일 구조
+## Structure
 
 ```
 app/
