@@ -32,36 +32,6 @@ class TextFactory {
         ),
       );
 
-  static outlineText(String text,
-          {Color? color,
-          Color outlineColor = ColorPalette.black,
-          double outlineWidth = 1,
-          double? fontSize,
-          FontWeight? fontWeight}) =>
-      Stack(
-        children: [
-          TextFactory.text(
-            text,
-            style: TextStyleFactory.style(
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = outlineWidth
-                ..color = outlineColor,
-            ),
-          ),
-          TextFactory.text(
-            text,
-            style: TextStyleFactory.style(
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              color: color,
-            ),
-          ),
-        ],
-      );
-
   static scrollAnimationText(
           {required String text, Color? color, double? fontSize}) =>
       ScrollAnimationText(

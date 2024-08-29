@@ -231,52 +231,33 @@ class AudioManager {
   }
 
   void filesOpen() async {
-    if (!global.isWeb) {
-      if (global.isAndroid) {
-        if (!PermissionHandler.instance.isPermissionAccepted) {
-          return;
-        }
-      }
-      String? selectedDirectoryPath =
-          await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectoryPath != null) {
-        List<AudioTrack> newList = [];
-        Directory selectedDirectory = Directory(selectedDirectoryPath);
-        List<FileSystemEntity> selectedDirectoryFile =
-            selectedDirectory.listSync(recursive: true);
-        for (FileSystemEntity file in selectedDirectoryFile) {
-          String path = file.path;
-          if (!FileSystemEntity.isDirectorySync(path)) {
-            if (_allowedExtensions.contains(path.split('.').last)) {
-              String name = file.uri.pathSegments.last;
-              FileStat fileStat = FileStat.statSync(path);
-              newList.add(AudioTrack(
-                title: name.substring(0, name.length - 4),
-                path: path,
-                modifiedDateTime: dateTimeToString(fileStat.modified),
-              ));
-            }
+    if (!PermissionHandler.instance.isPermissionAccepted) {
+      return;
+    }
+    String? selectedDirectoryPath =
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      List<AudioTrack> newList = [];
+      Directory selectedDirectory = Directory(selectedDirectoryPath);
+      List<FileSystemEntity> selectedDirectoryFile =
+      selectedDirectory.listSync(recursive: true);
+      for (FileSystemEntity file in selectedDirectoryFile) {
+        String path = file.path;
+        if (!FileSystemEntity.isDirectorySync(path)) {
+          if (_allowedExtensions.contains(path
+              .split('.')
+              .last)) {
+            String name = file.uri.pathSegments.last;
+            FileStat fileStat = FileStat.statSync(path);
+            newList.add(AudioTrack(
+              title: name.substring(0, name.length - 4),
+              path: path,
+              modifiedDateTime: dateTimeToString(fileStat.modified),
+            ));
           }
         }
-        playListAddList(newList);
       }
-    } else {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: _allowedExtensions,
-      );
-      if (result != null) {
-        List<AudioTrack> newList = [];
-        for (PlatformFile track in result.files) {
-          newList.add(AudioTrack(
-              title: track.name.substring(0, track.name.length - 4),
-              path: '',
-              modifiedDateTime: dateTimeToString(DateTime.now()),
-              file: track));
-        }
-        playListAddList(newList);
-      }
+      playListAddList(newList);
     }
   }
 
@@ -293,10 +274,6 @@ class AudioManager {
   }
 
   void setCurrentByteData() {
-    if (global.isWeb) {
-      _currentByteData = PlayList.instance.currentbyteData;
-      return;
-    }
     _currentByteData = _readBytesFromFile(PlayList.instance.currentAudioPath);
   }
 

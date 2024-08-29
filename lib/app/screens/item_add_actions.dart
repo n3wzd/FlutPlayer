@@ -10,7 +10,6 @@ import '../models/data.dart';
 import '../models/color.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
-import '../widgets/text.dart';
 import '../global.dart' as global;
 
 class TagSelector extends StatefulWidget {
@@ -110,7 +109,7 @@ class ColorSelector extends StatefulWidget {
 }
 
 class _ColorSelectorState extends State<ColorSelector> {
-  final List<Map<String, String>> _colorList = [];
+  final List<String> _colorList = [];
 
   @override
   void initState() {
@@ -120,8 +119,7 @@ class _ColorSelectorState extends State<ColorSelector> {
 
   void setPlayList() {
     defaultVisualizerColors.forEach((key, value) {
-      Map<String, String> map = {'name': key, 'value': value};
-      _colorList.add(map);
+      _colorList.add(value);
     });
     setState(() {});
   }
@@ -143,33 +141,43 @@ class _ColorSelectorState extends State<ColorSelector> {
           ),
         ),
         body: SafeArea(
-          child: Wrap(
-            children: _colorList.map((data) {
+          child:
+          GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1,
+            ),
+            itemCount: 15,
+            itemBuilder: (itemContext, index) {
               return GestureDetector(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Chip(
-                      label:
-                          TextFactory.outlineText(data['name']!, fontSize: 24),
-                      backgroundColor: stringToColor(data['value']!),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: stringToColor(_colorList[index]),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1.0,
+                      ),
                     ),
                   ),
-                  onTap: () {
-                    AudioTrack? audio =
-                        PlayList.instance.audioTrack(widget.trackIndex);
-                    if (audio != null) {
-                      DatabaseManager.instance
-                          .updateDBTrackColor(audio, data["value"]!);
-                      PlayList.instance
-                          .setAudioColor(widget.trackIndex, data["value"]!);
-                      AudioStreamController.visualizerColor.add(null);
-                      AudioStreamController.backgroundFile.add(null);
-                      Navigator.pop(context);
-                    }
-                  });
-            }).toList(),
+                ),
+                onTap: () {
+                  AudioTrack? audio = PlayList.instance.audioTrack(widget.trackIndex);
+                  if (audio != null) {
+                    DatabaseManager.instance
+                        .updateDBTrackColor(audio, _colorList[index]);
+                    PlayList.instance
+                        .setAudioColor(widget.trackIndex, _colorList[index]);
+                    AudioStreamController.visualizerColor.add(null);
+                    AudioStreamController.backgroundFile.add(null);
+                    Navigator.pop(context);
+                  }
+                });
+            },
           ),
         ),
       ),

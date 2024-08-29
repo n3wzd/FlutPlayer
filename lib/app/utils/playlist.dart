@@ -10,7 +10,7 @@ class PlayList {
 
   final Map<String, AudioTrack> _playMap = {};
   final List<String> _playList = [];
-  final List<String> _playListBackup = [];
+  List<String> _playListBackup = [];
 
   int currentIndex = 0;
   PlayListOrderState _playListOrderState = PlayListOrderState.none;
@@ -19,29 +19,27 @@ class PlayList {
   List<String> get playList => _playList;
   int get playListLength => _playMap.length;
   bool get isNotEmpty => _playMap.isNotEmpty;
-  String get currentAudioTitle =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]!.title : '';
-  String get currentAudioPath =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]!.path : '';
-  String? get currentAudioColor =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]!.color : null;
-  BackgroundData? get currentAudioBackground =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]!.background : null;
   AudioTrack? get currentAudioTrack =>
-      isNotEmpty ? _playMap[(_playList[currentIndex])]! : null;
+      isNotEmpty ? _playMap[(_playList[currentIndex])] : null;
+  String get currentAudioTitle =>
+      isNotEmpty ? (currentAudioTrack?.title ?? '') : '';
+  String get currentAudioPath =>
+      isNotEmpty ? (currentAudioTrack?.path ?? '') : '';
+  String? get currentAudioColor =>
+      isNotEmpty ? currentAudioTrack?.color : null;
+  BackgroundData? get currentAudioBackground =>
+      isNotEmpty ? currentAudioTrack?.background : null;
   PlayListOrderState get playListOrderState => _playListOrderState;
 
-  String audioTitle(int index) => _playMap[_playList[index]]!.title;
+  String audioTitle(int index) {
+    return _playMap[_playList[index]]!.title;
+  }
   AudioTrack? audioTrack(int index) =>
-      isNotEmpty ? _playMap[(_playList[index])]! : null;
+      isNotEmpty ? _playMap[(_playList[index])] : null;
   void setAudioColor(int index, String color) =>
       isNotEmpty ? _playMap[(_playList[index])]!.color = color : null;
   void setAudioBackground(int index, BackgroundData background) =>
       isNotEmpty ? _playMap[(_playList[index])]!.background = background : null;
-
-  // only Web Mode
-  List<int> get currentbyteData =>
-      _playMap[_playList[currentIndex]]!.file!.bytes!.cast<int>();
 
   bool compareIndexWithCurrent(int index) => currentIndex == index;
   void updateTrack(int index, AudioTrack? track) {
@@ -76,7 +74,6 @@ class PlayList {
       currentIndex += 1;
     }
     _playList.insert(newIndex, _playList.removeAt(oldIndex));
-    _playListBackup.insert(newIndex, _playListBackup.removeAt(oldIndex));
   }
 
   void remove(int index) {
@@ -84,7 +81,6 @@ class PlayList {
       currentIndex -= 1;
     }
     _playMap.remove(_playList.removeAt(index));
-    _playListBackup.removeAt(index);
   }
 
   void shuffle() {
@@ -106,13 +102,18 @@ class PlayList {
 
   void rollback() {
     if (_playList.isNotEmpty) {
+      List<String> newBackup = [];
       String currentKey = _playList[currentIndex];
-      for (int i = 0; i < _playList.length; i++) {
-        _playList[i] = _playListBackup[i];
-        if (currentKey == _playList[i]) {
-          currentIndex = i;
+      for (int i = 0, j = 0; i < _playListBackup.length; i++) {
+        if(_playMap[_playListBackup[i]] != null) {
+          _playList[j] = _playListBackup[i];
+          if (currentKey == _playList[j]) {
+            currentIndex = j;
+          }
+          j++; newBackup.add(_playListBackup[i]);
         }
       }
+      _playListBackup = newBackup;
     }
     _playListOrderState = PlayListOrderState.none;
   }

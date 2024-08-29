@@ -168,57 +168,79 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
               ],
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  ListTile(
-                    title: TextFactory.text('Rotate'),
-                    trailing: SwitchFactory.normal(
-                      value: rotateSwitchValue,
-                      onChanged: (newValue) {
-                        rotateSwitchValue = newValue;
-                        applyBackground();
-                      },
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Rotate'),
+                          ),
+                          SwitchFactory.normal(
+                            value: rotateSwitchValue,
+                            onChanged: (newValue) {
+                              rotateSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Scale'),
-                    trailing: SwitchFactory.normal(
-                      value: scaleSwitchValue,
-                      onChanged: (newValue) {
-                        scaleSwitchValue = newValue;
-                        applyBackground();
-                      },
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Scale'),
+                          ),
+                          SwitchFactory.normal(
+                            value: scaleSwitchValue,
+                            onChanged: (newValue) {
+                              scaleSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Tint'),
-                    trailing: SwitchFactory.normal(
-                      value: tintSwitchValue,
-                      onChanged: (newValue) {
-                        tintSwitchValue = newValue;
-                        applyBackground();
-                      },
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Tint'),
+                          ),
+                          SwitchFactory.normal(
+                            value: tintSwitchValue,
+                            onChanged: (newValue) {
+                              tintSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Value'),
-                    trailing:
-                        StatefulBuilder(builder: (context, setSliderState) {
-                      return SliderFactory.slider(
-                          value: valueSliderValue,
-                          max: valueSliderMax,
-                          onChanged: (value) {
-                            valueSliderValue = value;
-                            setSliderState(() {});
-                          },
-                          onChangeEnd: (value) {
-                            valueSliderValue = value;
-                            applyBackground();
-                          });
-                    }),
-                  ),
-                ],
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Value'),
+                          ),
+                          StatefulBuilder(builder: (context, setSliderState) {
+                            return SliderFactory.slider(
+                                value: valueSliderValue,
+                                max: valueSliderMax,
+                                onChanged: (value) {
+                                  valueSliderValue = value;
+                                  setSliderState(() {});
+                                },
+                                onChangeEnd: (value) {
+                                  valueSliderValue = value;
+                                  applyBackground();
+                                });
+                          }),
+                        ]
+                    ),
+                  ],
+                ),
               ),
             ),
             Column(

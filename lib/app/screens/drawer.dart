@@ -135,13 +135,11 @@ class PageDrawer extends StatelessWidget {
                   title: 'Equalizer',
                   subtitle: 'open equalizer page. (only android)',
                   onTap: () {
-                    if (global.isAndroid) {
-                      Navigator.push(context, MaterialPageRoute<void>(
-                        builder: (BuildContext context) {
-                          return const EqualizerControls();
-                        },
-                      ));
-                    }
+                    Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return const EqualizerControls();
+                      },
+                    ));
                   }),
               ListTileFactory.title(text: 'Background'),
               ListTileFactory.contentSwitch(

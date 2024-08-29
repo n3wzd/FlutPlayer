@@ -41,13 +41,23 @@ class _TagSelectPageState extends State<TagSelectPage> {
     _selectedItemCount--;
   }
 
-  int findUniqueItemIndex() {
+  int getUniqueItemIndex() {
     for (int i = 0; i < _selectedList.length; i++) {
       if (_selectedList[i]) {
         return i;
       }
     }
     return 0;
+  }
+
+  List<int> getSelectedItemIndex() {
+    List<int> selected = [];
+    for (int i = 0; i < _selectedList.length; i++) {
+      if (_selectedList[i]) {
+        selected.add(i);
+      }
+    }
+    return selected;
   }
 
   @override
@@ -63,18 +73,16 @@ class _TagSelectPageState extends State<TagSelectPage> {
             iconColor: _isSelectedItemFavorite
                 ? ColorPalette.lightWine
                 : ColorPalette.lightGrey,
-            onPressed: _selectedItemCount == 1
-                ? () {
-                    int selectedItemIndex = findUniqueItemIndex();
-                    DatabaseManager.instance.toggleDBTableFavorite(
-                        _tagList[selectedItemIndex]['name']);
-                    _isSelectedItemFavorite = !_isSelectedItemFavorite;
-                    if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
-                      deletePlayListItem(selectedItemIndex);
-                    }
-                    setState(() {});
-                  }
-                : null,
+            onPressed: _selectedItemCount == 1 ? () {
+                int selectedItemIndex = getUniqueItemIndex();
+                DatabaseManager.instance.toggleDBTableFavorite(
+                    _tagList[selectedItemIndex]['name']);
+                _isSelectedItemFavorite = !_isSelectedItemFavorite;
+                if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
+                  deletePlayListItem(selectedItemIndex);
+                }
+                setState(() {});
+              } : null,
             outline: false,
           ),
           ButtonFactory.iconButton(
@@ -82,7 +90,7 @@ class _TagSelectPageState extends State<TagSelectPage> {
             iconColor: ColorPalette.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
-                    int selectedItemIndex = findUniqueItemIndex();
+                    int selectedItemIndex = getUniqueItemIndex();
                     String name = _tagList[selectedItemIndex]['name'];
                     DialogFactory.choiceDialog(
                       context: context,
@@ -100,23 +108,23 @@ class _TagSelectPageState extends State<TagSelectPage> {
           ButtonFactory.iconButton(
             icon: const Icon(Icons.delete),
             iconColor: ColorPalette.lightGrey,
-            onPressed: _selectedItemCount == 1
-                ? () {
-                    int selectedItemIndex = findUniqueItemIndex();
-                    String name = _tagList[selectedItemIndex]['name'];
-                    DialogFactory.choiceDialog(
-                      context: context,
-                      onOkPressed: () {
-                        DatabaseManager.instance
-                            .deleteList(_tagList[selectedItemIndex]['name']);
-                        deletePlayListItem(selectedItemIndex);
-                        setState(() {});
-                      },
-                      onCancelPressed: () {},
-                      content: TextFactory.text('delete $name?'),
-                    );
+            onPressed: () {
+              DialogFactory.choiceDialog(
+                context: context,
+                onOkPressed: () {
+                  List<int> selected = getSelectedItemIndex();
+                  for(int i = selected.length - 1; i >= 0; i--) {
+                    int selectedItemIndex = selected[i];
+                    DatabaseManager.instance
+                        .deleteList(_tagList[selectedItemIndex]['name']);
+                    deletePlayListItem(selectedItemIndex);
                   }
-                : null,
+                  setState(() {});
+                },
+                onCancelPressed: () {},
+                content: TextFactory.text('delete selected tags?'),
+              );
+              },
             outline: false,
           ),
         ],
@@ -166,7 +174,7 @@ class _TagSelectPageState extends State<TagSelectPage> {
                     if (_selectedItemCount == 1) {
                       _isSelectedItemFavorite = await DatabaseManager.instance
                               .selectDBTableFavorite(
-                                  _tagList[findUniqueItemIndex()]['name']) ??
+                                  _tagList[getUniqueItemIndex()]['name']) ??
                           false;
                     }
                     setState(() {});

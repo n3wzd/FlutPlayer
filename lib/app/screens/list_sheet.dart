@@ -193,19 +193,13 @@ class _ListSheetState extends State<ListSheet> {
                                         ),
                                       ));
                                 } else if (value == 2) {
-                                  if (global.isAndroid) {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute<void>(
-                                          builder: (context) =>
-                                              BackgroundSelectPage(
-                                                  trackIndex: index),
-                                        ));
-                                  } else {
-                                    backgroundSelector(
-                                      index,
-                                    );
-                                  }
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute<void>(
+                                        builder: (context) =>
+                                            BackgroundSelectPage(
+                                                trackIndex: index),
+                                      ));
                                 }
                               },
                               itemBuilder: (context) => <PopupMenuEntry>[

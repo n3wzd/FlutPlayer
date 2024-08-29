@@ -7,13 +7,6 @@ import './utils/audio_handler.dart';
 import './utils/preference.dart';
 import './utils/permission_handler.dart';
 
-/*bool get isAndroid => Platform.isAndroid;
-bool get isWindows => Platform.isWindows;
-bool get isWeb => !isAndroid && !isWindows;*/
-bool get isAndroid => true;
-bool get isWindows => false;
-bool get isWeb => false;
-
 bool isFullScreen = false;
 
 String debugLog = '';
@@ -23,16 +16,10 @@ double playListSavedScrollPosition = 0;
 
 void initApp() async {
   await Preference.init();
-  if (!isWeb) {
-    DatabaseManager.instance.init();
-  }
-  if (isAndroid) {
-    PermissionHandler.instance.init();
-  }
+  DatabaseManager.instance.init();
+  PermissionHandler.instance.init();
   AudioManager.instance.init();
-  if (isAndroid) {
-    createAudioSerivce();
-  }
+  createAudioSerivce();
   setBackgroundPathList();
 }
 
