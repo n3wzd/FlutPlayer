@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../components/tag_export_dialog.dart';
 import '../utils/playlist.dart';
+import '../utils/background_manager.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
 import '../models/data.dart';
@@ -191,7 +192,7 @@ void backgroundSelector(int trackIndex) async {
   FilePickerResult? result = await FilePicker.platform.pickFiles(
     allowMultiple: false,
     type: FileType.custom,
-    allowedExtensions: global.backgroundAllowedExtensions,
+    allowedExtensions: backgroundAllowedExtensions,
   );
   if (result != null) {
     path = result.files[0].path;

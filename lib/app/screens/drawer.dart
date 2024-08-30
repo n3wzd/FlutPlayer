@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
 import './equalizer.dart';
+import './background_group_list.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
-import '../widgets/button.dart';
 import '../widgets/text.dart';
 import '../widgets/dialog.dart';
 import '../utils/database_manager.dart';
@@ -38,7 +37,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 27,
+          itemCount: 28,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -133,7 +132,7 @@ class PageDrawer extends StatelessWidget {
               ListTileFactory.title(text: 'Equalizer'),
               ListTileFactory.content(
                   title: 'Equalizer',
-                  subtitle: 'open equalizer page. (only android)',
+                  subtitle: 'open equalizer page.',
                   onTap: () {
                     Navigator.push(context, MaterialPageRoute<void>(
                       builder: (BuildContext context) {
@@ -170,23 +169,17 @@ class PageDrawer extends StatelessWidget {
                   {'value': BackgroundMethod.specific, 'label': 'specific'},
                 ],
               ),
-              ListTileFactory.contentContainer(
+              ListTileFactory.content(
                 title: 'Directory Path',
-                subtitle: 'change background directory path.',
-                child: ButtonFactory.textButton(
-                  onPressed: () async {
-                    String? selectedDirectoryPath =
-                        await FilePicker.platform.getDirectoryPath();
-                    if (selectedDirectoryPath != null) {
-                      Preference.backgroundDirectoryPath =
-                          selectedDirectoryPath;
-                      Preference.save('backgroundDirectoryPath');
-                      global.setBackgroundPathList();
-                      AudioStreamController.backgroundFile.add(null);
-                    }
-                  },
-                  text: 'change',
-                ),
+                subtitle: 'open background directory page.',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return const BackgroundGroupPage();
+                      })
+                  );
+
+                }
               ),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(

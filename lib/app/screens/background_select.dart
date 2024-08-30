@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../utils/playlist.dart';
+import '../utils/background_manager.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
 import '../components/background.dart';
@@ -12,7 +13,6 @@ import '../widgets/text.dart';
 import '../widgets/switch.dart';
 import '../widgets/text_field.dart';
 import '../widgets/slider.dart';
-import '../global.dart' as global;
 
 class BackgroundSelectPage extends StatefulWidget {
   const BackgroundSelectPage({Key? key, required this.trackIndex})
@@ -89,7 +89,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
     File file = File(path);
     String extension = path.split('.').last;
     return file.existsSync() &&
-        global.backgroundAllowedExtensions.contains(extension);
+        backgroundAllowedExtensions.contains(extension);
   }
 
   @override
@@ -149,7 +149,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
                           await FilePicker.platform.pickFiles(
                         allowMultiple: false,
                         type: FileType.custom,
-                        allowedExtensions: global.backgroundAllowedExtensions,
+                        allowedExtensions: backgroundAllowedExtensions,
                       );
                       if (result != null) {
                         backgroundPath = result.files[0].path;

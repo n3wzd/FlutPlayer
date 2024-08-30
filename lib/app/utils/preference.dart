@@ -49,9 +49,6 @@ class Preference {
       case 'backgroundMethod':
         await prefs.setString(target, backgroundMethod.toString());
         break;
-      case 'backgroundDirectoryPath':
-        await prefs.setString(target, backgroundDirectoryPath);
-        break;
 
       case 'enableVisualizer':
         await prefs.setBool(target, enableVisualizer);
@@ -98,8 +95,6 @@ class Preference {
     enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
         prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
-    backgroundDirectoryPath =
-        prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
 
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
     randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
@@ -130,7 +125,6 @@ class Preference {
   // Background
   static bool enableBackground = true;
   static BackgroundMethod backgroundMethod = BackgroundMethod.specific;
-  static String backgroundDirectoryPath = '';
 
   // Visualizer
   static bool enableVisualizer = true;
