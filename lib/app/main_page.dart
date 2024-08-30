@@ -30,7 +30,12 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    global.initApp();
+    init();
+  }
+
+  void init() async {
+    await global.initApp();
+    setState(() {});
   }
 
   @override

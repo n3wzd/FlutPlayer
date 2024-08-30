@@ -84,6 +84,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                   await FilePicker.platform.getDirectoryPath();
               if (path != null) {
                 await DatabaseManager.instance.insertBackgroundGroup(BackgroundData(path: path));
+                BackgroundManager.instance.addBackgroundGroup(path, BackgroundData(path: path));
                 addListItem(path);
                 setState(() {});
               }
@@ -114,10 +115,13 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                   for(int i = selected.length -
                       1; i >= 0; i--) {
                     int selectedItemIndex = selected[i];
+                    String path = _groupList[selectedItemIndex]['path'];
                     DatabaseManager.instance
-                        .deleteBackgroundGroup(_groupList[selectedItemIndex]['path']);
+                        .deleteBackgroundGroup(path);
+                    BackgroundManager.instance.deleteBackgroundGroup(path);
                     deleteListItem(selectedItemIndex);
                   }
+                  BackgroundManager.instance.updateBackgroundList();
                   setState(() {});
                 },
                 onCancelPressed: () {},
@@ -212,7 +216,7 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
     );
     await DatabaseManager.instance.updateBackgroundGroup(
         widget.path, background);
-    BackgroundManager.instance.updateBackgroundList();
+    BackgroundManager.instance.updateBackgroundGroup(widget.path, background);
     AudioStreamController.backgroundFile.add(null);
   }
 

@@ -11,13 +11,13 @@ bool isFullScreen = false;
 String currentVisualizerColor = 'ffffff';
 double playListSavedScrollPosition = 0;
 
-void initApp() async {
+Future<void> initApp() async {
   await Preference.init();
-  DatabaseManager.instance.init();
+  await DatabaseManager.instance.init();
   PermissionHandler.instance.init();
   AudioManager.instance.init();
   createAudioSerivce();
-  BackgroundManager.instance.init();
+  await BackgroundManager.instance.init();
 }
 
 void setVisualizerColor() {
