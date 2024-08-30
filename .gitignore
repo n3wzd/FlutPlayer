@@ -2,3 +2,7 @@
 .git/
 .idea/
 build/
+.flutter-plugins
+android/local.properties
+pubspec.lock
+.flutter-plugins-dependencies
