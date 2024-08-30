@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 class ColorPalette {
   static const black = Colors.black;
@@ -38,3 +39,9 @@ Map<String, String> defaultVisualizerColors = {
   'grey': '898989',
   'black': '000000',
 };
+
+String getRandomColor() {
+  List<String> keys = defaultVisualizerColors.keys.toList();
+  String randomKey = keys[Random().nextInt(keys.length)];
+  return defaultVisualizerColors[randomKey] ?? 'ffffff';
+}

@@ -80,10 +80,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   @override
   Widget build(BuildContext context) {
     return AudioStreamBuilder.visualizerColor((context, value) {
-      String value = PlayList.instance.currentAudioColor ?? 'ffffff';
-      value = (value != 'null') ? value : 'ffffff';
-
-      Color startColor = stringToColor(value);
+      Color startColor = stringToColor(global.currentVisualizerColor);
       Color endColor = ColorPalette.black;
       if (startColor == ColorPalette.black) {
         startColor = ColorPalette.black;

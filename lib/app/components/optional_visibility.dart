@@ -6,7 +6,7 @@ import '../global.dart' as global;
 
 class OptionalVisibility {
   static fullScreen(BuildContext context, Widget child) =>
-      AudioStreamBuilder.enabledFullsccreen(
+      AudioStreamBuilder.enabledFullscreen(
         (context, data) => Visibility(
           visible: !global.isFullScreen,
           child: child,

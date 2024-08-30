@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 import '../utils/audio_manager.dart';
-import '../utils/playlist.dart';
 import '../models/color.dart';
+import '../global.dart' as global;
 
 class VisualizerController extends StatefulWidget {
   const VisualizerController(
@@ -110,12 +110,6 @@ class _VisualizerControllerState extends State<VisualizerController>
     minSize = maxSize * 0.88;
   }
 
-  Color getColor() {
-    String color = PlayList.instance.currentAudioColor ?? 'ffffff';
-    color = (color != 'null') ? color : 'ffffff';
-    return stringToColor(color);
-  }
-
   @override
   Widget build(BuildContext context) {
     updateVisualizerSize();
@@ -123,7 +117,7 @@ class _VisualizerControllerState extends State<VisualizerController>
 
     return ScaleTransition(
       scale: _animation,
-      child: CircleVisualizer(size: _currentSize, color: getColor()),
+      child: CircleVisualizer(size: _currentSize, color: stringToColor(global.currentVisualizerColor)),
     );
   }
 }

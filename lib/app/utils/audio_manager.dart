@@ -172,11 +172,13 @@ class AudioManager {
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
       AudioStreamController.backgroundFile.add(null);
-      global.setbackgroundPathListCurrentIndex();
 
       play();
       PlayList.instance.currentIndex = index;
       setCurrentByteData();
+
+      global.setBackgroundPathListCurrentIndex();
+      global.setVisualizerColor();
     }
   }
 

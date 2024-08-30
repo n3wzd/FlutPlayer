@@ -113,7 +113,8 @@ class _TagSelectPageState extends State<TagSelectPage> {
                 context: context,
                 onOkPressed: () {
                   List<int> selected = getSelectedItemIndex();
-                  for(int i = selected.length - 1; i >= 0; i--) {
+                  for(int i = selected.length -
+                      1; i >= 0; i--) {
                     int selectedItemIndex = selected[i];
                     DatabaseManager.instance
                         .deleteList(_tagList[selectedItemIndex]['name']);

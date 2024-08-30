@@ -174,6 +174,7 @@ class _ColorSelectorState extends State<ColorSelector> {
                         .setAudioColor(widget.trackIndex, _colorList[index]);
                     AudioStreamController.visualizerColor.add(null);
                     AudioStreamController.backgroundFile.add(null);
+                    global.setVisualizerColor();
                     Navigator.pop(context);
                   }
                 });

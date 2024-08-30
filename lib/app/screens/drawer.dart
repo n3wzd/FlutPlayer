@@ -200,6 +200,16 @@ class PageDrawer extends StatelessWidget {
                 },
               ),
               ListTileFactory.contentSwitch(
+                title: 'Random Visualizer Color',
+                subtitle: 'visualizer is updated random color when reloaded.',
+                initialValue: Preference.randomColorVisualizer,
+                onChanged: (bool value) {
+                  Preference.randomColorVisualizer = !Preference.randomColorVisualizer;
+                  Preference.save('randomColorVisualizer');
+                  global.setVisualizerColor();
+                },
+              ),
+              ListTileFactory.contentSwitch(
                 title: 'NCS Logo',
                 subtitle: 'enable NCS Logo.',
                 initialValue: Preference.enableNCSLogo,

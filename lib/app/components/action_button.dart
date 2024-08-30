@@ -20,7 +20,7 @@ class FullscreenButton extends StatelessWidget {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
           overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom]);
     }
-    AudioStreamController.enabledFullsccreen.add(null);
+    AudioStreamController.enabledFullscreen.add(null);
   }
 
   @override

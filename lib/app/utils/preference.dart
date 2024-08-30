@@ -56,6 +56,9 @@ class Preference {
       case 'enableVisualizer':
         await prefs.setBool(target, enableVisualizer);
         break;
+      case 'randomColorVisualizer':
+        await prefs.setBool(target, randomColorVisualizer);
+        break;
       case 'enableNCSLogo':
         await prefs.setBool(target, enableNCSLogo);
         break;
@@ -99,6 +102,7 @@ class Preference {
         prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
 
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
+    randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
     enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
 
     instantlyPlay = prefs.getBool('instantlyPlay') ?? instantlyPlay;
@@ -130,6 +134,7 @@ class Preference {
 
   // Visualizer
   static bool enableVisualizer = true;
+  static bool randomColorVisualizer = true;
   static bool enableNCSLogo = true;
 
   // Other
