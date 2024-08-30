@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
+import './background_group_list.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
-import '../widgets/button.dart';
 import '../widgets/text.dart';
 import '../widgets/dialog.dart';
 import '../utils/database_manager.dart';
@@ -37,7 +36,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 25,
+          itemCount: 26,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -158,23 +157,17 @@ class PageDrawer extends StatelessWidget {
                   {'value': BackgroundMethod.specific, 'label': 'specific'},
                 ],
               ),
-              ListTileFactory.contentContainer(
+              ListTileFactory.content(
                 title: 'Directory Path',
-                subtitle: 'change background directory path.',
-                child: ButtonFactory.textButton(
-                  onPressed: () async {
-                    String? selectedDirectoryPath =
-                        await FilePicker.platform.getDirectoryPath();
-                    if (selectedDirectoryPath != null) {
-                      Preference.backgroundDirectoryPath =
-                          selectedDirectoryPath;
-                      Preference.save('backgroundDirectoryPath');
-                      global.setBackgroundPathList();
-                      AudioStreamController.backgroundFile.add(null);
-                    }
-                  },
-                  text: 'change',
-                ),
+                subtitle: 'open background directory page.',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return const BackgroundGroupPage();
+                      })
+                  );
+
+                }
               ),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(
@@ -185,6 +178,16 @@ class PageDrawer extends StatelessWidget {
                   Preference.enableVisualizer = !Preference.enableVisualizer;
                   Preference.save('enableVisualizer');
                   AudioStreamController.enabledVisualizer.add(null);
+                },
+              ),
+              ListTileFactory.contentSwitch(
+                title: 'Random Visualizer Color',
+                subtitle: 'visualizer is updated random color when reloaded.',
+                initialValue: Preference.randomColorVisualizer,
+                onChanged: (bool value) {
+                  Preference.randomColorVisualizer = !Preference.randomColorVisualizer;
+                  Preference.save('randomColorVisualizer');
+                  global.setVisualizerColor();
                 },
               ),
               ListTileFactory.contentSwitch(

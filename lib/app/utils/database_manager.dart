@@ -15,12 +15,12 @@ class DatabaseManager {
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
   final String backgroundDBTableName = '_background';
+  final String backgroundGroupDBTableName = '_background_group';
   late final String databasesPath;
 
   String _tagDBtableName(String name) => '_tag_${name.replaceAll(' ', '_')}';
 
   Future<void> init() async {
-    DatabaseInterface.instance.init();
     final path = await DatabaseInterface.instance.getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
     await DatabaseInterface.instance.openDatabaseFile(databasesPath);
@@ -31,6 +31,8 @@ class DatabaseManager {
         'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite INTEGER NOT NULL DEFAULT 0);');
     await DatabaseInterface.instance.execute(
         'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
+    await DatabaseInterface.instance.execute(
+        'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
   }
 
   void dispose() {
@@ -159,6 +161,41 @@ class DatabaseManager {
       );
     }
     return null;
+  }
+
+  Future<void> insertBackgroundGroup(BackgroundData data) async {
+    String sql =
+        'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, rotate, scale, color, value) VALUES("${data.path}", ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
+    await DatabaseInterface.instance.rawQuery(sql);
+  }
+
+  Future<List<Map>> selectAllBackgroundGroup() async {
+    var list = await DatabaseInterface.instance.rawQuery(
+        'SELECT * FROM $backgroundGroupDBTableName ORDER BY path ASC;');
+    return List<Map>.from(list);
+  }
+
+  Future<BackgroundData> selectBackgroundGroup(String path) async {
+    var data = await DatabaseInterface.instance.rawQuery(
+        'SELECT * FROM $backgroundGroupDBTableName WHERE path="$path";');
+    return BackgroundData(
+      path: path,
+      rotate: data[0]['rotate'] == 1 ? true : false,
+      scale: data[0]['scale'] == 1 ? true : false,
+      color: data[0]['color'] == 1 ? true : false,
+      value: data[0]['value'],
+    );
+  }
+
+  Future<void> updateBackgroundGroup(String path, BackgroundData data) async {
+    String sql =
+        'UPDATE $backgroundGroupDBTableName SET rotate=${data.rotate ? 1 : 0}, scale=${data.scale ? 1 : 0}, color=${data.color ? 1 : 0}, value=${data.value} WHERE path="$path";';
+    await DatabaseInterface.instance.rawQuery(sql);
+  }
+
+  Future<void> deleteBackgroundGroup(String path) async {
+    String sql = 'DELETE FROM $backgroundGroupDBTableName WHERE path="$path";';
+    await DatabaseInterface.instance.rawQuery(sql);
   }
 
   Future<BackgroundData?> _importBackground(String trackName) async {

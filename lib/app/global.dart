@@ -1,50 +1,26 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:io';
-import './utils/database_manager.dart';
 import './utils/audio_manager.dart';
+import './utils/background_manager.dart';
+import './utils/playlist.dart';
+import './utils/database_manager.dart';
 import './utils/preference.dart';
+import './models/color.dart';
 
 bool isFullScreen = false;
-
-String debugLog = '';
-final debugLogStreamController = StreamController<void>.broadcast();
-
+String currentVisualizerColor = 'ffffff';
 double playListSavedScrollPosition = 0;
 
-void initApp() async {
+Future<void> initApp() async {
   await Preference.init();
   DatabaseManager.instance.init();
   AudioManager.instance.init();
-  setBackgroundPathList();
+  await DatabaseManager.instance.init();
+  AudioManager.instance.init();
+  await BackgroundManager.instance.init();
 }
 
-const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
-List<String> backgroundPathList = [];
-int backgroundPathListCurrentIndex = 0;
-
-void setBackgroundPathList() {
-  backgroundPathList = [];
-  String directoryPath = Preference.backgroundDirectoryPath;
-  if (directoryPath != '') {
-    Directory selectedDirectory = Directory(directoryPath);
-    List<FileSystemEntity> selectedDirectoryFile =
-        selectedDirectory.listSync(recursive: true);
-    for (FileSystemEntity file in selectedDirectoryFile) {
-      String path = file.path;
-      if (!FileSystemEntity.isDirectorySync(path)) {
-        if (backgroundAllowedExtensions.contains(path.split('.').last)) {
-          backgroundPathList.add(path);
-        }
-      }
-    }
-  }
-  setbackgroundPathListCurrentIndex();
-}
-
-void setbackgroundPathListCurrentIndex() {
-  if (backgroundPathList.isNotEmpty) {
-    backgroundPathListCurrentIndex =
-        Random().nextInt(backgroundPathList.length);
-  }
+void setVisualizerColor() {
+  String color = Preference.randomColorVisualizer ? getRandomColor() : (PlayList.instance.currentAudioColor ?? 'ffffff');
+  color = color == 'null' ? 'ffffff' : color;
+  currentVisualizerColor = color;
 }

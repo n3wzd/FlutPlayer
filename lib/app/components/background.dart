@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:io';
 import 'dart:async';
 import '../global.dart' as global;
+import '../utils/background_manager.dart';
 import '../utils/playlist.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
@@ -23,10 +24,8 @@ class Background extends StatelessWidget {
         if (Preference.backgroundMethod == BackgroundMethod.specific) {
           background = PlayList.instance.currentAudioBackground;
         } else if (Preference.backgroundMethod == BackgroundMethod.random) {
-          if (global.backgroundPathList.isNotEmpty) {
-            String path = global
-                .backgroundPathList[global.backgroundPathListCurrentIndex];
-            background = BackgroundData(path: path);
+          if (BackgroundManager.instance.isListNotEmpty) {
+            background = BackgroundManager.instance.currentBackgroundData;
           }
         }
         if (background != null) {
@@ -81,10 +80,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   @override
   Widget build(BuildContext context) {
     return AudioStreamBuilder.visualizerColor((context, value) {
-      String value = PlayList.instance.currentAudioColor ?? 'ffffff';
-      value = (value != 'null') ? value : 'ffffff';
-
-      Color startColor = stringToColor(value);
+      Color startColor = stringToColor(global.currentVisualizerColor);
       Color endColor = ColorPalette.black;
       if (startColor == ColorPalette.black) {
         startColor = ColorPalette.black;

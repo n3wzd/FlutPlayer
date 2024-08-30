@@ -1,4 +1,3 @@
-
 .idea/
 .dart_tool/dartpad/web_plugin_registrant.dart
 .dart_tool/package_config.json
@@ -10,3 +9,11 @@ android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 android/local.properties
 pubspec.lock
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+.dart_tool/
+.git/
+.idea/
+build/
+.flutter-plugins
+android/local.properties
+pubspec.lock
+.flutter-plugins-dependencies

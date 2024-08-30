@@ -66,9 +66,9 @@ class AudioStreamBuilder {
         builder: builder,
       );
 
-  static StreamBuilder<void> enabledFullsccreen(BuildParameter<void> builder) =>
+  static StreamBuilder<void> enabledFullscreen(BuildParameter<void> builder) =>
       StreamBuilder<void>(
-        stream: AudioStreamController.enabledFullsccreen.stream,
+        stream: AudioStreamController.enabledFullscreen.stream,
         builder: builder,
       );
 

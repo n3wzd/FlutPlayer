@@ -28,7 +28,6 @@ class AudioPlayer {
     _audioPlayerAudio.onPositionChanged.listen((duration) {
       _positionAudio = duration;
     });
-
     play();
   }
 

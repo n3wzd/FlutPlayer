@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:async';
 import 'dart:io';
 import './audio_player.dart';
+import './background_manager.dart';
 import './playlist.dart';
 import './database_manager.dart';
 import './preference.dart';
@@ -170,12 +171,13 @@ class AudioManager {
               .importTrack(PlayList.instance.audioTitle(index)));
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
-      AudioStreamController.backgroundFile.add(null);
-      global.setbackgroundPathListCurrentIndex();
 
       play();
       PlayList.instance.currentIndex = index;
       setCurrentByteData();
+
+      BackgroundManager.instance.setCurrentBackgroundList();
+      global.setVisualizerColor();
     }
   }
 

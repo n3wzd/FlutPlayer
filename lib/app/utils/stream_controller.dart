@@ -12,5 +12,5 @@ class AudioStreamController {
   static final enabledVisualizer = StreamController<void>.broadcast();
   static final enabledBackground = StreamController<void>.broadcast();
   static final enabledNCSLogo = StreamController<void>.broadcast();
-  static final enabledFullsccreen = StreamController<void>.broadcast();
+  static final enabledFullscreen = StreamController<void>.broadcast();
 }

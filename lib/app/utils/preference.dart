@@ -49,12 +49,12 @@ class Preference {
       case 'backgroundMethod':
         await prefs.setString(target, backgroundMethod.toString());
         break;
-      case 'backgroundDirectoryPath':
-        await prefs.setString(target, backgroundDirectoryPath);
-        break;
 
       case 'enableVisualizer':
         await prefs.setBool(target, enableVisualizer);
+        break;
+      case 'randomColorVisualizer':
+        await prefs.setBool(target, randomColorVisualizer);
         break;
       case 'enableNCSLogo':
         await prefs.setBool(target, enableNCSLogo);
@@ -95,10 +95,9 @@ class Preference {
     enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
         prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
-    backgroundDirectoryPath =
-        prefs.getString('backgroundDirectoryPath') ?? backgroundDirectoryPath;
 
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
+    randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
     enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
 
     instantlyPlay = prefs.getBool('instantlyPlay') ?? instantlyPlay;
@@ -126,10 +125,10 @@ class Preference {
   // Background
   static bool enableBackground = true;
   static BackgroundMethod backgroundMethod = BackgroundMethod.specific;
-  static String backgroundDirectoryPath = '';
 
   // Visualizer
   static bool enableVisualizer = true;
+  static bool randomColorVisualizer = true;
   static bool enableNCSLogo = true;
 
   // Other

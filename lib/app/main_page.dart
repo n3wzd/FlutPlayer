@@ -30,7 +30,12 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    global.initApp();
+    init();
+  }
+
+  void init() async {
+    await global.initApp();
+    setState(() {});
   }
 
   @override
@@ -42,7 +47,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      child: AudioStreamBuilder.enabledFullsccreen(
+      child: AudioStreamBuilder.enabledFullscreen(
         (context, value) => Scaffold(
           key: _scaffoldKey,
           appBar: !global.isFullScreen
@@ -81,7 +86,7 @@ class ScreenPage extends StatelessWidget {
   const ScreenPage({super.key});
 
   @override
-  Widget build(BuildContext context) => AudioStreamBuilder.enabledFullsccreen(
+  Widget build(BuildContext context) => AudioStreamBuilder.enabledFullscreen(
       (context, value) => global.isFullScreen
           ? const ScreenPageFullscreen()
           : const ScreenPageNormalScreen());

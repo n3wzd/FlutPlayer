@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../utils/playlist.dart';
+import '../utils/background_manager.dart';
 import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
 import '../components/background.dart';
@@ -12,7 +13,6 @@ import '../widgets/text.dart';
 import '../widgets/switch.dart';
 import '../widgets/text_field.dart';
 import '../widgets/slider.dart';
-import '../global.dart' as global;
 
 class BackgroundSelectPage extends StatefulWidget {
   const BackgroundSelectPage({Key? key, required this.trackIndex})
@@ -89,7 +89,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
     File file = File(path);
     String extension = path.split('.').last;
     return file.existsSync() &&
-        global.backgroundAllowedExtensions.contains(extension);
+        backgroundAllowedExtensions.contains(extension);
   }
 
   @override
@@ -149,7 +149,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
                           await FilePicker.platform.pickFiles(
                         allowMultiple: false,
                         type: FileType.custom,
-                        allowedExtensions: global.backgroundAllowedExtensions,
+                        allowedExtensions: backgroundAllowedExtensions,
                       );
                       if (result != null) {
                         backgroundPath = result.files[0].path;
@@ -168,57 +168,79 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
               ],
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  ListTile(
-                    title: TextFactory.text('Rotate'),
-                    trailing: SwitchFactory.normal(
-                      value: rotateSwitchValue,
-                      onChanged: (newValue) {
-                        rotateSwitchValue = newValue;
-                        applyBackground();
-                      },
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Rotate'),
+                          ),
+                          SwitchFactory.normal(
+                            value: rotateSwitchValue,
+                            onChanged: (newValue) {
+                              rotateSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Scale'),
-                    trailing: SwitchFactory.normal(
-                      value: scaleSwitchValue,
-                      onChanged: (newValue) {
-                        scaleSwitchValue = newValue;
-                        applyBackground();
-                      },
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Scale'),
+                          ),
+                          SwitchFactory.normal(
+                            value: scaleSwitchValue,
+                            onChanged: (newValue) {
+                              scaleSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Tint'),
-                    trailing: SwitchFactory.normal(
-                      value: tintSwitchValue,
-                      onChanged: (newValue) {
-                        tintSwitchValue = newValue;
-                        applyBackground();
-                      },
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Tint'),
+                          ),
+                          SwitchFactory.normal(
+                            value: tintSwitchValue,
+                            onChanged: (newValue) {
+                              tintSwitchValue = newValue;
+                              applyBackground();
+                            },
+                          ),
+                        ]
                     ),
-                  ),
-                  ListTile(
-                    title: TextFactory.text('Value'),
-                    trailing:
-                        StatefulBuilder(builder: (context, setSliderState) {
-                      return SliderFactory.slider(
-                          value: valueSliderValue,
-                          max: valueSliderMax,
-                          onChanged: (value) {
-                            valueSliderValue = value;
-                            setSliderState(() {});
-                          },
-                          onChangeEnd: (value) {
-                            valueSliderValue = value;
-                            applyBackground();
-                          });
-                    }),
-                  ),
-                ],
+                    Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 64,
+                            child: TextFactory.text('Value'),
+                          ),
+                          StatefulBuilder(builder: (context, setSliderState) {
+                            return SliderFactory.slider(
+                                value: valueSliderValue,
+                                max: valueSliderMax,
+                                onChanged: (value) {
+                                  valueSliderValue = value;
+                                  setSliderState(() {});
+                                },
+                                onChangeEnd: (value) {
+                                  valueSliderValue = value;
+                                  applyBackground();
+                                });
+                          }),
+                        ]
+                    ),
+                  ],
+                ),
               ),
             ),
             Column(
