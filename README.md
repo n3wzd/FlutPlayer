@@ -41,12 +41,10 @@
 
 ### Dependency
 - just_audio: ^0.9.35
-- audioplayers: ^5.2.0
 - file_picker: ^6.0.0
 - permission_handler: ^11.0.1
 - audio_service: ^0.18.12
 - sqflite: ^2.3.0
-- sqflite_common_ffi: ^2.3.0
 - shared_preferences: ^2.2.2
 - video_player: ^2.8.2
 
