@@ -1,7 +1,108 @@
 # FlutPlayer
-> 음원을 재생하는 안드로이드 애플리케이션입니다.
+> Window application for playing audio.
 
-![example](example.png)
+- **Audio**
+  - Playback slider
+  - Play / Pause
+  - Skip to next, skip to previous
+  - Shuffle, repeat playback modes
+  - Mashup mode
+  - Volume control
+- **Playlist**
+  - Sort list, reset list
+  - Move tracks (drag and drop)
+  - Remove tracks (swipe)
+- **Tags(PlayList)**
+  - Load selected tags into the playlist
+  - Add, update, and delete tags
+  - Favorite tags feature
+  - Save tags to the database
+- **Equalizer**
+  - Adjust gain values of bands
+  - Smooth slider movement
+- **Background**
+  - Select background files from local files
+  - Set background rotation, zoom, and color filtering options
+  - Adjust background brightness
+  - Default animated background
+- **NCS (NoCopyrightSounds) Visualizer**
+  - 15 Color settings
+- **Settings**
+  - Tags, sorting, mashup, equalizer, background, visualizer
+  - Export/Import database and CSV files
+- **Other Features**
+  - Background process support
+  - Notification bar UI
+
+## Stack
+- Flutter
+
+### Dependency
+- audioplayers: ^5.2.0
+- file_picker: ^6.0.0
+- sqflite_common_ffi: ^2.3.0
+- shared_preferences: ^2.2.2
+- media_kit: ^1.1.11
+- media_kit_video: ^1.2.4
+- media_kit_libs_video: ^1.0.4 
+
+## File Structure
+```
+app/
+│
+├── components/: Functional UI widgets
+│   ├── action_button.dart: Audio player control button widget
+│   ├── background.dart: Background widget
+│   ├── fade_inout_widget.dart: Fade-in/out animation widget
+│   ├── optional_visibility.dart: Widget visibility control widget
+│   ├── stream_builder.dart: StreamBuilder builder function class
+│   ├── tag_export_dialog.dart: Tag export dialog function
+│   └── visualizer.dart: Audio visualizer widget
+│
+├── models/: Classes and constant data
+│   ├── api.dart: API result class
+│   ├── color.dart: Color data class
+│   ├── data.dart: Audio-related classes
+│   └── enum.dart: Constant enums
+│
+├── screens/: Layout UI widgets
+│   ├── background_select.dart: Background selection page UI widget
+│   ├── bottom.dart: Bottom section UI widget
+│   ├── center.dart: Center section UI widget
+│   ├── drawer.dart: Page drawer UI widget
+│   ├── equalizer.dart: Equalizer control UI widget
+│   ├── item_add_actions.dart: Audio-specific options selector UI widget
+│   ├── list_sheet.dart: Music playlist sheet UI widget
+│   ├── tag_select.dart: Tag selection page UI widget
+│   └── top_menu.dart: Top section UI widget
+│
+├── utils/: Utility classes and methods
+│   ├── audio_handler.dart: Background audio service class
+│   ├── audio_manager.dart: Audio management singleton class
+│   ├── audio_player.dart: Interface class between external audio packages and AudioManager
+│   ├── database_interface.dart: Interface class between external database packages and DatabaseManager
+│   ├── database_manager.dart: Database management singleton class
+│   ├── playlist.dart: Playlist management singleton class
+│   ├── preference.dart: Settings management singleton class
+│   └── stream_controller.dart: StreamController provider class
+│
+├── widgets/: Common widgets
+│   ├── button.dart: Button widget
+│   ├── checkbox.dart: Checkbox widget
+│   ├── dialog.dart: Dialog functions
+│   ├── listtile.dart: ListTile widget
+│   ├── scrollbar.dart: Scrollbar widget
+│   ├── slider.dart: Slider widget
+│   ├── switch.dart: Switch button widget
+│   ├── text.dart: Text widget
+│   └── text_field.dart: Text field widget
+│
+├── global.dart: Global properties & methods
+└── main_page.dart: Main layout UI
+```
+
+# FlutPlayer
+> 음원을 재생하는 윈도우 애플리케이션입니다.
 
 - 오디오
 	- 재생 슬라이더
@@ -28,7 +129,7 @@
 	- 배경 밝기 조절
 	- 기본 애니메이션 백그라운드
 - NCS(NoCopyrightSounds) 비주얼라이저
-	- 색상 설정
+	- 15가지 색상 설정
 - 설정
 	- 태그, 정렬, mashup, 이퀄라이저, 배경, 비주얼라이저
 	- 데이터베이스, CSV 파일 내보내기 / 불러오기
@@ -40,17 +141,15 @@
 - Flutter
 
 ### Dependency
-- just_audio: ^0.9.35
 - audioplayers: ^5.2.0
 - file_picker: ^6.0.0
-- permission_handler: ^11.0.1
-- audio_service: ^0.18.12
-- sqflite: ^2.3.0
 - sqflite_common_ffi: ^2.3.0
 - shared_preferences: ^2.2.2
-- video_player: ^2.8.2
+- media_kit: ^1.1.11
+- media_kit_video: ^1.2.4
+- media_kit_libs_video: ^1.0.4 
 
-## Structure
+## File Structure
 ```
 app/
 │
