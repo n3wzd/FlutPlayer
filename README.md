@@ -1,5 +1,5 @@
 # FlutPlayer
-> An Android application for playing audio.
+> Android application for playing audio.
 
 ![example](example.png)
 
