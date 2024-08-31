@@ -12,8 +12,6 @@ double playListSavedScrollPosition = 0;
 
 Future<void> initApp() async {
   await Preference.init();
-  DatabaseManager.instance.init();
-  AudioManager.instance.init();
   await DatabaseManager.instance.init();
   AudioManager.instance.init();
   await BackgroundManager.instance.init();

@@ -293,22 +293,5 @@ class FileBackground extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: background.value.toDouble() / 100,
-        child: AnimatedSwitcher(
-          duration: const Duration(seconds: 1),
-          child: Container(
-            key: ValueKey<String>(background.path),
-            child: Stack(children: [
-              child,
-              Opacity(
-                opacity: background.color ? 0.4 : 0,
-                child: Container(
-                  color: getColor(),
-                ),
-              ),
-            ]),
-          ),
-        ),
-      );
+  Widget build(BuildContext context) => child;
 }

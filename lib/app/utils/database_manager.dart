@@ -21,6 +21,7 @@ class DatabaseManager {
   String _tagDBtableName(String name) => '_tag_${name.replaceAll(' ', '_')}';
 
   Future<void> init() async {
+    DatabaseInterface.instance.init();
     final path = await DatabaseInterface.instance.getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
     await DatabaseInterface.instance.openDatabaseFile(databasesPath);
