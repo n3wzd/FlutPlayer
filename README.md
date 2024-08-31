@@ -50,6 +50,8 @@
 - shared_preferences: ^2.2.2
 - video_player: ^2.8.2
 
+## File Structure
+```
 app/
 │
 ├── components/: Functional UI widgets
@@ -101,6 +103,7 @@ app/
 │
 ├── global.dart: Global properties & methods
 └── main_page.dart: Main layout UI
+```
 
 # FlutPlayer
 > 음원을 재생하는 안드로이드 애플리케이션입니다.
@@ -154,7 +157,7 @@ app/
 - shared_preferences: ^2.2.2
 - video_player: ^2.8.2
 
-## Structure
+## File Structure
 ```
 app/
 │
