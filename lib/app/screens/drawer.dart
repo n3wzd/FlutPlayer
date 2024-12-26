@@ -1,3 +1,4 @@
+import 'package:flutplayer/app/utils/audio_manager.dart';
 import 'package:flutter/material.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
@@ -36,7 +37,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 26,
+          itemCount: 27,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -259,20 +260,13 @@ class PageDrawer extends StatelessWidget {
                   apiProcess(context, DatabaseManager.instance.tagCsvToDB);
                 },
               ),
-              /*ListTileFactory.content(
-                title: 'Export Main List to csv',
-                subtitle: 'export main list to csv file.',
+              ListTileFactory.content(
+                title: 'Play Custom Mix',
+                subtitle: 'import custom mix json data and play it.',
                 onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainDBToCsv);
+                  AudioManager.instance.importCustomMixList();
                 },
               ),
-              ListTileFactory.content(
-                title: 'Import Main List from csv',
-                subtitle: 'import main list from csv file.',
-                onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainCsvToDB);
-                },
-              ),*/
             ];
             return widgetList[index];
           },

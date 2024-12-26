@@ -28,3 +28,20 @@ class BackgroundData {
 
 String dateTimeToString(DateTime data) => data.toString().substring(0, 19);
 DateTime stringToDateTime(String data) => DateTime.parse(data);
+
+class CustomMixData {
+  CustomMixData(
+      {required this.track,
+      required this.start,
+      required this.duration});
+  final AudioTrack track;
+  final int start;
+  final int duration;
+}
+
+int stringTimeToInt(String time) {
+  List<String> timeParts = time.split(':');
+  int hours = int.parse(timeParts[0]);
+  int minutes = int.parse(timeParts[1]);
+  return hours * 60 + minutes;
+}
