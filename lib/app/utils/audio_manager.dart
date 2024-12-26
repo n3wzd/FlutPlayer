@@ -127,9 +127,9 @@ class AudioManager {
               const Duration(milliseconds: 100),
               (x) => x * 1.0 / (transitionTime / 100))
           .take(transitionTime ~/ 100);
-        _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
+    _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
         transitionVolume = x;
-      }, onDone: setAudioPlayerVolumeDefault);
+    }, onDone: setAudioPlayerVolumeDefault);
   }
 
   void setMashupNextTrigger() {
@@ -249,9 +249,12 @@ class AudioManager {
   }
 
   void updateAudioPlayerVolume() {
-    audioPlayer.setVolume(_volumeTransitionRate * Preference.volumeMasterRate);
-    audioPlayerSub
-        .setVolume((1.0 - _volumeTransitionRate) * Preference.volumeMasterRate);
+    double logScale = 8.0;
+    double expPower = 3.5;
+    double volumeA = log(1 + _volumeTransitionRate * logScale) / log(1 + logScale);
+    double volumeB = 1.0 - pow(_volumeTransitionRate, expPower).toDouble();
+    audioPlayer.setVolume(volumeA * Preference.volumeMasterRate);
+    audioPlayerSub.setVolume(volumeB * Preference.volumeMasterRate);
   }
 
   void filesOpen() async {
@@ -431,36 +434,26 @@ class AudioManager {
         Set<String> usedTrack = {};
         int limit = min(storage["build-up"]!.length, storage["drop"]!.length);
         for (int i = 0; i < limit; i++) {
-          List<CustomMixData> buildList = storage["build-up"]!;
-          List<CustomMixData> dropList = storage["drop"]!;
-          List<CustomMixData> breakList = storage["break-down"]!;
-          
-          if ((i == 0 || Random().nextInt(3) == 0) && breakList.isNotEmpty) {
-            int idx = Random().nextInt(breakList.length);
-            if(!usedTrack.contains(breakList[idx].track.title)) {
-              _customMixList.add(breakList[idx]);
-              newList.add(breakList[idx].track);
-              usedTrack.add(breakList[idx].track.title);
+          List<List<CustomMixData>> tmpList = [storage["build-up"]!, storage["drop"]!, storage["break-down"]!];
+          for(int i = 0; i < 3; i++) {
+            if(i == 2 && Random().nextInt(3) == 0) {
+              continue;
             }
-            breakList.removeAt(idx);
-          }
-          if (buildList.isNotEmpty) {
-            int idx = Random().nextInt(buildList.length);
-            if(!usedTrack.contains(buildList[idx].track.title)) {
-              _customMixList.add(buildList[idx]);
-              newList.add(buildList[idx].track);
-              usedTrack.add(buildList[idx].track.title);
+            final list = tmpList[i];
+            while (list.isNotEmpty) {
+              bool ok = false;
+              int idx = Random().nextInt(list.length);
+              if(!usedTrack.contains(list[idx].track.title)) {
+                _customMixList.add(list[idx]);
+                newList.add(list[idx].track);
+                usedTrack.add(list[idx].track.title);
+                ok = true;
+              }
+              list.removeAt(idx);
+              if(ok) {
+                break;
+              }
             }
-            buildList.removeAt(idx);
-          }
-          if (dropList.isNotEmpty) {
-            int idx = Random().nextInt(dropList.length);
-            if(!usedTrack.contains(dropList[idx].track.title)) {
-              _customMixList.add(dropList[idx]);
-              newList.add(dropList[idx].track);
-              usedTrack.add(dropList[idx].track.title);
-            }
-            dropList.removeAt(idx);
           }
         }
         
