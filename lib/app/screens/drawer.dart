@@ -10,6 +10,7 @@ import '../widgets/dialog.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
+import '../utils/audio_manager.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
 import '../models/api.dart';
@@ -37,7 +38,7 @@ class PageDrawer extends StatelessWidget {
   Widget build(BuildContext context) => Drawer(
         backgroundColor: ColorPalette.black,
         child: ListView.separated(
-          itemCount: 28,
+          itemCount: 29,
           separatorBuilder: (BuildContext context, int index) => const Divider(
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
@@ -271,20 +272,13 @@ class PageDrawer extends StatelessWidget {
                   apiProcess(context, DatabaseManager.instance.tagCsvToDB);
                 },
               ),
-              /*ListTileFactory.content(
-                title: 'Export Main List to csv',
-                subtitle: 'export main list to csv file.',
-                onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainDBToCsv);
-                },
-              ),
               ListTileFactory.content(
                 title: 'Import Main List from csv',
                 subtitle: 'import main list from csv file.',
                 onTap: () {
-                  apiProcess(context, DatabaseManager.instance.mainCsvToDB);
+                  AudioManager.instance.importCustomMixList();
                 },
-              ),*/
+              ),
             ];
             return widgetList[index];
           },
