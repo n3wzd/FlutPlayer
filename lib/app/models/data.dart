@@ -33,10 +33,12 @@ class CustomMixData {
   CustomMixData(
       {required this.track,
       required this.start,
-      required this.duration});
+      required this.duration,
+      required this.buildUpTime});
   final AudioTrack track;
   final int start;
   final int duration;
+  final int buildUpTime;
 }
 
 int stringTimeToInt(String time) {

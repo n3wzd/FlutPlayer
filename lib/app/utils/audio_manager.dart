@@ -32,7 +32,7 @@ class AudioManager {
   List<int> _currentByteData = [];
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   StreamSubscription<void>? _mashupNextTriggerTimer;
-  List<CustomMixData> _customMixList = [];
+  Map<String, CustomMixData> _customMixData = {};
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -121,7 +121,9 @@ class AudioManager {
   }
 
   void setMashupVolumeTransition() {
-    int transitionTime = (_customMixMode ? 1 : Preference.mashupTransitionTime) * 1000;
+    int transitionTime = (_customMixMode ? 
+          _customMixData[PlayList.instance.currentAudioTitle]!.buildUpTime : 
+          Preference.mashupTransitionTime) * 1000;
     Stream<double> mashupVolumeTransition = Stream.periodic(
               const Duration(milliseconds: 100),
               (x) => x * 1.0 / (transitionTime / 100))
@@ -132,8 +134,11 @@ class AudioManager {
   }
 
   void setMashupNextTrigger() {
+    final playList = PlayList.instance;
     if(_customMixMode) {
-      int nextSecond = _customMixList[PlayList.instance.currentIndex].duration;
+      int nextSecond = _customMixData[playList.currentAudioTitle]!.duration - 
+            min(((_customMixData[playList.currentAudioTitle]!.duration - _customMixData[playList.currentAudioTitle]!.buildUpTime) * 0.8).toInt(),
+            _customMixData[playList.audioTitle((playList.currentIndex + 1) % playList.playListLength)]!.buildUpTime);
       _mashupNextTriggerTimer = Stream<void>.fromFuture(
               Future<void>.delayed(Duration(seconds: nextSecond), () {}))
           .listen((x) {
@@ -167,13 +172,10 @@ class AudioManager {
       if (_mashupMode) {
         play();
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
-        await cancelMashupTimer();
-        setMashupVolumeTransition();
-        
         newDuration = await audioPlayer
             .setAudioSource(PlayList.instance.audioTrack(index));
         if(_customMixMode) {
-          await seekPosition(Duration(seconds: _customMixList[index].start));
+          await seekPosition(Duration(seconds: _customMixData[PlayList.instance.audioTitle(index)]!.start));
         } else {
           await seekPosition(Duration(
               milliseconds:
@@ -199,6 +201,8 @@ class AudioManager {
       global.setVisualizerColor();
 
       if(_mashupMode) {
+        await cancelMashupTimer();
+        setMashupVolumeTransition();
         setMashupNextTrigger();
       }
     }
@@ -251,8 +255,30 @@ class AudioManager {
   void updateAudioPlayerVolume() {
     double logScale = 8.0;
     double expPower = 3.5;
-    double volumeA = log(1 + _volumeTransitionRate * logScale) / log(1 + logScale);
-    double volumeB = 1.0 - pow(_volumeTransitionRate, expPower).toDouble();
+    double volumeA = 1.0;
+    double volumeB = 1.0;
+    if(_customMixMode) {
+      double baseA = 0.6;
+      double baseB = 0.1;
+      double volumeThreshold1 = 0.2;
+      double volumeThreshold2 = 0.7;
+      if(_volumeTransitionRate < volumeThreshold1) {
+        double v = _volumeTransitionRate / volumeThreshold1;
+        volumeA = (log(1 + v * logScale) / log(1 + logScale)) * baseA;
+        volumeB = 1.0 - (pow(v, expPower).toDouble()) * baseB;
+      }
+      else if (_volumeTransitionRate < volumeThreshold2) {
+        volumeA = baseA;
+        volumeB = 1.0 - baseB;
+      } else {
+        double v = (_volumeTransitionRate - volumeThreshold2) / (1.0 - volumeThreshold2);
+        volumeA = (log(1 + v * logScale) / log(1 + logScale)) * (1.0 - baseA) + baseA;
+        volumeB = 1.0 - (pow(v, expPower).toDouble() * (1.0 - baseB) + baseB);
+      }
+    } else {
+      volumeA = log(1 + _volumeTransitionRate * logScale) / log(1 + logScale);
+      volumeB = 1.0 - pow(_volumeTransitionRate, expPower).toDouble();
+    }
     audioPlayer.setVolume(volumeA * Preference.volumeMasterRate);
     audioPlayerSub.setVolume(volumeB * Preference.volumeMasterRate);
   }
@@ -378,6 +404,7 @@ class AudioManager {
 
   void importCustomMixs(List<String> paths) async {
     PlayList.instance.clear();
+    _customMixData = {};
     for (final path in paths) {
       importCustomMix(path);
     }
@@ -389,63 +416,38 @@ class AudioManager {
       String datas = file.readAsStringSync();
       Map<String, dynamic> mixData = json.decode(datas);
 
-      Set<String> uniqueTracks = {};
       Map<String, AudioTrack> customMixTracks = {};
-      for (final innerMap in mixData.values) {
-        uniqueTracks.addAll(innerMap.keys);
-      }
-      for(String trackName in uniqueTracks) {
+      for (final trackName in mixData.keys) {
         AudioTrack? track = await DatabaseManager.instance.importTrack(trackName);
         if(track != null) {
           customMixTracks[trackName] = track;
         }
       }
 
-      Map<String, List<CustomMixData>> storage = {"break-down": [], "build-up": [], "drop": []};
-      for (final type in mixData.keys) {
-        final tracks = mixData[type];
-        for(final trackName in tracks.keys) {
-          AudioTrack? track = customMixTracks[trackName];
-          if(track != null) {
-            for(final range in tracks[trackName]) {
-              int lo = stringTimeToInt(range["start"]);
-              int hi = stringTimeToInt(range["end"]);
-              storage[type]?.add(CustomMixData(
-                track: track, 
-                start: lo, 
-                duration: hi - lo));
-            }
-          }
-        }
-      }
-
-      _customMixList = [];
       List<AudioTrack> newList = [];
-      Set<String> usedTrack = {};
-      int limit = min(storage["build-up"]!.length, storage["drop"]!.length);
-      for (int i = 0; i < limit; i++) {
-        List<List<CustomMixData>> tmpList = [storage["build-up"]!, storage["drop"]!, storage["break-down"]!];
-        for(int i = 0; i < 3; i++) {
-          if(i == 2 && Random().nextInt(3) == 0) {
-            continue;
-          }
-          final list = tmpList[i];
-          while (list.isNotEmpty) {
-            bool ok = false;
-            int idx = Random().nextInt(list.length);
-            if(!usedTrack.contains(list[idx].track.title)) {
-              _customMixList.add(list[idx]);
-              newList.add(list[idx].track);
-              usedTrack.add(list[idx].track.title);
-              ok = true;
-            }
-            list.removeAt(idx);
-            if(ok) {
-              break;
-            }
-          }
+      for (final trackData in mixData.entries) {
+        String trackName = trackData.key;
+        Map<String, dynamic> range = trackData.value;
+        AudioTrack? track = customMixTracks[trackName];
+        if(track != null) {
+          int lo = stringTimeToInt(range["start"]);
+          int mid = stringTimeToInt(range["mid"]);
+          int hi = stringTimeToInt(range["end"]);
+          _customMixData.addEntries([
+            MapEntry(
+              trackName,
+              CustomMixData(
+                track: track,
+                start: lo,
+                duration: hi - lo,
+                buildUpTime: ((mid - lo) * 0.8).toInt(),
+              ),
+            ),
+          ]);
+          newList.add(track);
         }
       }
+      newList.shuffle();
 
       _customMixMode = true;
       AudioStreamController.mashupButton.add(null);
