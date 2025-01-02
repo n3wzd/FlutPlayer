@@ -333,6 +333,7 @@ class AudioManager {
         await cancelMashupTimer();
         setAudioPlayerVolumeDefault();
       }
+      AudioStreamController.mashupButton.add(null);
     }
   }
 
@@ -375,82 +376,81 @@ class AudioManager {
     playListAddList(newList);
   }
 
-  void importCustomMixList() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
-    if (result != null) {
-      String? path = result.files[0].path;
-      if (path != null) {
-        File file = File(path);
-        String datas = file.readAsStringSync();
-        Map<String, dynamic> mixData = json.decode(datas);
+  void importCustomMixs(List<String> paths) async {
+    PlayList.instance.clear();
+    for (final path in paths) {
+      importCustomMix(path);
+    }
+  }
 
-        Set<String> uniqueTracks = {};
-        Map<String, AudioTrack> customMixTracks = {};
-        for (final innerMap in mixData.values) {
-          uniqueTracks.addAll(innerMap.keys);
-        }
-        for(String trackName in uniqueTracks) {
-          AudioTrack? track = await DatabaseManager.instance.importTrack(trackName);
-          if(track != null) {
-            customMixTracks[trackName] = track;
-          }
-        }
+  void importCustomMix(String path) async {
+    if (File(path).existsSync()) {
+      File file = File(path);
+      String datas = file.readAsStringSync();
+      Map<String, dynamic> mixData = json.decode(datas);
 
-        Map<String, List<CustomMixData>> storage = {"break-down": [], "build-up": [], "drop": []};
-        for (final type in mixData.keys) {
-          final tracks = mixData[type];
-          for(final trackName in tracks.keys) {
-            AudioTrack? track = customMixTracks[trackName];
-            if(track != null) {
-              for(final range in tracks[trackName]) {
-                int lo = stringTimeToInt(range["start"]);
-                int hi = stringTimeToInt(range["end"]);
-                storage[type]?.add(CustomMixData(
-                  track: track, 
-                  start: lo, 
-                  duration: hi - lo));
-              }
-            }
-          }
-        }
-
-        _customMixList = [];
-        List<AudioTrack> newList = [];
-        Set<String> usedTrack = {};
-        int limit = min(storage["build-up"]!.length, storage["drop"]!.length);
-        for (int i = 0; i < limit; i++) {
-          List<List<CustomMixData>> tmpList = [storage["build-up"]!, storage["drop"]!, storage["break-down"]!];
-          for(int i = 0; i < 3; i++) {
-            if(i == 2 && Random().nextInt(3) == 0) {
-              continue;
-            }
-            final list = tmpList[i];
-            while (list.isNotEmpty) {
-              bool ok = false;
-              int idx = Random().nextInt(list.length);
-              if(!usedTrack.contains(list[idx].track.title)) {
-                _customMixList.add(list[idx]);
-                newList.add(list[idx].track);
-                usedTrack.add(list[idx].track.title);
-                ok = true;
-              }
-              list.removeAt(idx);
-              if(ok) {
-                break;
-              }
-            }
-          }
-        }
-
-        _customMixMode = true;
-        PlayList.instance.clear();
-        playListAddList(newList);
-        activeMashupMode();
+      Set<String> uniqueTracks = {};
+      Map<String, AudioTrack> customMixTracks = {};
+      for (final innerMap in mixData.values) {
+        uniqueTracks.addAll(innerMap.keys);
       }
+      for(String trackName in uniqueTracks) {
+        AudioTrack? track = await DatabaseManager.instance.importTrack(trackName);
+        if(track != null) {
+          customMixTracks[trackName] = track;
+        }
+      }
+
+      Map<String, List<CustomMixData>> storage = {"break-down": [], "build-up": [], "drop": []};
+      for (final type in mixData.keys) {
+        final tracks = mixData[type];
+        for(final trackName in tracks.keys) {
+          AudioTrack? track = customMixTracks[trackName];
+          if(track != null) {
+            for(final range in tracks[trackName]) {
+              int lo = stringTimeToInt(range["start"]);
+              int hi = stringTimeToInt(range["end"]);
+              storage[type]?.add(CustomMixData(
+                track: track, 
+                start: lo, 
+                duration: hi - lo));
+            }
+          }
+        }
+      }
+
+      _customMixList = [];
+      List<AudioTrack> newList = [];
+      Set<String> usedTrack = {};
+      int limit = min(storage["build-up"]!.length, storage["drop"]!.length);
+      for (int i = 0; i < limit; i++) {
+        List<List<CustomMixData>> tmpList = [storage["build-up"]!, storage["drop"]!, storage["break-down"]!];
+        for(int i = 0; i < 3; i++) {
+          if(i == 2 && Random().nextInt(3) == 0) {
+            continue;
+          }
+          final list = tmpList[i];
+          while (list.isNotEmpty) {
+            bool ok = false;
+            int idx = Random().nextInt(list.length);
+            if(!usedTrack.contains(list[idx].track.title)) {
+              _customMixList.add(list[idx]);
+              newList.add(list[idx].track);
+              usedTrack.add(list[idx].track.title);
+              ok = true;
+            }
+            list.removeAt(idx);
+            if(ok) {
+              break;
+            }
+          }
+        }
+      }
+
+      _customMixMode = true;
+      AudioStreamController.mashupButton.add(null);
+      playListAddList(newList);
+      activeMashupMode();
     }
   }
 }

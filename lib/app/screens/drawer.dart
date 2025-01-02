@@ -1,8 +1,8 @@
-import 'package:flutplayer/app/utils/audio_manager.dart';
 import 'package:flutter/material.dart';
 import '../global.dart' as global;
 import './tag_select.dart';
 import './background_group_list.dart';
+import './mix_select.dart';
 import '../components/tag_export_dialog.dart';
 import '../widgets/listtile.dart';
 import '../widgets/text.dart';
@@ -42,7 +42,7 @@ class PageDrawer extends StatelessWidget {
               color: ColorPalette.lightGreySeparator, height: 1, thickness: 1),
           itemBuilder: (BuildContext context, int index) {
             final widgetList = <Widget>[
-              ListTileFactory.title(text: 'Tag'),
+              ListTileFactory.title(text: 'Tag & Mix'),
               ListTileFactory.content(
                   title: 'Export Tag',
                   subtitle:
@@ -58,6 +58,17 @@ class PageDrawer extends StatelessWidget {
                     Navigator.push(context, MaterialPageRoute<void>(
                       builder: (BuildContext context) {
                         return const TagSelectPage();
+                      },
+                    ));
+                  }),
+              ListTileFactory.content(
+                  title: 'Import Custom Mix',
+                  subtitle:
+                      'import custom mix json data and play it.',
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (BuildContext context) {
+                        return const MixSelectPage();
                       },
                     ));
                   }),
@@ -259,14 +270,7 @@ class PageDrawer extends StatelessWidget {
                 onTap: () {
                   apiProcess(context, DatabaseManager.instance.tagCsvToDB);
                 },
-              ),
-              ListTileFactory.content(
-                title: 'Play Custom Mix',
-                subtitle: 'import custom mix json data and play it.',
-                onTap: () {
-                  AudioManager.instance.importCustomMixList();
-                },
-              ),
+              )
             ];
             return widgetList[index];
           },

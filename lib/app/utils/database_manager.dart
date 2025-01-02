@@ -16,6 +16,7 @@ class DatabaseManager {
   final String tableMasterDBTableName = '_table';
   final String backgroundDBTableName = '_background';
   final String backgroundGroupDBTableName = '_background_group';
+  final String mixDBTableName = '_mix';
   late final String databasesPath;
 
   String _tagDBtableName(String name) => '_tag_${name.replaceAll(' ', '_')}';
@@ -34,6 +35,8 @@ class DatabaseManager {
         'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
     await DatabaseInterface.instance.execute(
         'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
+    await DatabaseInterface.instance.execute(
+        'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);');
   }
 
   void dispose() {
@@ -196,6 +199,23 @@ class DatabaseManager {
 
   Future<void> deleteBackgroundGroup(String path) async {
     String sql = 'DELETE FROM $backgroundGroupDBTableName WHERE path="$path";';
+    await DatabaseInterface.instance.rawQuery(sql);
+  }
+
+  Future<void> insertMix(String path) async {
+    String sql =
+        'INSERT OR IGNORE INTO $mixDBTableName(path) VALUES("$path")';
+    await DatabaseInterface.instance.rawQuery(sql);
+  }
+
+  Future<List<Map>> selectAllMix() async {
+    var list = await DatabaseInterface.instance.rawQuery(
+        'SELECT * FROM $mixDBTableName ORDER BY path ASC;');
+    return List<Map>.from(list);
+  }
+
+  Future<void> deleteMix(String path) async {
+    String sql = 'DELETE FROM $mixDBTableName WHERE path="$path";';
     await DatabaseInterface.instance.rawQuery(sql);
   }
 

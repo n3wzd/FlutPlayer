@@ -4,6 +4,7 @@ import '../utils/preference.dart';
 import '../widgets/slider.dart';
 import '../widgets/button.dart';
 import '../components/action_button.dart';
+import '../components/stream_builder.dart';
 import '../models/color.dart';
 
 class TopMenu extends StatelessWidget {
@@ -31,20 +32,23 @@ class TopMenu extends StatelessWidget {
           hasOverlay: false,
         ),
         StatefulBuilder(
-          builder: (context, setState) => ButtonFactory.iconButton(
-            icon: Icon(Icons.tornado,
-                color: AudioManager.instance.mashupMode
-                    ? ColorPalette.lightWine
-                    : ColorPalette.lightGrey),
-            iconSize: 26,
-            onPressed: () {
-              setState(() {
-                AudioManager.instance.toggleMashupMode();
-              });
-            },
-            outline: false,
-            hasOverlay: false,
-          ),
+          builder: (context, setState) => AudioStreamBuilder.mashupButton((context, data) => 
+            ButtonFactory.iconButton(
+              icon: Icon(Icons.tornado,
+                  color: 
+                    AudioManager.instance.customMixMode ? ColorPalette.purple :
+                      (AudioManager.instance.mashupMode
+                        ? ColorPalette.lightWine
+                        : ColorPalette.lightGrey)),
+              iconSize: 26,
+              onPressed: () {
+                setState(() {
+                  AudioManager.instance.toggleMashupMode();
+                });
+              },
+              outline: false,
+              hasOverlay: false,
+            )),
         ),
         const FullscreenButton(),
         Expanded(

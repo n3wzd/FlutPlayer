@@ -60,6 +60,12 @@ class AudioStreamBuilder {
       playListOrderState(
           (context, value) => playList((context, value) => track(builder)));
 
+  static StreamBuilder<void> mashupButton(BuildParameter<void> builder) =>
+      StreamBuilder<void>(
+        stream: AudioStreamController.mashupButton.stream,
+        builder: builder,
+      );
+
   static StreamBuilder<void> enabledBackground(BuildParameter<void> builder) =>
       StreamBuilder<void>(
         stream: AudioStreamController.enabledBackground.stream,
