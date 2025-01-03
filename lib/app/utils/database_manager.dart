@@ -34,7 +34,7 @@ class DatabaseManager {
     await DatabaseInterface.instance.execute(
         'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
     await DatabaseInterface.instance.execute(
-        'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
+        'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, active BOOL NOT NULL DEFAULT FALSE, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);');
     await DatabaseInterface.instance.execute(
         'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);');
   }
@@ -167,9 +167,9 @@ class DatabaseManager {
     return null;
   }
 
-  Future<void> insertBackgroundGroup(BackgroundData data) async {
+  Future<void> insertBackgroundGroup(BackgroundData data, bool active) async {
     String sql =
-        'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, rotate, scale, color, value) VALUES("${data.path}", ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
+        'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, active, rotate, scale, color, value) VALUES("${data.path}", ${active ? 1 : 0}, ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
     await DatabaseInterface.instance.rawQuery(sql);
   }
 
@@ -199,6 +199,12 @@ class DatabaseManager {
 
   Future<void> deleteBackgroundGroup(String path) async {
     String sql = 'DELETE FROM $backgroundGroupDBTableName WHERE path="$path";';
+    await DatabaseInterface.instance.rawQuery(sql);
+  }
+
+  Future<void> toggleBackgroundGroupActive(String path, bool value) async {
+    String sql =
+        'UPDATE $backgroundGroupDBTableName SET active=${value ? 1 : 0} WHERE path="$path";';
     await DatabaseInterface.instance.rawQuery(sql);
   }
 

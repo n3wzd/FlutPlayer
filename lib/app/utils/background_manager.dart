@@ -29,12 +29,12 @@ class BackgroundManager {
         color: dirList[i]['color'] == 1 ? true : false,
         value: dirList[i]['value'],
       );
-      addBackgroundGroup(path, data);
+      addBackgroundGroup(path, data, dirList[i]['active'] == 1 ? true : false);
     }
   }
 
-  void addBackgroundGroup(String path, BackgroundData data) {
-    var group = BackgroundGroup(dirPath: path, dirBackgroundData: data);
+  void addBackgroundGroup(String path, BackgroundData data, bool active) {
+    var group = BackgroundGroup(dirPath: path, dirBackgroundData: data, active: active);
     group.init();
     _backgroundList.addAll(group.makeGroupList());
     _backgroundGroupMap[path] = group;
@@ -42,7 +42,10 @@ class BackgroundManager {
 
   void updateBackgroundGroup(String path, BackgroundData data) {
     _backgroundGroupMap[path]?.dirBackgroundData = data;
-    updateBackgroundList();
+  }
+
+  void updateBackgroundGroupActive(String path, bool active) {
+    _backgroundGroupMap[path]?.active = active;
   }
 
   void deleteBackgroundGroup(String path) {
@@ -52,7 +55,9 @@ class BackgroundManager {
   void updateBackgroundList() {
     _backgroundList = [];
     for (var entry in _backgroundGroupMap.entries) {
-      _backgroundList.addAll(entry.value.makeGroupList());
+      if(entry.value.active) {
+        _backgroundList.addAll(entry.value.makeGroupList());
+      }
     }
     setCurrentBackgroundList();
   }
@@ -66,11 +71,12 @@ class BackgroundManager {
 }
 
 class BackgroundGroup {
-  BackgroundGroup({required this.dirPath, required this.dirBackgroundData});
+  BackgroundGroup({required this.dirPath, required this.dirBackgroundData, required this.active});
 
   final String dirPath;
   BackgroundData dirBackgroundData;
   List<String> filePathList = [];
+  bool active;
 
   void init() {
     if (dirPath != '') {
