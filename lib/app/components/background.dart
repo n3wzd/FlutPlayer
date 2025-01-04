@@ -261,9 +261,9 @@ class _ImageBackgroundState extends State<ImageBackground>
           duration: const Duration(seconds: 1),
           child: Transform.scale(
             key: ValueKey<bool>(_toggleImage),
-            scale: _scale * rotationScale,
+            scale: widget.background.scale ? _scale * rotationScale : rotationScale,
             child: Transform.rotate(
-              angle: _angle * 2 * pi,
+              angle: widget.background.rotate ? _angle * 2 * pi : 0,
               child: SizedBox.expand(
                 child: Image(
                   image: widget.imageFile!,
@@ -316,10 +316,7 @@ class VideoBackgroundManager {
     );
 
   void init() {
-    _playerList[0].setPlaylistMode(PlaylistMode.single);
-    _playerList[0].setVolume(0);
-    _playerList[1].setPlaylistMode(PlaylistMode.single);
-    _playerList[1].setVolume(0);
+    setting();
   }
 
   void dispose() {
@@ -327,7 +324,15 @@ class VideoBackgroundManager {
     _playerList[1].dispose();
   }
 
+  void setting() {
+    _playerList[0].setPlaylistMode(PlaylistMode.single);
+    _playerList[1].setPlaylistMode(PlaylistMode.single);
+    _playerList[0].setVolume(0);
+    _playerList[1].setVolume(0);
+  }
+
   Future<void> load(String path) async {
+    setting();
     await playerSub.open(Media(path));
     _currentIndexPlayerList = (_currentIndexPlayerList + 1) % 2;
   }

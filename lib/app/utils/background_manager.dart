@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math';
 import './database_manager.dart';
 import '../models/data.dart';
+import '../models/timer.dart';
 import '../utils/stream_controller.dart';
 import '../utils/preference.dart';
 
@@ -123,7 +124,7 @@ class BackgroundTransitionTimer {
   static final BackgroundTransitionTimer _instance = BackgroundTransitionTimer._();
   static BackgroundTransitionTimer get instance => _instance;
 
-  StreamSubscription<void>? _timer;
+  AdvancedTimer? _timer;
   
   void init() {
     if(Preference.enableBackgroundTransition) {
@@ -132,28 +133,28 @@ class BackgroundTransitionTimer {
   }
 
   void set() {
-    if(Preference.enableBackgroundTransition) {
-      int nextMilliseconds = ((Preference.backgroundNextTriggerMaxTime - Preference.backgroundNextTriggerMinTime) *
-          1000 * Random().nextDouble() + Preference.backgroundNextTriggerMinTime * 1000).toInt();
-      _timer = Stream<void>.fromFuture(
-          Future<void>.delayed(Duration(milliseconds: nextMilliseconds), () {}))
-          .listen((x) { 
-            BackgroundManager.instance.randomizeCurrentBackgroundList();
-            AudioStreamController.backgroundFile.add(null);
-            set();
-          });
+    cancel();
+    int nextMilliseconds = ((Preference.backgroundNextTriggerMaxTime - Preference.backgroundNextTriggerMinTime) *
+        1000 * Random().nextDouble() + Preference.backgroundNextTriggerMinTime * 1000).toInt();
+    _timer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
+      if(Preference.enableBackgroundTransition) {
+        BackgroundManager.instance.randomizeCurrentBackgroundList();
+        AudioStreamController.backgroundFile.add(null);
+        set();
+      }
+    });
+    _timer!.start();
+  }
+
+  void cancel() {
+    if (_timer != null) {
+      _timer!.cancel();
     }
   }
 
-  Future<void> cancel() async {
+  void reset() async {
     if (_timer != null) {
-      await _timer!.cancel();
-    }
-  }
-
-  Future<void> reset() async {
-    if (_timer != null) {
-      await cancel();
+      cancel();
       set();
     }
   }

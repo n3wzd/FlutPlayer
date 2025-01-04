@@ -11,6 +11,7 @@ import './preference.dart';
 import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/enum.dart';
+import '../models/timer.dart';
 import '../global.dart' as global;
 
 class AudioManager {
@@ -31,7 +32,7 @@ class AudioManager {
   double _volumeTransitionRate = 1.0;
   List<int> _currentByteData = [];
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
-  StreamSubscription<void>? _mashupNextTriggerTimer;
+  AdvancedTimer? _mashupNextTriggerTimer;
   Map<String, CustomMixData> _customMixData = {};
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
@@ -136,10 +137,10 @@ class AudioManager {
       int nextSecond = _customMixData[playList.currentAudioTitle]!.duration - 
             min(((_customMixData[playList.currentAudioTitle]!.duration - _customMixData[playList.currentAudioTitle]!.buildUpTime) * 0.8).toInt(),
             _customMixData[playList.audioTitle((playList.currentIndex + 1) % playList.playListLength)]!.buildUpTime);
-      _mashupNextTriggerTimer = Stream<void>.fromFuture(
-              Future<void>.delayed(Duration(seconds: nextSecond), () {}))
-          .listen((x) {
-        seekToNext();
+      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(seconds: nextSecond), onComplete: () {
+        if(_customMixMode) {
+          seekToNext();
+        }
       });
     }
     else {
@@ -149,12 +150,13 @@ class AudioManager {
                   Random().nextDouble() +
               Preference.mashupNextTriggerMinTime * 1000)
           .toInt();
-      _mashupNextTriggerTimer = Stream<void>.fromFuture(
-              Future<void>.delayed(Duration(milliseconds: nextMilliseconds), () {}))
-            .listen((x) {
+      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
+        if(_mashupMode) {
           seekToNext();
-        });
+        }
+      });
     }
+    _mashupNextTriggerTimer!.start();
   }
 
   void setAudioPlayerVolumeDefault() {
@@ -370,7 +372,7 @@ class AudioManager {
       await _mashupVolumeTransitionTimer!.cancel();
     }
     if (_mashupNextTriggerTimer != null) {
-      await _mashupNextTriggerTimer!.cancel();
+      _mashupNextTriggerTimer!.cancel();
     }
   }
 
@@ -391,7 +393,7 @@ class AudioManager {
         newList.add(AudioTrack(
           title: data['title'],
           path: data['path'],
-          modifiedDateTime: datas[0]['modified_time'],
+          modifiedDateTime: data['modified_time'],
           color: data['color'],
         ));
       }
