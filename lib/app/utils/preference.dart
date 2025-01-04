@@ -49,6 +49,15 @@ class Preference {
       case 'backgroundMethod':
         await prefs.setString(target, backgroundMethod.toString());
         break;
+      case 'enableBackgroundTransition':
+        await prefs.setBool(target, enableBackgroundTransition);
+        break;
+      case 'backgroundNextTriggerMinTime':
+        await prefs.setInt(target, backgroundNextTriggerMinTime);
+        break;
+      case 'backgroundNextTriggerMaxTime':
+        await prefs.setInt(target, backgroundNextTriggerMaxTime);
+        break;
 
       case 'enableVisualizer':
         await prefs.setBool(target, enableVisualizer);
@@ -95,6 +104,11 @@ class Preference {
     enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
         prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
+    enableBackgroundTransition = prefs.getBool('enableBackgroundTransition') ?? enableBackgroundTransition;
+    backgroundNextTriggerMinTime =
+        prefs.getInt('backgroundNextTriggerMinTime') ?? backgroundNextTriggerMinTime;
+    backgroundNextTriggerMaxTime =
+        prefs.getInt('backgroundNextTriggerMaxTime') ?? backgroundNextTriggerMaxTime;
 
     enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
     randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
@@ -125,6 +139,9 @@ class Preference {
   // Background
   static bool enableBackground = true;
   static BackgroundMethod backgroundMethod = BackgroundMethod.specific;
+  static bool enableBackgroundTransition = true;
+  static int backgroundNextTriggerMinTime = 4;
+  static int backgroundNextTriggerMaxTime = 6;
 
   // Visualizer
   static bool enableVisualizer = true;
@@ -139,7 +156,9 @@ class Preference {
 
 class PreferenceConstant {
   static int mashupTransitionTimeMin = 1;
-  static int mashupTransitionTimeMax = 10;
+  static int mashupTransitionTimeMax = 9;
   static int mashupNextTriggerTimeRangeMin = 10;
   static int mashupNextTriggerTimeRangeMax = 60;
+  static int backgroundNextTriggerTimeRangeMin = 1;
+  static int backgroundNextTriggerTimeRangeMax = 9;
 }

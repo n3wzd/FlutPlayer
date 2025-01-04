@@ -20,6 +20,7 @@ class Background extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       AudioStreamBuilder.backgroundFile((context, value) {
+        BackgroundTransitionTimer.instance.reset();
         BackgroundData? background;
         if (Preference.backgroundMethod == BackgroundMethod.specific) {
           background = PlayList.instance.currentAudioBackground;
@@ -29,15 +30,38 @@ class Background extends StatelessWidget {
           }
         }
         if (background != null) {
-          File imageFile = File(background.path);
-          if (imageFile.existsSync()) {
+          File backgroundFile = File(background.path);
+          if (backgroundFile.existsSync()) {
             const videoExtensions = ['mp4'];
-            return FileBackground(
+            bool isVideo = videoExtensions.contains(background.path.split('.').last);
+            if(isVideo) {
+              VideoBackgroundManager.instance.load(background.path);
+            } else {
+              ImageBackgroundManager.instance.load(background);
+            }
+            return ImageBackgroundManager.instance.widget;
+            /*FileBackground(
               background: background,
-              child: videoExtensions.contains(background.path.split('.').last)
-                  ? VideoBackground(path: background.path)
-                  : ImageBackground(background: background),
-            );
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: !isVideo,
+                    replacement: const SizedBox(height: 0, width: 0),
+                    child: Expanded (
+                      child: ImageBackgroundManager.instance.widget,
+                    ),
+                  ),
+                  Visibility(
+                    visible: isVideo,
+                    replacement: const SizedBox(height: 0, width: 0),
+                    child: Expanded (
+                      child: VideoBackgroundManager.instance.widget,
+                    ),
+                  ),
+                ],
+              ),
+            );*/
           }
         }
         return const DefaultBackground();
@@ -114,9 +138,47 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   }
 }
 
+class ImageBackgroundManager {
+  ImageBackgroundManager._();
+  static final ImageBackgroundManager _instance = ImageBackgroundManager._();
+  static ImageBackgroundManager get instance => _instance;
+
+  late final List<ImageBackground> _viewerList = List.generate(2, 
+      (_) => ImageBackground(background: BackgroundData(path: ""), imageFile: null));
+  int _currentIndexViewerList = 0;
+
+  ImageBackground get viewer => _viewerList[_currentIndexViewerList];
+  ImageBackground get viewerSub =>
+      _viewerList[(_currentIndexViewerList + 1) % 2];
+
+  get widget => Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(
+          _viewerList.length,
+          (index) => Visibility(
+            visible: _currentIndexViewerList == index,
+            replacement: const SizedBox(height: 0, width: 0),
+            child: Expanded (
+              child: _viewerList[index],
+            ),
+          ),
+        ),
+      ),
+    );
+
+  Future<void> load(BackgroundData background) async {
+    final imageFile = FileImage(File(background.path));
+    await imageFile.obtainKey(const ImageConfiguration());
+    _viewerList[(_currentIndexViewerList + 1) % 2] = ImageBackground(background: background, imageFile: imageFile);
+    _currentIndexViewerList = (_currentIndexViewerList + 1) % 2;
+  }
+}
+
 class ImageBackground extends StatefulWidget {
-  const ImageBackground({Key? key, required this.background}) : super(key: key);
+  const ImageBackground({Key? key, required this.background, required this.imageFile}) : super(key: key);
   final BackgroundData background;
+  final FileImage? imageFile;
 
   @override
   State<ImageBackground> createState() => _ImageBackgroundState();
@@ -210,72 +272,88 @@ class _ImageBackgroundState extends State<ImageBackground>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      double rotationScale = 1;
-      if (widget.background.rotate) {
-        double a = min(constraints.maxWidth, constraints.maxHeight);
-        double b = max(constraints.maxWidth, constraints.maxHeight);
-        rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
-      }
-      return AnimatedSwitcher(
-        duration: const Duration(seconds: 1),
-        child: Transform.scale(
-          key: ValueKey<bool>(_toggleImage),
-          scale: _scale * rotationScale,
-          child: Transform.rotate(
-            angle: _angle * 2 * pi,
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: FileImage(File(widget.background.path)),
+    if(widget.imageFile != null) {
+      return LayoutBuilder(builder: (context, constraints) {
+        double rotationScale = 1;
+        if (widget.background.rotate) {
+          double a = min(constraints.maxWidth, constraints.maxHeight);
+          double b = max(constraints.maxWidth, constraints.maxHeight);
+          rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
+        }
+        return AnimatedSwitcher(
+          duration: const Duration(seconds: 1),
+          child: Transform.scale(
+            key: ValueKey<bool>(_toggleImage),
+            scale: _scale * rotationScale,
+            child: Transform.rotate(
+              angle: _angle * 2 * pi,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: widget.imageFile!,
+                  ),
                 ),
               ),
             ),
           ),
+        );
+      });
+    } else {
+      return const SizedBox(height: 0, width: 0);
+    }
+  }
+}
+
+class VideoBackgroundManager {
+  VideoBackgroundManager._();
+  static final VideoBackgroundManager _instance = VideoBackgroundManager._();
+  static VideoBackgroundManager get instance => _instance;
+
+  late final List<Player> _playerList = List.generate(2, (_) => Player());
+  late final List<VideoController> _controllerList = 
+      _playerList.map((player) => VideoController(player)).toList();
+  int _currentIndexPlayerList = 0;
+
+  Player get player => _playerList[_currentIndexPlayerList];
+  Player get playerSub =>
+      _playerList[(_currentIndexPlayerList + 1) % 2];
+
+  get widget => Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(
+          _controllerList.length,
+          (index) => Visibility(
+            visible: _currentIndexPlayerList == index,
+            replacement: const SizedBox(height: 0, width: 0),
+            child: Expanded (
+              child: Video(
+                controller: _controllerList[_currentIndexPlayerList],
+                controls: (state) => Container(),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
         ),
-      );
-    });
-  }
-}
-
-class VideoBackground extends StatefulWidget {
-  const VideoBackground({Key? key, required this.path}) : super(key: key);
-  final String path;
-
-  @override
-  State<VideoBackground> createState() => VideoBackgroundState();
-}
-
-class VideoBackgroundState extends State<VideoBackground> {
-  late final player = Player();
-  late final controller = VideoController(player);
-
-  @override
-  void initState() {
-    super.initState();
-    player.setPlaylistMode(PlaylistMode.single);
-    player.setVolume(0);
-  }
-
-  @override
-  void dispose() {
-    player.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    player.open(Media(widget.path));
-    return Center(
-      child: Video(
-        controller: controller,
-        controls: (state) {
-          return Container();
-        },
-        fit: BoxFit.cover,
       ),
     );
+
+  void init() {
+    _playerList[0].setPlaylistMode(PlaylistMode.single);
+    _playerList[0].setVolume(0);
+    _playerList[1].setPlaylistMode(PlaylistMode.single);
+    _playerList[1].setVolume(0);
+  }
+
+  void dispose() {
+    _playerList[0].dispose();
+    _playerList[1].dispose();
+  }
+
+  Future<void> load(String path) async {
+    await playerSub.open(Media(path));
+    _currentIndexPlayerList = (_currentIndexPlayerList + 1) % 2;
   }
 }
 

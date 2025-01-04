@@ -105,10 +105,7 @@ class AudioManager {
       await audioPlayer.setAudioSource(PlayList.instance.audioTrack(0));
       setCurrentByteData();
 
-      PlayList.instance.updateTrack(
-          0,
-          await DatabaseManager.instance
-              .importTrack(PlayList.instance.audioTitle(0)));
+      PlayList.instance.updateTrack(0, await DatabaseManager.instance.importTrack(PlayList.instance.audioTitle(0)));
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
       AudioStreamController.backgroundFile.add(null);
@@ -196,8 +193,8 @@ class AudioManager {
       play();
       PlayList.instance.currentIndex = index;
       setCurrentByteData();
-      
-      BackgroundManager.instance.setCurrentBackgroundList();
+      BackgroundManager.instance.randomizeCurrentBackgroundList();
+      AudioStreamController.backgroundFile.add(null);
       global.setVisualizerColor();
 
       if(_mashupMode) {

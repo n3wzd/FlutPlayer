@@ -1,4 +1,5 @@
 import 'dart:async';
+import './components/background.dart';
 import './utils/audio_manager.dart';
 import './utils/background_manager.dart';
 import './utils/playlist.dart';
@@ -15,6 +16,8 @@ Future<void> initApp() async {
   await DatabaseManager.instance.init();
   AudioManager.instance.init();
   await BackgroundManager.instance.init();
+  BackgroundTransitionTimer.instance.init();
+  VideoBackgroundManager.instance.init();
 }
 
 void setVisualizerColor() {

@@ -4,15 +4,16 @@ import './tag_select.dart';
 import './background_group_list.dart';
 import './mix_select.dart';
 import '../components/tag_export_dialog.dart';
+import '../models/api.dart';
 import '../widgets/listtile.dart';
 import '../widgets/text.dart';
 import '../widgets/dialog.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
+import '../utils/background_manager.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
-import '../models/api.dart';
 
 class PageDrawer extends StatelessWidget {
   const PageDrawer({Key? key}) : super(key: key);
@@ -116,7 +117,7 @@ class PageDrawer extends StatelessWidget {
                 onChangeEnd: (double value) {
                   Preference.save('mashupTransitionTime');
                 },
-                sliderDivisions: 9,
+                sliderDivisions: 8,
                 sliderShowLabel: true,
               ),
               ListTileFactory.contentRangeSlider(
@@ -178,8 +179,38 @@ class PageDrawer extends StatelessWidget {
                         return const BackgroundGroupPage();
                       })
                   );
-
                 }
+              ),
+              ListTileFactory.contentSwitch(
+                title: 'Enable Background Transition',
+                subtitle: 'background changes regardless of the currently playing track.',
+                initialValue: Preference.enableBackgroundTransition,
+                onChanged: (bool value) {
+                  Preference.enableBackgroundTransition = !Preference.enableBackgroundTransition;
+                  Preference.save('enableBackgroundTransition');
+                  BackgroundTransitionTimer.instance.update(value);
+                },
+              ),
+              ListTileFactory.contentRangeSlider(
+                title: 'Time to Trigger Next',
+                subtitle: 'changes random time range to trigger next background.',
+                initialValues: RangeValues(
+                    Preference.backgroundNextTriggerMinTime.toDouble(),
+                    Preference.backgroundNextTriggerMaxTime.toDouble()),
+                sliderMin:
+                    PreferenceConstant.backgroundNextTriggerTimeRangeMin.toDouble(),
+                sliderMax:
+                    PreferenceConstant.backgroundNextTriggerTimeRangeMax.toDouble(),
+                onChanged: (RangeValues values) {
+                  Preference.backgroundNextTriggerMinTime = values.start.toInt();
+                  Preference.backgroundNextTriggerMaxTime = values.end.toInt();
+                },
+                onChangeEnd: (RangeValues values) {
+                  Preference.save('backgroundNextTriggerMinTime');
+                  Preference.save('backgroundNextTriggerMaxTime');
+                },
+                sliderDivisions: 8,
+                sliderShowLabel: true,
               ),
               ListTileFactory.title(text: 'Visualizer'),
               ListTileFactory.contentSwitch(
