@@ -39,8 +39,7 @@ class Background extends StatelessWidget {
             } else {
               ImageBackgroundManager.instance.load(background);
             }
-            return ImageBackgroundManager.instance.widget;
-            /*FileBackground(
+            return FileBackground(
               background: background,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -61,7 +60,7 @@ class Background extends StatelessWidget {
                   ),
                 ],
               ),
-            );*/
+            );
           }
         }
         return const DefaultBackground();
@@ -143,35 +142,13 @@ class ImageBackgroundManager {
   static final ImageBackgroundManager _instance = ImageBackgroundManager._();
   static ImageBackgroundManager get instance => _instance;
 
-  late final List<ImageBackground> _viewerList = List.generate(2, 
-      (_) => ImageBackground(background: BackgroundData(path: ""), imageFile: null));
-  int _currentIndexViewerList = 0;
+  ImageBackground imageBackground = ImageBackground(background: BackgroundData(path: ""), imageFile: null);
 
-  ImageBackground get viewer => _viewerList[_currentIndexViewerList];
-  ImageBackground get viewerSub =>
-      _viewerList[(_currentIndexViewerList + 1) % 2];
+  get widget => imageBackground;
 
-  get widget => Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          _viewerList.length,
-          (index) => Visibility(
-            visible: _currentIndexViewerList == index,
-            replacement: const SizedBox(height: 0, width: 0),
-            child: Expanded (
-              child: _viewerList[index],
-            ),
-          ),
-        ),
-      ),
-    );
-
-  Future<void> load(BackgroundData background) async {
+  void load(BackgroundData background) {
     final imageFile = FileImage(File(background.path));
-    await imageFile.obtainKey(const ImageConfiguration());
-    _viewerList[(_currentIndexViewerList + 1) % 2] = ImageBackground(background: background, imageFile: imageFile);
-    _currentIndexViewerList = (_currentIndexViewerList + 1) % 2;
+    imageBackground = ImageBackground(background: background, imageFile: imageFile);
   }
 }
 
@@ -287,12 +264,11 @@ class _ImageBackgroundState extends State<ImageBackground>
             scale: _scale * rotationScale,
             child: Transform.rotate(
               angle: _angle * 2 * pi,
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: widget.imageFile!,
-                  ),
+              child: SizedBox.expand(
+                child: Image(
+                  image: widget.imageFile!,
+                  gaplessPlayback: true,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
