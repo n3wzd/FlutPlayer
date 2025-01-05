@@ -12,7 +12,6 @@ import '../widgets/text.dart';
 import '../widgets/scrollbar.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
-import '../screens/background_select.dart';
 
 import '../global.dart' as global;
 

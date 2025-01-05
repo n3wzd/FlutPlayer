@@ -8,6 +8,7 @@ class AudioStreamController {
   static final visualizerColor = StreamController<void>.broadcast();
   static final backgroundFile = StreamController<void>.broadcast();
   static final imageBackgroundAnimation = StreamController<void>.broadcast();
+  static final mashupButton = StreamController<void>.broadcast();
 
   static final enabledVisualizer = StreamController<void>.broadcast();
   static final enabledBackground = StreamController<void>.broadcast();

@@ -22,6 +22,7 @@ class BackgroundGroupPage extends StatefulWidget {
 class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
   List<Map> _groupList = [];
   List<bool> _selectedList = [];
+  final List<bool> _activeList = [];
   int _selectedItemCount = 0;
 
   @override
@@ -33,14 +34,18 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
   Future<void> setList() async {
     _groupList = await DatabaseManager.instance.selectAllBackgroundGroup();
     _selectedList = List<bool>.filled(_groupList.length, false, growable: true);
+    for(int i = 0; i < _groupList.length; i++) {
+      _activeList.add(_groupList[i]['active'] == 1 ? true : false);
+    }
     setState(() {});
   }
 
-  void addListItem(String path) {
-    _groupList.add(<String, String> {
+  void addListItem(String path, bool active) {
+    _groupList.add({
       'path': path,
     });
     _selectedList.add(false);
+    _activeList.add(active);
   }
 
   void deleteListItem(int index) {
@@ -75,6 +80,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
       backgroundColor: ColorPalette.black,
       appBar: AppBar(
         backgroundColor: ColorPalette.darkWine,
+        automaticallyImplyLeading: false,
         actions: [
           ButtonFactory.iconButton(
             icon: const Icon(Icons.add_circle),
@@ -83,9 +89,10 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
               String? path =
                   await FilePicker.platform.getDirectoryPath();
               if (path != null) {
-                await DatabaseManager.instance.insertBackgroundGroup(BackgroundData(path: path));
-                BackgroundManager.instance.addBackgroundGroup(path, BackgroundData(path: path));
-                addListItem(path);
+                bool defaultActiveValue = true;
+                await DatabaseManager.instance.insertBackgroundGroup(BackgroundData(path: path), defaultActiveValue);
+                BackgroundManager.instance.addBackgroundGroup(path, BackgroundData(path: path), defaultActiveValue);
+                addListItem(path, defaultActiveValue);
                 setState(() {});
               }
             },
@@ -116,8 +123,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                       1; i >= 0; i--) {
                     int selectedItemIndex = selected[i];
                     String path = _groupList[selectedItemIndex]['path'];
-                    DatabaseManager.instance
-                        .deleteBackgroundGroup(path);
+                    DatabaseManager.instance.deleteBackgroundGroup(path);
                     BackgroundManager.instance.deleteBackgroundGroup(path);
                     deleteListItem(selectedItemIndex);
                   }
@@ -149,6 +155,18 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                     setState(() {});
                   },
                   selected: _selectedList[index],
+                  trailing: StatefulBuilder(
+                    builder: (context, setState) => SwitchFactory.normal(
+                      value: _activeList[index],
+                      onChanged: (bool value) {
+                        setState(() {
+                          DatabaseManager.instance.toggleBackgroundGroupActive(_groupList[index]['path'], value);
+                          BackgroundManager.instance.updateBackgroundGroupActive(_groupList[index]['path'], value);
+                          _activeList[index] = value;
+                        });
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),

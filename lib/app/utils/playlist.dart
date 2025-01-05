@@ -164,7 +164,7 @@ class PlayList {
         }
       }
     }
-
+    
     AudioStreamController.playList.add(null);
     AudioStreamController.playListOrderState.add(null);
   }

@@ -1,8 +1,11 @@
-import 'dart:math';
 import 'dart:io';
-import './stream_controller.dart';
+import 'dart:async';
+import 'dart:math';
 import './database_manager.dart';
 import '../models/data.dart';
+import '../models/timer.dart';
+import '../utils/stream_controller.dart';
+import '../utils/preference.dart';
 
 const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
 
@@ -13,10 +16,14 @@ class BackgroundManager {
 
   List<BackgroundData> _backgroundList = [];
   final Map<String, BackgroundGroup> _backgroundGroupMap = {};
-  BackgroundData _currentBackgroundData = BackgroundData(path: '');
+  int currentBackgroundListIndex = 0;
 
   bool get isListNotEmpty => _backgroundList.isNotEmpty;
-  BackgroundData get currentBackgroundData => _currentBackgroundData;
+  int get nextBackgroundListIndex => (currentBackgroundListIndex + 1) % _backgroundList.length;
+  BackgroundData get currentBackgroundData => isListNotEmpty ? 
+      _backgroundList[currentBackgroundListIndex] : BackgroundData(path: "");
+  BackgroundData get nextBackgroundData => isListNotEmpty ? 
+      _backgroundList[nextBackgroundListIndex] : BackgroundData(path: "");
 
   Future<void> init() async {
     List<Map> dirList = await DatabaseManager.instance.selectAllBackgroundGroup();
@@ -29,20 +36,23 @@ class BackgroundManager {
         color: dirList[i]['color'] == 1 ? true : false,
         value: dirList[i]['value'],
       );
-      addBackgroundGroup(path, data);
+      addBackgroundGroup(path, data, dirList[i]['active'] == 1 ? true : false);
     }
+    updateBackgroundList();
   }
 
-  void addBackgroundGroup(String path, BackgroundData data) {
-    var group = BackgroundGroup(dirPath: path, dirBackgroundData: data);
+  void addBackgroundGroup(String path, BackgroundData data, bool active) {
+    var group = BackgroundGroup(dirPath: path, dirBackgroundData: data, active: active);
     group.init();
-    _backgroundList.addAll(group.makeGroupList());
     _backgroundGroupMap[path] = group;
   }
 
   void updateBackgroundGroup(String path, BackgroundData data) {
     _backgroundGroupMap[path]?.dirBackgroundData = data;
-    updateBackgroundList();
+  }
+
+  void updateBackgroundGroupActive(String path, bool active) {
+    _backgroundGroupMap[path]?.active = active;
   }
 
   void deleteBackgroundGroup(String path) {
@@ -52,25 +62,27 @@ class BackgroundManager {
   void updateBackgroundList() {
     _backgroundList = [];
     for (var entry in _backgroundGroupMap.entries) {
-      _backgroundList.addAll(entry.value.makeGroupList());
+      if(entry.value.active) {
+        _backgroundList.addAll(entry.value.makeGroupList());
+      }
     }
-    setCurrentBackgroundList();
+    currentBackgroundListIndex = 0;
+    _backgroundList.shuffle();
+    randomizeCurrentBackgroundList();
   }
 
-  void setCurrentBackgroundList() {
-    if (_backgroundList.isNotEmpty) {
-      _currentBackgroundData = _backgroundList[Random().nextInt(_backgroundList.length)];
-      AudioStreamController.backgroundFile.add(null);
-    }
+  void randomizeCurrentBackgroundList() {
+    currentBackgroundListIndex = nextBackgroundListIndex;
   }
 }
 
 class BackgroundGroup {
-  BackgroundGroup({required this.dirPath, required this.dirBackgroundData});
+  BackgroundGroup({required this.dirPath, required this.dirBackgroundData, required this.active});
 
   final String dirPath;
   BackgroundData dirBackgroundData;
   List<String> filePathList = [];
+  bool active;
 
   void init() {
     if (dirPath != '') {
@@ -104,5 +116,54 @@ class BackgroundGroup {
         ));
     }
     return list;
+  }
+}
+
+class BackgroundTransitionTimer {
+  BackgroundTransitionTimer._();
+  static final BackgroundTransitionTimer _instance = BackgroundTransitionTimer._();
+  static BackgroundTransitionTimer get instance => _instance;
+
+  AdvancedTimer? _timer;
+  
+  void init() {
+    if(Preference.enableBackgroundTransition) {
+      set();
+    }
+  }
+
+  void set() {
+    cancel();
+    int nextMilliseconds = ((Preference.backgroundNextTriggerMaxTime - Preference.backgroundNextTriggerMinTime) *
+        1000 * Random().nextDouble() + Preference.backgroundNextTriggerMinTime * 1000).toInt();
+    _timer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
+      if(Preference.enableBackgroundTransition) {
+        BackgroundManager.instance.randomizeCurrentBackgroundList();
+        AudioStreamController.backgroundFile.add(null);
+        set();
+      }
+    });
+    _timer!.start();
+  }
+
+  void cancel() {
+    if (_timer != null) {
+      _timer!.cancel();
+    }
+  }
+
+  void reset() async {
+    if (_timer != null) {
+      cancel();
+      set();
+    }
+  }
+
+  void update(bool value) {
+    if(value) {
+      set();
+    } else {
+      cancel();
+    }
   }
 }
