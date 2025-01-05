@@ -313,6 +313,7 @@ class PageDrawer extends StatelessWidget {
                 onTap: () {
                   apiProcess(context, DatabaseManager.instance.tagCsvToDB);
                 },
+              ),
             ];
             return widgetList[index];
           },

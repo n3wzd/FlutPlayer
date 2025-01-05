@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
@@ -286,55 +285,69 @@ class VideoBackgroundManager {
   static final VideoBackgroundManager _instance = VideoBackgroundManager._();
   static VideoBackgroundManager get instance => _instance;
 
-  late final List<Player> _playerList = List.generate(2, (_) => Player());
-  late final List<VideoController> _controllerList = 
-      _playerList.map((player) => VideoController(player)).toList();
-  int _currentIndexPlayerList = 0;
+  VideoBackground videoBackground = const VideoBackground(path: "");
 
-  Player get player => _playerList[_currentIndexPlayerList];
-  Player get playerSub =>
-      _playerList[(_currentIndexPlayerList + 1) % 2];
+  get widget => videoBackground;
 
-  get widget => Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          _controllerList.length,
-          (index) => Visibility(
-            visible: _currentIndexPlayerList == index,
-            replacement: const SizedBox(height: 0, width: 0),
-            child: Expanded (
-              child: Video(
-                controller: _controllerList[_currentIndexPlayerList],
-                controls: (state) => Container(),
-                fit: BoxFit.cover,
-              ),
-            ),
+  void load(String path) {
+    videoBackground = VideoBackground(path: path);
+  }
+}
+
+class VideoBackground extends StatefulWidget {
+  const VideoBackground({super.key, required this.path});
+  final String path;
+
+  @override
+  State<VideoBackground> createState() => _VideoBackgroundState();
+}
+
+class _VideoBackgroundState extends State<VideoBackground>
+    with WidgetsBindingObserver {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(File(widget.path),
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
+      ..initialize().then((_) {
+        _controller.setVolume(0);
+        _controller.setLooping(true);
+        _controller.play();
+        setState(() {});
+      });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _controller.play();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _controller.value.size.width,
+            height: _controller.value.size.height,
+            child: VideoPlayer(_controller),
           ),
         ),
       ),
     );
-
-  void init() {
-    setting();
-  }
-
-  void dispose() {
-    _playerList[0].dispose();
-    _playerList[1].dispose();
-  }
-
-  void setting() {
-    _playerList[0].setPlaylistMode(PlaylistMode.single);
-    _playerList[1].setPlaylistMode(PlaylistMode.single);
-    _playerList[0].setVolume(0);
-    _playerList[1].setVolume(0);
-  }
-
-  Future<void> load(String path) async {
-    setting();
-    await playerSub.open(Media(path));
-    _currentIndexPlayerList = (_currentIndexPlayerList + 1) % 2;
   }
 }
 
@@ -352,5 +365,22 @@ class FileBackground extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => child;
+  Widget build(BuildContext context) => Opacity(
+    opacity: background.value.toDouble() / 100,
+    child: AnimatedSwitcher(
+      duration: const Duration(seconds: 1),
+      child: Container(
+        key: ValueKey<String>(background.path),
+        child: Stack(children: [
+          child,
+          Opacity(
+            opacity: background.color ? 0.4 : 0,
+            child: Container(
+              color: getColor(),
+            ),
+          ),
+        ]),
+      ),
+    ),
+  );
 }
