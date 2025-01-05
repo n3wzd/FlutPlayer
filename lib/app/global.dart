@@ -1,5 +1,4 @@
 import 'dart:async';
-import './components/background.dart';
 import './utils/audio_manager.dart';
 import './utils/background_manager.dart';
 import './utils/playlist.dart';

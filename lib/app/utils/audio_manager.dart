@@ -8,6 +8,7 @@ import './background_manager.dart';
 import './playlist.dart';
 import './database_manager.dart';
 import './preference.dart';
+import './permission_handler.dart';
 import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/enum.dart';
@@ -404,6 +405,15 @@ class AudioManager {
       }
     }
     playListAddList(newList);
+  }
+
+  void setEnabledEqualizer() {
+    audioPlayer.setEnabledEqualizer();
+    audioPlayerSub.setEnabledEqualizer();
+  }
+
+  Future<void> syncEqualizer() async {
+    audioPlayer.syncEqualizer(audioPlayerSub);
   }
 
   void importCustomMixs(List<String> paths) async {
