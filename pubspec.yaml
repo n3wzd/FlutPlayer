@@ -10,9 +10,11 @@ dependencies:
   path: any
   flutter:
     sdk: flutter
-  audioplayers: ^5.2.0
+  just_audio: ^0.9.35
   file_picker: ^6.0.0
-  sqflite_common_ffi: ^2.3.0
+  permission_handler: ^11.0.1
+  audio_service: ^0.18.12
+  sqflite: ^2.3.0
   shared_preferences: ^2.2.2
   media_kit: ^1.1.11
   media_kit_video: ^1.2.4

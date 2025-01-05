@@ -127,7 +127,7 @@ class AudioManager {
               (x) => x * 1.0 / (transitionTime / 100))
           .take(transitionTime ~/ 100);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
-      transitionVolume = x;
+        transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
   }
 
@@ -283,29 +283,34 @@ class AudioManager {
   }
 
   void filesOpen() async {
+    if (!PermissionHandler.instance.isPermissionAccepted) {
+      return;
+    }
     String? selectedDirectoryPath =
-          await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectoryPath != null) {
-        List<AudioTrack> newList = [];
-        Directory selectedDirectory = Directory(selectedDirectoryPath);
-        List<FileSystemEntity> selectedDirectoryFile =
-            selectedDirectory.listSync(recursive: true);
-        for (FileSystemEntity file in selectedDirectoryFile) {
-          String path = file.path;
-          if (!FileSystemEntity.isDirectorySync(path)) {
-            if (_allowedExtensions.contains(path.split('.').last)) {
-              String name = file.uri.pathSegments.last;
-              FileStat fileStat = FileStat.statSync(path);
-              newList.add(AudioTrack(
-                title: name.substring(0, name.length - 4),
-                path: path,
-                modifiedDateTime: dateTimeToString(fileStat.modified),
-              ));
-            }
+        await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectoryPath != null) {
+      List<AudioTrack> newList = [];
+      Directory selectedDirectory = Directory(selectedDirectoryPath);
+      List<FileSystemEntity> selectedDirectoryFile =
+      selectedDirectory.listSync(recursive: true);
+      for (FileSystemEntity file in selectedDirectoryFile) {
+        String path = file.path;
+        if (!FileSystemEntity.isDirectorySync(path)) {
+          if (_allowedExtensions.contains(path
+              .split('.')
+              .last)) {
+            String name = file.uri.pathSegments.last;
+            FileStat fileStat = FileStat.statSync(path);
+            newList.add(AudioTrack(
+              title: name.substring(0, name.length - 4),
+              path: path,
+              modifiedDateTime: dateTimeToString(fileStat.modified),
+            ));
           }
         }
-        playListAddList(newList);
       }
+      playListAddList(newList);
+    }
   }
 
   List<int> _readBytesFromFile(String filePath) {

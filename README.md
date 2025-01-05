@@ -1,5 +1,7 @@
 # FlutPlayer
-> Window application for playing audio.
+> Android application for playing audio.
+
+![example](example.png)
 
 - **Audio**
   - Playback slider
@@ -38,13 +40,13 @@
 - Flutter
 
 ### Dependency
-- audioplayers: ^5.2.0
+- just_audio: ^0.9.35
 - file_picker: ^6.0.0
-- sqflite_common_ffi: ^2.3.0
+- permission_handler: ^11.0.1
+- audio_service: ^0.18.12
+- sqflite: ^2.3.0
 - shared_preferences: ^2.2.2
-- media_kit: ^1.1.11
-- media_kit_video: ^1.2.4
-- media_kit_libs_video: ^1.0.4 
+- video_player: ^2.8.2
 
 ## File Structure
 ```
@@ -102,7 +104,9 @@ app/
 ```
 
 # FlutPlayer
-> 음원을 재생하는 윈도우 애플리케이션입니다.
+> 음원을 재생하는 안드로이드 애플리케이션입니다.
+
+![example](example.png)
 
 - 오디오
 	- 재생 슬라이더
@@ -141,13 +145,15 @@ app/
 - Flutter
 
 ### Dependency
+- just_audio: ^0.9.35
 - audioplayers: ^5.2.0
 - file_picker: ^6.0.0
+- permission_handler: ^11.0.1
+- audio_service: ^0.18.12
+- sqflite: ^2.3.0
 - sqflite_common_ffi: ^2.3.0
 - shared_preferences: ^2.2.2
-- media_kit: ^1.1.11
-- media_kit_video: ^1.2.4
-- media_kit_libs_video: ^1.0.4 
+- video_player: ^2.8.2
 
 ## File Structure
 ```

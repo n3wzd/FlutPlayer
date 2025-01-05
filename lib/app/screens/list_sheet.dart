@@ -192,9 +192,13 @@ class _ListSheetState extends State<ListSheet> {
                                         ),
                                       ));
                                 } else if (value == 2) {
-                                  backgroundSelector(
-                                      index,
-                                    );
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute<void>(
+                                        builder: (context) =>
+                                            BackgroundSelectPage(
+                                                trackIndex: index),
+                                      ));
                                 }
                               },
                               itemBuilder: (context) => <PopupMenuEntry>[
