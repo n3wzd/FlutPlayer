@@ -1,5 +1,5 @@
 # FlutPlayer
-> 음원을 재생하는 안드로이드 애플리케이션입니다.
+> 음원을 재생하는 Android / Windows 애플리케이션입니다.
 
 ![example](example.png)
 
