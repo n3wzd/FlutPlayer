@@ -286,31 +286,17 @@ class VideoBackgroundManager {
   static final VideoBackgroundManager _instance = VideoBackgroundManager._();
   static VideoBackgroundManager get instance => _instance;
 
-  late final List<Player> _playerList = List.generate(2, (_) => Player());
-  late final List<VideoController> _controllerList = 
-      _playerList.map((player) => VideoController(player)).toList();
-  int _currentIndexPlayerList = 0;
+  late final Player _player = Player();
+  late final VideoController _controller = VideoController(player);
 
-  Player get player => _playerList[_currentIndexPlayerList];
-  Player get playerSub =>
-      _playerList[(_currentIndexPlayerList + 1) % 2];
+  Player get player => _player;
 
   get widget => Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          _controllerList.length,
-          (index) => Visibility(
-            visible: _currentIndexPlayerList == index,
-            replacement: const SizedBox(height: 0, width: 0),
-            child: Expanded (
-              child: Video(
-                controller: _controllerList[_currentIndexPlayerList],
-                controls: (state) => Container(),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+      child: Expanded (
+        child: Video(
+          controller: _controller,
+          controls: (state) => Container(),
+          fit: BoxFit.cover,
         ),
       ),
     );
@@ -320,21 +306,17 @@ class VideoBackgroundManager {
   }
 
   void dispose() {
-    _playerList[0].dispose();
-    _playerList[1].dispose();
+    player.dispose();
   }
 
   void setting() {
-    _playerList[0].setPlaylistMode(PlaylistMode.single);
-    _playerList[1].setPlaylistMode(PlaylistMode.single);
-    _playerList[0].setVolume(0);
-    _playerList[1].setVolume(0);
+    player.setPlaylistMode(PlaylistMode.single);
+    player.setVolume(0);
   }
 
   Future<void> load(String path) async {
     setting();
-    await playerSub.open(Media(path));
-    _currentIndexPlayerList = (_currentIndexPlayerList + 1) % 2;
+    await player.open(Media(path));
   }
 }
 
