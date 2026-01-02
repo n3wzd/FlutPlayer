@@ -110,7 +110,7 @@ class Preference {
     backgroundNextTriggerMaxTime =
         prefs.getInt('backgroundNextTriggerMaxTime') ?? backgroundNextTriggerMaxTime;
 
-    enableEqualizer = prefs.getBool('enableVisualizer') ?? enableEqualizer;
+    enableVisualizer = prefs.getBool('enableVisualizer') ?? enableVisualizer;
     randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
     enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
 
