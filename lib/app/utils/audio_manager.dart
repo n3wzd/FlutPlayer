@@ -119,9 +119,7 @@ class AudioManager {
   }
 
   void setMashupVolumeTransition() {
-    int transitionTime = (_customMixMode ? 
-          _customMixData[PlayList.instance.currentAudioTitle]!.buildUpTime : 
-          Preference.mashupTransitionTime) * 1000;
+    int transitionTime = Preference.mashupTransitionTime * 1000;
     Stream<double> mashupVolumeTransition = Stream.periodic(
               const Duration(milliseconds: 100),
               (x) => x * 1.0 / (transitionTime / 100))
