@@ -131,17 +131,27 @@ class AudioManager {
 
   void setMashupNextTrigger() {
     final playList = PlayList.instance;
-    int nextMilliseconds = ((Preference.mashupNextTriggerMaxTime -
-                    Preference.mashupNextTriggerMinTime) *
-                1000 *
-                Random().nextDouble() +
-            Preference.mashupNextTriggerMinTime * 1000)
-        .toInt();
-    _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
-      if(_mashupMode) {
-        seekToNext();
-      }
-    });
+    if(_customMixMode) {
+      int nextSecond = _customMixData[playList.currentAudioTitle]!.duration;
+      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(seconds: nextSecond), onComplete: () {
+        if(_customMixMode) {
+          seekToNext();
+        }
+      });
+    }
+    else {
+      int nextMilliseconds = ((Preference.mashupNextTriggerMaxTime -
+                      Preference.mashupNextTriggerMinTime) *
+                  1000 *
+                  Random().nextDouble() +
+              Preference.mashupNextTriggerMinTime * 1000)
+          .toInt();
+      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
+        if(_mashupMode) {
+          seekToNext();
+        }
+      });
+    }
     _mashupNextTriggerTimer!.start();
   }
 
