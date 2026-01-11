@@ -143,8 +143,8 @@ class AudioManager {
         seekToNext();
       }
     });
+    _mashupNextTriggerTimer!.start();
   }
-  _mashupNextTriggerTimer!.start();
 
   void setAudioPlayerVolumeDefault() {
     transitionVolume = 1.0;
