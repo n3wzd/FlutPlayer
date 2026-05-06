@@ -11,6 +11,7 @@ class DatabaseInterface {
   sqflite_ffi.Database? _databaseFfi;
 
   bool get _useFfi => PlatformSupport.isWindows;
+  bool get isOpen => _useFfi ? _databaseFfi != null : _databaseSqflite != null;
   dynamic get _database => _useFfi ? _databaseFfi! : _databaseSqflite!;
 
   void init() {
@@ -21,7 +22,7 @@ class DatabaseInterface {
   }
 
   void dispose() {
-    _database.close();
+    if (isOpen) _database.close();
   }
 
   Future<String> getDatabasesPath() async {
@@ -49,14 +50,17 @@ class DatabaseInterface {
   }
 
   Future<void> execute(String sql) async {
+    if (!isOpen) return;
     await _database.execute(sql);
   }
 
   Future<List<Map>> rawQuery(String sql) async {
+    if (!isOpen) return [];
     return await _database.rawQuery(sql);
   }
 
-  Future<void> transaction(action) async {
+  Future<void> transaction(Future<void> Function(dynamic) action) async {
+    if (!isOpen) return;
     await _database.transaction(action);
   }
 }
