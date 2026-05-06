@@ -59,9 +59,9 @@ class AudioManager {
     updateAudioPlayerVolume();
   }
 
-  void init() {
-    audioPlayer.init(0, nextEventWhenPlayerCompleted);
-    audioPlayerSub.init(1, nextEventWhenPlayerCompleted);
+  Future<void> init() async {
+    await audioPlayer.init(0, nextEventWhenPlayerCompleted);
+    await audioPlayerSub.init(1, nextEventWhenPlayerCompleted);
     setAudioPlayerVolumeDefault();
   }
 
@@ -107,7 +107,12 @@ class AudioManager {
       await audioPlayer.setAudioSource(PlayList.instance.audioTrack(0));
       setCurrentByteData();
 
-      PlayList.instance.updateTrack(0, await DatabaseManager.instance.importTrack(PlayList.instance.audioTitle(0)));
+      PlayList.instance.updateTrack(
+        0,
+        await DatabaseManager.instance.importTrack(
+          PlayList.instance.audioTitle(0),
+        ),
+      );
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
       AudioStreamController.backgroundFile.add(null);
@@ -122,36 +127,42 @@ class AudioManager {
   void setMashupVolumeTransition() {
     int transitionTime = Preference.mashupTransitionTime * 1000;
     Stream<double> mashupVolumeTransition = Stream.periodic(
-              const Duration(milliseconds: 100),
-              (x) => x * 1.0 / (transitionTime / 100))
-          .take(transitionTime ~/ 100);
+      const Duration(milliseconds: 100),
+      (x) => x * 1.0 / (transitionTime / 100),
+    ).take(transitionTime ~/ 100);
     _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
-        transitionVolume = x;
+      transitionVolume = x;
     }, onDone: setAudioPlayerVolumeDefault);
   }
 
   void setMashupNextTrigger() {
     final playList = PlayList.instance;
-    if(_customMixMode) {
+    if (_customMixMode) {
       int nextSecond = _customMixData[playList.currentAudioTitle]!.duration;
-      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(seconds: nextSecond), onComplete: () {
-        if(_customMixMode) {
-          seekToNext();
-        }
-      });
-    }
-    else {
-      int nextMilliseconds = ((Preference.mashupNextTriggerMaxTime -
-                      Preference.mashupNextTriggerMinTime) *
-                  1000 *
-                  Random().nextDouble() +
-              Preference.mashupNextTriggerMinTime * 1000)
-          .toInt();
-      _mashupNextTriggerTimer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
-        if(_mashupMode) {
-          seekToNext();
-        }
-      });
+      _mashupNextTriggerTimer = AdvancedTimer(
+        duration: Duration(seconds: nextSecond),
+        onComplete: () {
+          if (_customMixMode) {
+            seekToNext();
+          }
+        },
+      );
+    } else {
+      int nextMilliseconds =
+          ((Preference.mashupNextTriggerMaxTime -
+                          Preference.mashupNextTriggerMinTime) *
+                      1000 *
+                      Random().nextDouble() +
+                  Preference.mashupNextTriggerMinTime * 1000)
+              .toInt();
+      _mashupNextTriggerTimer = AdvancedTimer(
+        duration: Duration(milliseconds: nextMilliseconds),
+        onComplete: () {
+          if (_mashupMode) {
+            seekToNext();
+          }
+        },
+      );
     }
     _mashupNextTriggerTimer!.start();
   }
@@ -168,24 +179,35 @@ class AudioManager {
       if (_mashupMode) {
         play();
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
-        newDuration = await audioPlayer
-            .setAudioSource(PlayList.instance.audioTrack(index));
-        if(_customMixMode) {
-          await seekPosition(Duration(seconds: _customMixData[PlayList.instance.audioTitle(index)]!.start));
+        newDuration = await audioPlayer.setAudioSource(
+          PlayList.instance.audioTrack(index),
+        );
+        if (_customMixMode) {
+          await seekPosition(
+            Duration(
+              seconds:
+                  _customMixData[PlayList.instance.audioTitle(index)]!.start,
+            ),
+          );
         } else {
-          await seekPosition(Duration(
+          await seekPosition(
+            Duration(
               milliseconds:
                   (newDuration!.inMilliseconds * (Random().nextDouble() * 0.75))
-                      .toInt()));
+                      .toInt(),
+            ),
+          );
         }
       } else {
         await audioPlayer.setAudioSource(PlayList.instance.audioTrack(index));
       }
       PlayList.instance.updateTrack(
-          index,
-          await DatabaseManager.instance
-              .importTrack(PlayList.instance.audioTitle(index)));
-      
+        index,
+        await DatabaseManager.instance.importTrack(
+          PlayList.instance.audioTitle(index),
+        ),
+      );
+
       AudioStreamController.track.add(null);
       AudioStreamController.visualizerColor.add(null);
 
@@ -196,7 +218,7 @@ class AudioManager {
       AudioStreamController.backgroundFile.add(null);
       global.setVisualizerColor();
 
-      if(_mashupMode) {
+      if (_mashupMode) {
         await cancelMashupTimer();
         setMashupVolumeTransition();
         setMashupNextTrigger();
@@ -253,22 +275,24 @@ class AudioManager {
     double expPower = 3.5;
     double volumeA = 1.0;
     double volumeB = 1.0;
-    if(_customMixMode) {
+    if (_customMixMode) {
       double baseA = 0.6;
       double baseB = 0.1;
       double volumeThreshold1 = 0.2;
       double volumeThreshold2 = 0.7;
-      if(_volumeTransitionRate < volumeThreshold1) {
+      if (_volumeTransitionRate < volumeThreshold1) {
         double v = _volumeTransitionRate / volumeThreshold1;
         volumeA = (log(1 + v * logScale) / log(1 + logScale)) * baseA;
         volumeB = 1.0 - (pow(v, expPower).toDouble()) * baseB;
-      }
-      else if (_volumeTransitionRate < volumeThreshold2) {
+      } else if (_volumeTransitionRate < volumeThreshold2) {
         volumeA = baseA;
         volumeB = 1.0 - baseB;
       } else {
-        double v = (_volumeTransitionRate - volumeThreshold2) / (1.0 - volumeThreshold2);
-        volumeA = (log(1 + v * logScale) / log(1 + logScale)) * (1.0 - baseA) + baseA;
+        double v =
+            (_volumeTransitionRate - volumeThreshold2) /
+            (1.0 - volumeThreshold2);
+        volumeA =
+            (log(1 + v * logScale) / log(1 + logScale)) * (1.0 - baseA) + baseA;
         volumeB = 1.0 - (pow(v, expPower).toDouble() * (1.0 - baseB) + baseB);
       }
     } else {
@@ -283,26 +307,27 @@ class AudioManager {
     if (!PermissionHandler.instance.isPermissionAccepted) {
       return;
     }
-    String? selectedDirectoryPath =
-        await FilePicker.platform.getDirectoryPath();
+    String? selectedDirectoryPath = await FilePicker.platform
+        .getDirectoryPath();
     if (selectedDirectoryPath != null) {
       List<AudioTrack> newList = [];
       Directory selectedDirectory = Directory(selectedDirectoryPath);
-      List<FileSystemEntity> selectedDirectoryFile =
-      selectedDirectory.listSync(recursive: true);
+      List<FileSystemEntity> selectedDirectoryFile = selectedDirectory.listSync(
+        recursive: true,
+      );
       for (FileSystemEntity file in selectedDirectoryFile) {
         String path = file.path;
         if (!FileSystemEntity.isDirectorySync(path)) {
-          if (_allowedExtensions.contains(path
-              .split('.')
-              .last)) {
+          if (_allowedExtensions.contains(path.split('.').last)) {
             String name = file.uri.pathSegments.last;
             FileStat fileStat = FileStat.statSync(path);
-            newList.add(AudioTrack(
-              title: name.substring(0, name.length - 4),
-              path: path,
-              modifiedDateTime: dateTimeToString(fileStat.modified),
-            ));
+            newList.add(
+              AudioTrack(
+                title: name.substring(0, name.length - 4),
+                path: path,
+                modifiedDateTime: dateTimeToString(fileStat.modified),
+              ),
+            );
           }
         }
       }
@@ -392,12 +417,14 @@ class AudioManager {
     for (Map data in datas) {
       String path = data['path'];
       if (File(path).existsSync()) {
-        newList.add(AudioTrack(
-          title: data['title'],
-          path: data['path'],
-          modifiedDateTime: data['modified_time'],
-          color: data['color'],
-        ));
+        newList.add(
+          AudioTrack(
+            title: data['title'],
+            path: data['path'],
+            modifiedDateTime: data['modified_time'],
+            color: data['color'],
+          ),
+        );
       }
     }
     playListAddList(newList);
@@ -428,8 +455,10 @@ class AudioManager {
 
       Map<String, AudioTrack> customMixTracks = {};
       for (final trackName in mixData.keys) {
-        AudioTrack? track = await DatabaseManager.instance.importTrack(trackName);
-        if(track != null) {
+        AudioTrack? track = await DatabaseManager.instance.importTrack(
+          trackName,
+        );
+        if (track != null) {
           customMixTracks[trackName] = track;
         }
       }
@@ -439,7 +468,7 @@ class AudioManager {
         String trackName = trackData.key;
         Map<String, dynamic> range = trackData.value;
         AudioTrack? track = customMixTracks[trackName];
-        if(track != null) {
+        if (track != null) {
           int lo = stringTimeToInt(range["start"]);
           int mid = stringTimeToInt(range["mid"]);
           int hi = stringTimeToInt(range["end"]);

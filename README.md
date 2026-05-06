@@ -40,8 +40,7 @@
 - Flutter
 
 ### Dependency
-- just_audio: ^0.9.35
-- audioplayers: ^5.2.0
+- flutter_soloud: ^4.0.4
 - file_picker: ^6.0.0
 - permission_handler: ^11.0.1
 - audio_service: ^0.18.12

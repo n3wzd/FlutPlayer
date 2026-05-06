@@ -16,14 +16,16 @@ Future<void> initApp() async {
   await Preference.init();
   await DatabaseManager.instance.init();
   PermissionHandler.instance.init();
-  AudioManager.instance.init();
+  await AudioManager.instance.init();
   createAudioSerivce();
   await BackgroundManager.instance.init();
   BackgroundTransitionTimer.instance.init();
 }
 
 void setVisualizerColor() {
-  String color = Preference.randomColorVisualizer ? getRandomColor() : (PlayList.instance.currentAudioColor ?? 'ffffff');
+  String color = Preference.randomColorVisualizer
+      ? getRandomColor()
+      : (PlayList.instance.currentAudioColor ?? 'ffffff');
   color = color == 'null' ? 'ffffff' : color;
   currentVisualizerColor = color;
 }

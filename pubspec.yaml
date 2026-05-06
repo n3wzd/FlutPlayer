@@ -4,19 +4,21 @@ description: Player with Flutter
 version: 2.0.0
 
 environment:
-  sdk: ">=2.19.0 <4.0.0"
+  sdk: ">=3.11.0 <4.0.0"
+  flutter: ">=3.41.0"
 
 dependencies:
   path: any
   flutter:
     sdk: flutter
-  just_audio: ^0.9.35
+  flutter_soloud: ^4.0.4
   file_picker: ^6.0.0
   permission_handler: ^11.0.1
   audio_service: ^0.18.12
   sqflite: ^2.3.0
   shared_preferences: ^2.2.2
   video_player: ^2.8.2
+  win32: ^5.5.1
 
 dev_dependencies:
   flutter_test:

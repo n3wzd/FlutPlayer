@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 
 import 'dart:async';
 
 import '../utils/audio_manager.dart';
+import '../utils/audio_player.dart';
 import '../utils/preference.dart';
 import '../widgets/text.dart';
 import '../widgets/slider.dart';
@@ -35,14 +35,15 @@ class _EqualizerControlsState extends State<EqualizerControls> {
         await AudioManager.instance.audioPlayer.equalizer.parameters;
     bandsLength = parameters.bands.length;
     bands = List<BandItem>.generate(
-        bandsLength,
-        (index) => BandItem(
-              band: parameters.bands[index],
-              minDecibels: parameters.minDecibels,
-              maxDecibels: parameters.maxDecibels,
-              index: index,
-              sliderValue: parameters.bands[index].gain,
-            ));
+      bandsLength,
+      (index) => BandItem(
+        band: parameters.bands[index],
+        minDecibels: parameters.minDecibels,
+        maxDecibels: parameters.maxDecibels,
+        index: index,
+        sliderValue: parameters.bands[index].gain,
+      ),
+    );
     setState(() {});
   }
 
@@ -54,14 +55,14 @@ class _EqualizerControlsState extends State<EqualizerControls> {
       while (lo >= 0) {
         bands[lo].sliderValue +=
             (bands[lo + 1].sliderValue - bands[lo].sliderValue) /
-                smoothSliderContant;
+            smoothSliderContant;
         bands[lo].band.setGain(bands[lo].sliderValue);
         lo--;
       }
       while (hi < bands.length) {
         bands[hi].sliderValue +=
             (bands[hi - 1].sliderValue - bands[hi].sliderValue) /
-                smoothSliderContant;
+            smoothSliderContant;
         bands[hi].band.setGain(bands[hi].sliderValue);
         hi++;
       }
@@ -71,7 +72,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
 
   void gainReset() {
     for (var bandItem in bands) {
-      bandItem.sliderValue = (bandItem.maxDecibels + bandItem.minDecibels) / 2;
+      bandItem.sliderValue = bandItem.band.defaultGain;
       bandItem.band.setGain(bandItem.sliderValue);
     }
     AudioManager.instance.syncEqualizer();
@@ -117,13 +118,14 @@ class _EqualizerControlsState extends State<EqualizerControls> {
         automaticallyImplyLeading: false,
         actions: [
           ButtonFactory.textButton(
-              onPressed: Preference.enableEqualizer
-                  ? () {
-                      gainReset();
-                      _sliderStreamController.add(null);
-                    }
-                  : null,
-              text: 'reset'),
+            onPressed: Preference.enableEqualizer
+                ? () {
+                    gainReset();
+                    _sliderStreamController.add(null);
+                  }
+                : null,
+            text: 'reset',
+          ),
         ],
       ),
       body: Column(
@@ -138,7 +140,8 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                   builder: (context, data) => Row(
                     children: [
                       TextFactory.text(
-                          '${bandItem.band.centerFrequency.round()}Hz'),
+                        '${bandItem.band.centerFrequency.round()}Hz',
+                      ),
                       Expanded(
                         child: SliderFactory.slider(
                           min: bandItem.minDecibels,
@@ -169,18 +172,20 @@ class OKButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      alignment: Alignment.bottomCenter,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ButtonFactory.textButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              text: 'ok',
-              fontSize: 24),
-        ],
-      ));
+    alignment: Alignment.bottomCenter,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ButtonFactory.textButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          text: 'ok',
+          fontSize: 24,
+        ),
+      ],
+    ),
+  );
 }
 
 class BandItem {
@@ -191,7 +196,7 @@ class BandItem {
     required this.index,
     required this.sliderValue,
   });
-  final AndroidEqualizerBand band;
+  final SoLoudEqualizerBand band;
   final double minDecibels;
   final double maxDecibels;
   final int index;
