@@ -1,18 +1,21 @@
 import 'package:permission_handler/permission_handler.dart';
+import './platform_support.dart';
 
 class PermissionHandler {
   PermissionHandler._();
   static final PermissionHandler _instance = PermissionHandler._();
   static PermissionHandler get instance => _instance;
 
-  late final PermissionStatus _permissionStatus;
+  PermissionStatus _permissionStatus = PermissionStatus.granted;
   bool get isPermissionAccepted => _permissionStatus.isDenied ? false : true;
 
-  void init() {
-    activePermission();
+  Future<void> init() async {
+    if (PlatformSupport.isAndroid) {
+      await activePermission();
+    }
   }
 
-  void activePermission() async {
+  Future<void> activePermission() async {
     _permissionStatus = await Permission.manageExternalStorage.request();
   }
 }

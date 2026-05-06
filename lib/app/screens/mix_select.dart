@@ -33,9 +33,7 @@ class _MixSelectState extends State<MixSelectPage> {
   }
 
   void addListItem(String path) {
-    _groupList.add(<String, String> {
-      'path': path,
-    });
+    _groupList.add(<String, String>{'path': path});
     _selectedList.add(false);
   }
 
@@ -76,14 +74,14 @@ class _MixSelectState extends State<MixSelectPage> {
             icon: const Icon(Icons.add_circle),
             iconColor: ColorPalette.lightGrey,
             onPressed: () async {
-              FilePickerResult? result = await FilePicker.platform.pickFiles(
+              FilePickerResult? result = await FilePicker.pickFiles(
                 allowMultiple: true,
                 type: FileType.custom,
                 allowedExtensions: ['json'],
               );
               if (result != null) {
                 String? path = result.files[0].path;
-                if(path != null) {
+                if (path != null) {
                   await DatabaseManager.instance.insertMix(path);
                   addListItem(path);
                   setState(() {});
@@ -100,8 +98,7 @@ class _MixSelectState extends State<MixSelectPage> {
                 context: context,
                 onOkPressed: () {
                   List<int> selected = getSelectedItemIndex();
-                  for(int i = selected.length -
-                      1; i >= 0; i--) {
+                  for (int i = selected.length - 1; i >= 0; i--) {
                     int selectedItemIndex = selected[i];
                     String path = _groupList[selectedItemIndex]['path'];
                     DatabaseManager.instance.deleteMix(path);
@@ -138,31 +135,33 @@ class _MixSelectState extends State<MixSelectPage> {
               ),
             ),
             Container(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ButtonFactory.textButton(
-                        onPressed: () {
-                          List<String> paths = [
-                            for (int index = 0; index < length; index++) 
-                              if (_selectedList[index])
-                                _groupList[index]['path']
-                          ];
-                          AudioManager.instance.importCustomMixs(paths);
-                          Navigator.pop(context);
-                        },
-                        text: 'ok',
-                        fontSize: 24),
-                    ButtonFactory.textButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        text: 'cancel',
-                        fontSize: 24,
-                        backgroundTransparent: true),
-                  ],
-                )),
+              alignment: Alignment.bottomCenter,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ButtonFactory.textButton(
+                    onPressed: () {
+                      List<String> paths = [
+                        for (int index = 0; index < length; index++)
+                          if (_selectedList[index]) _groupList[index]['path'],
+                      ];
+                      AudioManager.instance.importCustomMixs(paths);
+                      Navigator.pop(context);
+                    },
+                    text: 'ok',
+                    fontSize: 24,
+                  ),
+                  ButtonFactory.textButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    text: 'cancel',
+                    fontSize: 24,
+                    backgroundTransparent: true,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

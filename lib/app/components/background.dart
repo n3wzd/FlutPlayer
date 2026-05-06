@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:math';
 import 'dart:io';
@@ -6,6 +8,7 @@ import 'dart:async';
 import '../global.dart' as global;
 import '../utils/background_manager.dart';
 import '../utils/playlist.dart';
+import '../utils/platform_support.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
@@ -17,53 +20,53 @@ class Background extends StatelessWidget {
   const Background({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) =>
-      AudioStreamBuilder.backgroundFile((context, value) {
-        BackgroundTransitionTimer.instance.reset();
-        BackgroundData? background;
-        if (Preference.backgroundMethod == BackgroundMethod.specific) {
-          background = PlayList.instance.currentAudioBackground;
-        } else if (Preference.backgroundMethod == BackgroundMethod.random) {
-          if (BackgroundManager.instance.isListNotEmpty) {
-            background = BackgroundManager.instance.currentBackgroundData;
-          }
+  Widget build(BuildContext context) => AudioStreamBuilder.backgroundFile((
+    context,
+    value,
+  ) {
+    BackgroundTransitionTimer.instance.reset();
+    BackgroundData? background;
+    if (Preference.backgroundMethod == BackgroundMethod.specific) {
+      background = PlayList.instance.currentAudioBackground;
+    } else if (Preference.backgroundMethod == BackgroundMethod.random) {
+      if (BackgroundManager.instance.isListNotEmpty) {
+        background = BackgroundManager.instance.currentBackgroundData;
+      }
+    }
+    if (background != null) {
+      File backgroundFile = File(background.path);
+      if (backgroundFile.existsSync()) {
+        const videoExtensions = ['mp4'];
+        bool isVideo = videoExtensions.contains(
+          background.path.split('.').last,
+        );
+        if (isVideo) {
+          VideoBackgroundManager.instance.load(background.path);
+        } else {
+          ImageBackgroundManager.instance.load(background);
         }
-        if (background != null) {
-          File backgroundFile = File(background.path);
-          if (backgroundFile.existsSync()) {
-            const videoExtensions = ['mp4'];
-            bool isVideo = videoExtensions.contains(background.path.split('.').last);
-            if(isVideo) {
-              VideoBackgroundManager.instance.load(background.path);
-            } else {
-              ImageBackgroundManager.instance.load(background);
-            }
-            return FileBackground(
-              background: background,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Visibility(
-                    visible: !isVideo,
-                    replacement: const SizedBox(height: 0, width: 0),
-                    child: Expanded (
-                      child: ImageBackgroundManager.instance.widget,
-                    ),
-                  ),
-                  Visibility(
-                    visible: isVideo,
-                    replacement: const SizedBox(height: 0, width: 0),
-                    child: Expanded (
-                      child: VideoBackgroundManager.instance.widget,
-                    ),
-                  ),
-                ],
+        return FileBackground(
+          background: background,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Visibility(
+                visible: !isVideo,
+                replacement: const SizedBox(height: 0, width: 0),
+                child: Expanded(child: ImageBackgroundManager.instance.widget),
               ),
-            );
-          }
-        }
-        return const DefaultBackground();
-      });
+              Visibility(
+                visible: isVideo,
+                replacement: const SizedBox(height: 0, width: 0),
+                child: Expanded(child: VideoBackgroundManager.instance.widget),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+    return const DefaultBackground();
+  });
 }
 
 class DefaultBackground extends StatefulWidget {
@@ -87,10 +90,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
       duration: const Duration(seconds: 45),
     )..repeat();
 
-    _animation = Tween<double>(
-      begin: 0,
-      end: 2 * pi,
-    ).animate(_controller);
+    _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
   }
 
   @override
@@ -114,10 +114,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
         builder: (context, child) => Container(
           decoration: BoxDecoration(
             gradient: RadialGradient(
-              colors: [
-                startColor,
-                endColor,
-              ],
+              colors: [startColor, endColor],
               stops: const [0, 0.5],
               center: Alignment(
                 (0.5 - r) +
@@ -141,18 +138,28 @@ class ImageBackgroundManager {
   static final ImageBackgroundManager _instance = ImageBackgroundManager._();
   static ImageBackgroundManager get instance => _instance;
 
-  ImageBackground imageBackground = ImageBackground(background: BackgroundData(path: ""), imageFile: null);
+  ImageBackground imageBackground = ImageBackground(
+    background: BackgroundData(path: ""),
+    imageFile: null,
+  );
 
   get widget => imageBackground;
 
   void load(BackgroundData background) {
     final imageFile = FileImage(File(background.path));
-    imageBackground = ImageBackground(background: background, imageFile: imageFile);
+    imageBackground = ImageBackground(
+      background: background,
+      imageFile: imageFile,
+    );
   }
 }
 
 class ImageBackground extends StatefulWidget {
-  const ImageBackground({Key? key, required this.background, required this.imageFile}) : super(key: key);
+  const ImageBackground({
+    Key? key,
+    required this.background,
+    required this.imageFile,
+  }) : super(key: key);
   final BackgroundData background;
   final FileImage? imageFile;
 
@@ -213,9 +220,9 @@ class _ImageBackgroundState extends State<ImageBackground>
   }
 
   StreamSubscription<void> setRotationTrigger() {
-    return Stream<void>.fromFuture(Future<void>.delayed(
-            Duration(seconds: 15 + Random().nextInt(15)), () {}))
-        .listen((x) {
+    return Stream<void>.fromFuture(
+      Future<void>.delayed(Duration(seconds: 15 + Random().nextInt(15)), () {}),
+    ).listen((x) {
       if (widget.background.rotate) {
         _rotateSpeed = 0.25 + Random().nextDouble() * 1.5;
         _rotateDirection *= -1;
@@ -226,8 +233,8 @@ class _ImageBackgroundState extends State<ImageBackground>
 
   StreamSubscription<void> setScaleTrigger() {
     return Stream<void>.fromFuture(
-            Future<void>.delayed(const Duration(seconds: 10), () {}))
-        .listen((x) {
+      Future<void>.delayed(const Duration(seconds: 10), () {}),
+    ).listen((x) {
       if (widget.background.scale) {
         _scale = 1;
         _toggleImage = !_toggleImage;
@@ -248,32 +255,36 @@ class _ImageBackgroundState extends State<ImageBackground>
 
   @override
   Widget build(BuildContext context) {
-    if(widget.imageFile != null) {
-      return LayoutBuilder(builder: (context, constraints) {
-        double rotationScale = 1;
-        if (widget.background.rotate) {
-          double a = min(constraints.maxWidth, constraints.maxHeight);
-          double b = max(constraints.maxWidth, constraints.maxHeight);
-          rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
-        }
-        return AnimatedSwitcher(
-          duration: const Duration(seconds: 1),
-          child: Transform.scale(
-            key: ValueKey<bool>(_toggleImage),
-            scale: widget.background.scale ? _scale * rotationScale : rotationScale,
-            child: Transform.rotate(
-              angle: widget.background.rotate ? _angle * 2 * pi : 0,
-              child: SizedBox.expand(
-                child: Image(
-                  image: widget.imageFile!,
-                  gaplessPlayback: true,
-                  fit: BoxFit.cover,
+    if (widget.imageFile != null) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          double rotationScale = 1;
+          if (widget.background.rotate) {
+            double a = min(constraints.maxWidth, constraints.maxHeight);
+            double b = max(constraints.maxWidth, constraints.maxHeight);
+            rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
+          }
+          return AnimatedSwitcher(
+            duration: const Duration(seconds: 1),
+            child: Transform.scale(
+              key: ValueKey<bool>(_toggleImage),
+              scale: widget.background.scale
+                  ? _scale * rotationScale
+                  : rotationScale,
+              child: Transform.rotate(
+                angle: widget.background.rotate ? _angle * 2 * pi : 0,
+                child: SizedBox.expand(
+                  child: Image(
+                    image: widget.imageFile!,
+                    gaplessPlayback: true,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      });
+          );
+        },
+      );
     } else {
       return const SizedBox(height: 0, width: 0);
     }
@@ -285,38 +296,43 @@ class VideoBackgroundManager {
   static final VideoBackgroundManager _instance = VideoBackgroundManager._();
   static VideoBackgroundManager get instance => _instance;
 
-  VideoBackground videoBackground = const VideoBackground(path: "");
+  String _path = "";
 
-  get widget => videoBackground;
+  Widget get widget => PlatformSupport.isWindows
+      ? WindowsVideoBackground(path: _path)
+      : MobileVideoBackground(path: _path);
 
   void load(String path) {
-    videoBackground = VideoBackground(path: path);
+    _path = path;
   }
 }
 
-class VideoBackground extends StatefulWidget {
-  const VideoBackground({super.key, required this.path});
+class MobileVideoBackground extends StatefulWidget {
+  const MobileVideoBackground({super.key, required this.path});
   final String path;
 
   @override
-  State<VideoBackground> createState() => _VideoBackgroundState();
+  State<MobileVideoBackground> createState() => _MobileVideoBackgroundState();
 }
 
-class _VideoBackgroundState extends State<VideoBackground>
+class _MobileVideoBackgroundState extends State<MobileVideoBackground>
     with WidgetsBindingObserver {
   late VideoPlayerController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(File(widget.path),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
-      ..initialize().then((_) {
-        _controller.setVolume(0);
-        _controller.setLooping(true);
-        _controller.play();
-        setState(() {});
-      });
+    _controller =
+        VideoPlayerController.file(
+            File(widget.path),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+          )
+          ..initialize().then((_) {
+            _controller.setVolume(0);
+            _controller.setLooping(true);
+            _controller.play();
+            setState(() {});
+          });
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -351,10 +367,77 @@ class _VideoBackgroundState extends State<VideoBackground>
   }
 }
 
+class WindowsVideoBackground extends StatefulWidget {
+  const WindowsVideoBackground({super.key, required this.path});
+  final String path;
+
+  @override
+  State<WindowsVideoBackground> createState() => _WindowsVideoBackgroundState();
+}
+
+class _WindowsVideoBackgroundState extends State<WindowsVideoBackground>
+    with WidgetsBindingObserver {
+  late final Player _player;
+  late final VideoController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = Player();
+    _controller = VideoController(_player);
+    _open();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didUpdateWidget(covariant WindowsVideoBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path) {
+      _open();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _player.play();
+    }
+  }
+
+  Future<void> _open() async {
+    if (widget.path.isEmpty) {
+      return;
+    }
+    await _player.setPlaylistMode(PlaylistMode.single);
+    await _player.setVolume(0);
+    await _player.open(Media(widget.path), play: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: Video(
+        controller: _controller,
+        controls: (state) => const SizedBox.shrink(),
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+}
+
 class FileBackground extends StatelessWidget {
-  const FileBackground(
-      {Key? key, required this.child, required this.background})
-      : super(key: key);
+  const FileBackground({
+    Key? key,
+    required this.child,
+    required this.background,
+  }) : super(key: key);
   final Widget child;
   final BackgroundData background;
 
@@ -371,15 +454,15 @@ class FileBackground extends StatelessWidget {
       duration: const Duration(seconds: 1),
       child: Container(
         key: ValueKey<String>(background.path),
-        child: Stack(children: [
-          child,
-          Opacity(
-            opacity: background.color ? 0.4 : 0,
-            child: Container(
-              color: getColor(),
+        child: Stack(
+          children: [
+            child,
+            Opacity(
+              opacity: background.color ? 0.4 : 0,
+              child: Container(color: getColor()),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     ),
   );

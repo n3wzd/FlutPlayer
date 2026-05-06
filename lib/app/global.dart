@@ -6,6 +6,7 @@ import './utils/database_manager.dart';
 import './utils/audio_handler.dart';
 import './utils/preference.dart';
 import './utils/permission_handler.dart';
+import './utils/platform_support.dart';
 import './models/color.dart';
 
 bool isFullScreen = false;
@@ -15,9 +16,11 @@ double playListSavedScrollPosition = 0;
 Future<void> initApp() async {
   await Preference.init();
   await DatabaseManager.instance.init();
-  PermissionHandler.instance.init();
+  await PermissionHandler.instance.init();
   await AudioManager.instance.init();
-  createAudioSerivce();
+  if (PlatformSupport.isMobile) {
+    createAudioSerivce();
+  }
   await BackgroundManager.instance.init();
   BackgroundTransitionTimer.instance.init();
 }

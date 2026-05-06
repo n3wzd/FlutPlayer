@@ -56,10 +56,13 @@ class _TagSelectorState extends State<TagSelector> {
             icon: const Icon(Icons.add),
             iconColor: ColorPalette.lightWine,
             onPressed: () {
-              tagExportDialog(context, autoAddPlaylist: false,
-                  onCompleted: (listName) {
-                addItem(listName);
-              });
+              tagExportDialog(
+                context,
+                autoAddPlaylist: false,
+                onCompleted: (listName) {
+                  addItem(listName);
+                },
+              );
             },
           ),
         ],
@@ -82,18 +85,20 @@ class _TagSelectorState extends State<TagSelector> {
               ),
             ),
             ButtonFactory.textButton(
-                onPressed: () {
-                  for (int index = 0; index < length; index++) {
-                    if (_selectedList[index]) {
-                      DatabaseManager.instance.addTrackInDBTable(
-                          tableName: _tagList[index]['name'],
-                          trackTitle: widget.trackTitle);
-                    }
+              onPressed: () {
+                for (int index = 0; index < length; index++) {
+                  if (_selectedList[index]) {
+                    DatabaseManager.instance.addTrackInDBTable(
+                      tableName: _tagList[index]['name'],
+                      trackTitle: widget.trackTitle,
+                    );
                   }
-                  Navigator.pop(context);
-                },
-                text: 'ok',
-                fontSize: 24),
+                }
+                Navigator.pop(context);
+              },
+              text: 'ok',
+              fontSize: 24,
+            ),
           ],
         ),
       ),
@@ -142,8 +147,7 @@ class _ColorSelectorState extends State<ColorSelector> {
           ),
         ),
         body: SafeArea(
-          child:
-          GridView.builder(
+          child: GridView.builder(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
               crossAxisSpacing: 10,
@@ -159,26 +163,30 @@ class _ColorSelectorState extends State<ColorSelector> {
                     decoration: BoxDecoration(
                       color: stringToColor(_colorList[index]),
                       borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1.0,
-                      ),
+                      border: Border.all(color: Colors.white, width: 1.0),
                     ),
                   ),
                 ),
                 onTap: () {
-                  AudioTrack? audio = PlayList.instance.audioTrack(widget.trackIndex);
+                  AudioTrack? audio = PlayList.instance.audioTrack(
+                    widget.trackIndex,
+                  );
                   if (audio != null) {
-                    DatabaseManager.instance
-                        .updateDBTrackColor(audio, _colorList[index]);
-                    PlayList.instance
-                        .setAudioColor(widget.trackIndex, _colorList[index]);
+                    DatabaseManager.instance.updateDBTrackColor(
+                      audio,
+                      _colorList[index],
+                    );
+                    PlayList.instance.setAudioColor(
+                      widget.trackIndex,
+                      _colorList[index],
+                    );
                     AudioStreamController.visualizerColor.add(null);
                     AudioStreamController.backgroundFile.add(null);
                     global.setVisualizerColor();
                     Navigator.pop(context);
                   }
-                });
+                },
+              );
             },
           ),
         ),
@@ -189,7 +197,7 @@ class _ColorSelectorState extends State<ColorSelector> {
 
 void backgroundSelector(int trackIndex) async {
   String? path;
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
+  FilePickerResult? result = await FilePicker.pickFiles(
     allowMultiple: false,
     type: FileType.custom,
     allowedExtensions: backgroundAllowedExtensions,
@@ -198,10 +206,14 @@ void backgroundSelector(int trackIndex) async {
     path = result.files[0].path;
     AudioTrack? audio = PlayList.instance.audioTrack(trackIndex);
     if (audio != null && path != null) {
-      DatabaseManager.instance
-          .updateDBTrackBackground(audio.title, BackgroundData(path: path));
-      PlayList.instance
-          .setAudioBackground(trackIndex, BackgroundData(path: path));
+      DatabaseManager.instance.updateDBTrackBackground(
+        audio.title,
+        BackgroundData(path: path),
+      );
+      PlayList.instance.setAudioBackground(
+        trackIndex,
+        BackgroundData(path: path),
+      );
       AudioStreamController.backgroundFile.add(null);
     }
   }

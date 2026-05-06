@@ -16,7 +16,7 @@ import '../widgets/slider.dart';
 
 class BackgroundSelectPage extends StatefulWidget {
   const BackgroundSelectPage({Key? key, required this.trackIndex})
-      : super(key: key);
+    : super(key: key);
   final int trackIndex;
 
   @override
@@ -68,7 +68,9 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
         value: valueSliderValue.toInt(),
       );
       await DatabaseManager.instance.updateDBTrackBackground(
-          PlayList.instance.audioTitle(widget.trackIndex), background);
+        PlayList.instance.audioTitle(widget.trackIndex),
+        background,
+      );
       PlayList.instance.setAudioBackground(widget.trackIndex, background);
       AudioStreamController.backgroundFile.add(null);
       AudioStreamController.imageBackgroundAnimation.add(null);
@@ -88,8 +90,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
   bool isVailedBackgroundFile(String path) {
     File file = File(path);
     String extension = path.split('.').last;
-    return file.existsSync() &&
-        backgroundAllowedExtensions.contains(extension);
+    return file.existsSync() && backgroundAllowedExtensions.contains(extension);
   }
 
   @override
@@ -110,12 +111,7 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(
-              height: 200,
-              child: ClipRRect(
-                child: Background(),
-              ),
-            ),
+            const SizedBox(height: 200, child: ClipRRect(child: Background())),
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -143,28 +139,29 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 ButtonFactory.textButton(
-                    text: 'add',
-                    onPressed: () async {
-                      FilePickerResult? result =
-                          await FilePicker.platform.pickFiles(
-                        allowMultiple: false,
-                        type: FileType.custom,
-                        allowedExtensions: backgroundAllowedExtensions,
-                      );
-                      if (result != null) {
-                        backgroundPath = result.files[0].path;
-                        updateText(backgroundPath);
-                        applyBackground();
-                      }
-                    }),
-                const SizedBox(width: 20),
-                ButtonFactory.textButton(
-                    text: 'remove',
-                    onPressed: () {
-                      backgroundPath = '';
+                  text: 'add',
+                  onPressed: () async {
+                    FilePickerResult? result = await FilePicker.pickFiles(
+                      allowMultiple: false,
+                      type: FileType.custom,
+                      allowedExtensions: backgroundAllowedExtensions,
+                    );
+                    if (result != null) {
+                      backgroundPath = result.files[0].path;
                       updateText(backgroundPath);
                       applyBackground();
-                    }),
+                    }
+                  },
+                ),
+                const SizedBox(width: 20),
+                ButtonFactory.textButton(
+                  text: 'remove',
+                  onPressed: () {
+                    backgroundPath = '';
+                    updateText(backgroundPath);
+                    applyBackground();
+                  },
+                ),
               ],
             ),
             Expanded(
@@ -174,70 +171,61 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Rotate'),
-                          ),
-                          SwitchFactory.normal(
-                            value: rotateSwitchValue,
-                            onChanged: (newValue) {
-                              rotateSwitchValue = newValue;
-                              applyBackground();
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Rotate')),
+                        SwitchFactory.normal(
+                          value: rotateSwitchValue,
+                          onChanged: (newValue) {
+                            rotateSwitchValue = newValue;
+                            applyBackground();
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Scale'),
-                          ),
-                          SwitchFactory.normal(
-                            value: scaleSwitchValue,
-                            onChanged: (newValue) {
-                              scaleSwitchValue = newValue;
-                              applyBackground();
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Scale')),
+                        SwitchFactory.normal(
+                          value: scaleSwitchValue,
+                          onChanged: (newValue) {
+                            scaleSwitchValue = newValue;
+                            applyBackground();
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Tint'),
-                          ),
-                          SwitchFactory.normal(
-                            value: tintSwitchValue,
-                            onChanged: (newValue) {
-                              tintSwitchValue = newValue;
-                              applyBackground();
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Tint')),
+                        SwitchFactory.normal(
+                          value: tintSwitchValue,
+                          onChanged: (newValue) {
+                            tintSwitchValue = newValue;
+                            applyBackground();
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Value'),
-                          ),
-                          StatefulBuilder(builder: (context, setSliderState) {
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Value')),
+                        StatefulBuilder(
+                          builder: (context, setSliderState) {
                             return SliderFactory.slider(
-                                value: valueSliderValue,
-                                max: valueSliderMax,
-                                onChanged: (value) {
-                                  valueSliderValue = value;
-                                  setSliderState(() {});
-                                },
-                                onChangeEnd: (value) {
-                                  valueSliderValue = value;
-                                  applyBackground();
-                                });
-                          }),
-                        ]
+                              value: valueSliderValue,
+                              max: valueSliderMax,
+                              onChanged: (value) {
+                                valueSliderValue = value;
+                                setSliderState(() {});
+                              },
+                              onChangeEnd: (value) {
+                                valueSliderValue = value;
+                                applyBackground();
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -247,12 +235,13 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ButtonFactory.textButton(
-                    onPressed: () {
-                      applyBackground();
-                      Navigator.pop(context);
-                    },
-                    text: 'ok',
-                    fontSize: 24),
+                  onPressed: () {
+                    applyBackground();
+                    Navigator.pop(context);
+                  },
+                  text: 'ok',
+                  fontSize: 24,
+                ),
               ],
             ),
           ],

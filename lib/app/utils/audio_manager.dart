@@ -307,8 +307,7 @@ class AudioManager {
     if (!PermissionHandler.instance.isPermissionAccepted) {
       return;
     }
-    String? selectedDirectoryPath = await FilePicker.platform
-        .getDirectoryPath();
+    String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
     if (selectedDirectoryPath != null) {
       List<AudioTrack> newList = [];
       Directory selectedDirectory = Directory(selectedDirectoryPath);

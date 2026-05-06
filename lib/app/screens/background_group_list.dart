@@ -34,16 +34,14 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
   Future<void> setList() async {
     _groupList = await DatabaseManager.instance.selectAllBackgroundGroup();
     _selectedList = List<bool>.filled(_groupList.length, false, growable: true);
-    for(int i = 0; i < _groupList.length; i++) {
+    for (int i = 0; i < _groupList.length; i++) {
       _activeList.add(_groupList[i]['active'] == 1 ? true : false);
     }
     setState(() {});
   }
 
   void addListItem(String path, bool active) {
-    _groupList.add({
-      'path': path,
-    });
+    _groupList.add({'path': path});
     _selectedList.add(false);
     _activeList.add(active);
   }
@@ -86,12 +84,18 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
             icon: const Icon(Icons.add_circle),
             iconColor: ColorPalette.lightGrey,
             onPressed: () async {
-              String? path =
-                  await FilePicker.platform.getDirectoryPath();
+              String? path = await FilePicker.getDirectoryPath();
               if (path != null) {
                 bool defaultActiveValue = true;
-                await DatabaseManager.instance.insertBackgroundGroup(BackgroundData(path: path), defaultActiveValue);
-                BackgroundManager.instance.addBackgroundGroup(path, BackgroundData(path: path), defaultActiveValue);
+                await DatabaseManager.instance.insertBackgroundGroup(
+                  BackgroundData(path: path),
+                  defaultActiveValue,
+                );
+                BackgroundManager.instance.addBackgroundGroup(
+                  path,
+                  BackgroundData(path: path),
+                  defaultActiveValue,
+                );
                 addListItem(path, defaultActiveValue);
                 setState(() {});
               }
@@ -101,14 +105,19 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
           ButtonFactory.iconButton(
             icon: const Icon(Icons.change_circle),
             iconColor: ColorPalette.lightGrey,
-            onPressed: _selectedItemCount == 1 ? () async {
-              String path = _groupList[getUniqueItemIndex()]['path'];
-              Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (BuildContext context) {
-                    return BackgroundGroupSelectPage(path: path);
-                  })
-              );
-            } : null,
+            onPressed: _selectedItemCount == 1
+                ? () async {
+                    String path = _groupList[getUniqueItemIndex()]['path'];
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (BuildContext context) {
+                          return BackgroundGroupSelectPage(path: path);
+                        },
+                      ),
+                    );
+                  }
+                : null,
             outline: false,
           ),
           ButtonFactory.iconButton(
@@ -119,8 +128,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                 context: context,
                 onOkPressed: () {
                   List<int> selected = getSelectedItemIndex();
-                  for(int i = selected.length -
-                      1; i >= 0; i--) {
+                  for (int i = selected.length - 1; i >= 0; i--) {
                     int selectedItemIndex = selected[i];
                     String path = _groupList[selectedItemIndex]['path'];
                     DatabaseManager.instance.deleteBackgroundGroup(path);
@@ -160,8 +168,15 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                       value: _activeList[index],
                       onChanged: (bool value) {
                         setState(() {
-                          DatabaseManager.instance.toggleBackgroundGroupActive(_groupList[index]['path'], value);
-                          BackgroundManager.instance.updateBackgroundGroupActive(_groupList[index]['path'], value);
+                          DatabaseManager.instance.toggleBackgroundGroupActive(
+                            _groupList[index]['path'],
+                            value,
+                          );
+                          BackgroundManager.instance
+                              .updateBackgroundGroupActive(
+                                _groupList[index]['path'],
+                                value,
+                              );
                           _activeList[index] = value;
                         });
                       },
@@ -171,20 +186,22 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
               ),
             ),
             Container(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ButtonFactory.textButton(
-                        onPressed: () {
-                          BackgroundManager.instance.updateBackgroundList();
-                          AudioStreamController.backgroundFile.add(null);
-                          Navigator.pop(context);
-                        },
-                        text: 'close',
-                        fontSize: 24),
-                  ],
-                )),
+              alignment: Alignment.bottomCenter,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ButtonFactory.textButton(
+                    onPressed: () {
+                      BackgroundManager.instance.updateBackgroundList();
+                      AudioStreamController.backgroundFile.add(null);
+                      Navigator.pop(context);
+                    },
+                    text: 'close',
+                    fontSize: 24,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -194,11 +211,12 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
 
 class BackgroundGroupSelectPage extends StatefulWidget {
   const BackgroundGroupSelectPage({Key? key, required this.path})
-      : super(key: key);
+    : super(key: key);
   final String path;
 
   @override
-  State<BackgroundGroupSelectPage> createState() => _BackgroundGroupSelectPageState();
+  State<BackgroundGroupSelectPage> createState() =>
+      _BackgroundGroupSelectPageState();
 }
 
 class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
@@ -216,7 +234,9 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
   }
 
   void loadSetting() async {
-    BackgroundData data = await DatabaseManager.instance.selectBackgroundGroup(widget.path);
+    BackgroundData data = await DatabaseManager.instance.selectBackgroundGroup(
+      widget.path,
+    );
     rotateSwitchValue = data.rotate;
     scaleSwitchValue = data.scale;
     tintSwitchValue = data.color;
@@ -224,7 +244,7 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
     setState(() {});
   }
 
-  void applySetting () async {
+  void applySetting() async {
     BackgroundData background = BackgroundData(
       path: widget.path,
       rotate: rotateSwitchValue,
@@ -233,7 +253,9 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
       value: valueSliderValue.toInt(),
     );
     await DatabaseManager.instance.updateBackgroundGroup(
-        widget.path, background);
+      widget.path,
+      background,
+    );
     BackgroundManager.instance.updateBackgroundGroup(widget.path, background);
     AudioStreamController.backgroundFile.add(null);
   }
@@ -263,67 +285,57 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Rotate'),
-                          ),
-                          SwitchFactory.normal(
-                            value: rotateSwitchValue,
-                            onChanged: (newValue) {
-                              rotateSwitchValue = newValue;
-                              setState(() {});
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Rotate')),
+                        SwitchFactory.normal(
+                          value: rotateSwitchValue,
+                          onChanged: (newValue) {
+                            rotateSwitchValue = newValue;
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Scale'),
-                          ),
-                          SwitchFactory.normal(
-                            value: scaleSwitchValue,
-                            onChanged: (newValue) {
-                              scaleSwitchValue = newValue;
-                              setState(() {});
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Scale')),
+                        SwitchFactory.normal(
+                          value: scaleSwitchValue,
+                          onChanged: (newValue) {
+                            scaleSwitchValue = newValue;
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Tint'),
-                          ),
-                          SwitchFactory.normal(
-                            value: tintSwitchValue,
-                            onChanged: (newValue) {
-                              tintSwitchValue = newValue;
-                              setState(() {});
-                            },
-                          ),
-                        ]
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Tint')),
+                        SwitchFactory.normal(
+                          value: tintSwitchValue,
+                          onChanged: (newValue) {
+                            tintSwitchValue = newValue;
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
                     Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 64,
-                            child: TextFactory.text('Value'),
-                          ),
-                          StatefulBuilder(builder: (context, setSliderState) {
+                      children: <Widget>[
+                        SizedBox(width: 64, child: TextFactory.text('Value')),
+                        StatefulBuilder(
+                          builder: (context, setSliderState) {
                             return SliderFactory.slider(
-                                value: valueSliderValue,
-                                max: valueSliderMax,
-                                onChanged: (value) {
-                                  valueSliderValue = value;
-                                  setSliderState(() {});
-                                },
+                              value: valueSliderValue,
+                              max: valueSliderMax,
+                              onChanged: (value) {
+                                valueSliderValue = value;
+                                setSliderState(() {});
+                              },
                             );
-                          }),
-                        ]
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -333,12 +345,13 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ButtonFactory.textButton(
-                    onPressed: () {
-                      applySetting();
-                      Navigator.pop(context);
-                    },
-                    text: 'ok',
-                    fontSize: 24),
+                  onPressed: () {
+                    applySetting();
+                    Navigator.pop(context);
+                  },
+                  text: 'ok',
+                  fontSize: 24,
+                ),
               ],
             ),
           ],
@@ -347,4 +360,3 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
     );
   }
 }
-
