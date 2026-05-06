@@ -163,3 +163,5 @@ windows/runner/utils.h
 windows/runner/win32_window.cpp
 windows/runner/win32_window.h
 /windows
+flutter_01.log
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
