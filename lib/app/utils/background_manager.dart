@@ -17,17 +17,27 @@ class BackgroundManager {
   List<BackgroundData> _backgroundList = [];
   final Map<String, BackgroundGroup> _backgroundGroupMap = {};
   int currentBackgroundListIndex = 0;
+  bool _initialized = false;
 
   bool get isListNotEmpty => _backgroundList.isNotEmpty;
-  int get nextBackgroundListIndex => (currentBackgroundListIndex + 1) % _backgroundList.length;
-  BackgroundData get currentBackgroundData => isListNotEmpty ? 
-      _backgroundList[currentBackgroundListIndex] : BackgroundData(path: "");
-  BackgroundData get nextBackgroundData => isListNotEmpty ? 
-      _backgroundList[nextBackgroundListIndex] : BackgroundData(path: "");
+  int get nextBackgroundListIndex => isListNotEmpty
+      ? (currentBackgroundListIndex + 1) % _backgroundList.length
+      : 0;
+  BackgroundData get currentBackgroundData => isListNotEmpty
+      ? _backgroundList[currentBackgroundListIndex]
+      : BackgroundData(path: "");
+  BackgroundData get nextBackgroundData => isListNotEmpty
+      ? _backgroundList[nextBackgroundListIndex]
+      : BackgroundData(path: "");
 
   Future<void> init() async {
-    List<Map> dirList = await DatabaseManager.instance.selectAllBackgroundGroup();
-    for(int i = 0; i < dirList.length; i++) {
+    if (_initialized) {
+      return;
+    }
+    _backgroundGroupMap.clear();
+    List<Map> dirList = await DatabaseManager.instance
+        .selectAllBackgroundGroup();
+    for (int i = 0; i < dirList.length; i++) {
       String path = dirList[i]['path'];
       BackgroundData data = BackgroundData(
         path: path,
@@ -39,10 +49,15 @@ class BackgroundManager {
       addBackgroundGroup(path, data, dirList[i]['active'] == 1 ? true : false);
     }
     updateBackgroundList();
+    _initialized = true;
   }
 
   void addBackgroundGroup(String path, BackgroundData data, bool active) {
-    var group = BackgroundGroup(dirPath: path, dirBackgroundData: data, active: active);
+    var group = BackgroundGroup(
+      dirPath: path,
+      dirBackgroundData: data,
+      active: active,
+    );
     group.init();
     _backgroundGroupMap[path] = group;
   }
@@ -62,7 +77,7 @@ class BackgroundManager {
   void updateBackgroundList() {
     _backgroundList = [];
     for (var entry in _backgroundGroupMap.entries) {
-      if(entry.value.active) {
+      if (entry.value.active) {
         _backgroundList.addAll(entry.value.makeGroupList());
       }
     }
@@ -72,12 +87,18 @@ class BackgroundManager {
   }
 
   void randomizeCurrentBackgroundList() {
-    currentBackgroundListIndex = nextBackgroundListIndex;
+    if (isListNotEmpty) {
+      currentBackgroundListIndex = nextBackgroundListIndex;
+    }
   }
 }
 
 class BackgroundGroup {
-  BackgroundGroup({required this.dirPath, required this.dirBackgroundData, required this.active});
+  BackgroundGroup({
+    required this.dirPath,
+    required this.dirBackgroundData,
+    required this.active,
+  });
 
   final String dirPath;
   BackgroundData dirBackgroundData;
@@ -88,14 +109,12 @@ class BackgroundGroup {
     if (dirPath != '') {
       Directory selectedDirectory = Directory(dirPath);
       if (selectedDirectory.existsSync()) {
-        List<FileSystemEntity> selectedDirectoryFile =
-        selectedDirectory.listSync(recursive: true);
+        List<FileSystemEntity> selectedDirectoryFile = selectedDirectory
+            .listSync(recursive: true);
         for (FileSystemEntity file in selectedDirectoryFile) {
           String path = file.path;
           if (!FileSystemEntity.isDirectorySync(path)) {
-            if (backgroundAllowedExtensions.contains(path
-                .split('.')
-                .last)) {
+            if (backgroundAllowedExtensions.contains(path.split('.').last)) {
               filePathList.add(path);
             }
           }
@@ -106,14 +125,16 @@ class BackgroundGroup {
 
   List<BackgroundData> makeGroupList() {
     List<BackgroundData> list = [];
-    for(String path in filePathList) {
-      list.add(BackgroundData(
+    for (String path in filePathList) {
+      list.add(
+        BackgroundData(
           path: path,
           rotate: dirBackgroundData.rotate,
           scale: dirBackgroundData.scale,
           color: dirBackgroundData.color,
           value: dirBackgroundData.value,
-        ));
+        ),
+      );
     }
     return list;
   }
@@ -121,28 +142,42 @@ class BackgroundGroup {
 
 class BackgroundTransitionTimer {
   BackgroundTransitionTimer._();
-  static final BackgroundTransitionTimer _instance = BackgroundTransitionTimer._();
+  static final BackgroundTransitionTimer _instance =
+      BackgroundTransitionTimer._();
   static BackgroundTransitionTimer get instance => _instance;
 
   AdvancedTimer? _timer;
-  
+  bool _initialized = false;
+
   void init() {
-    if(Preference.enableBackgroundTransition) {
+    if (_initialized) {
+      return;
+    }
+    if (Preference.enableBackgroundTransition) {
       set();
     }
+    _initialized = true;
   }
 
   void set() {
     cancel();
-    int nextMilliseconds = ((Preference.backgroundNextTriggerMaxTime - Preference.backgroundNextTriggerMinTime) *
-        1000 * Random().nextDouble() + Preference.backgroundNextTriggerMinTime * 1000).toInt();
-    _timer = AdvancedTimer(duration: Duration(milliseconds: nextMilliseconds), onComplete: () {
-      if(Preference.enableBackgroundTransition) {
-        BackgroundManager.instance.randomizeCurrentBackgroundList();
-        AudioStreamController.backgroundFile.add(null);
-        set();
-      }
-    });
+    int nextMilliseconds =
+        ((Preference.backgroundNextTriggerMaxTime -
+                        Preference.backgroundNextTriggerMinTime) *
+                    1000 *
+                    Random().nextDouble() +
+                Preference.backgroundNextTriggerMinTime * 1000)
+            .toInt();
+    _timer = AdvancedTimer(
+      duration: Duration(milliseconds: nextMilliseconds),
+      onComplete: () {
+        if (Preference.enableBackgroundTransition) {
+          BackgroundManager.instance.randomizeCurrentBackgroundList();
+          AudioStreamController.backgroundFile.add(null);
+          set();
+        }
+      },
+    );
     _timer!.start();
   }
 
@@ -160,7 +195,7 @@ class BackgroundTransitionTimer {
   }
 
   void update(bool value) {
-    if(value) {
+    if (value) {
       set();
     } else {
       cancel();

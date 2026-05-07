@@ -1,34 +1,19 @@
-import 'dart:async';
-import './utils/audio_manager.dart';
-import './utils/background_manager.dart';
-import './utils/playlist.dart';
-import './utils/database_manager.dart';
-import './utils/audio_handler.dart';
-import './utils/preference.dart';
-import './utils/permission_handler.dart';
-import './utils/platform_support.dart';
-import './models/color.dart';
+import './app_initializer.dart';
+import './app_state.dart';
 
-bool isFullScreen = false;
-String currentVisualizerColor = 'ffffff';
-double playListSavedScrollPosition = 0;
+bool get isFullScreen => AppState.instance.isFullScreen;
+String get currentVisualizerColor => AppState.instance.visualizerColor;
+double get playListSavedScrollPosition =>
+    AppState.instance.playListSavedScrollPosition;
 
-Future<void> initApp() async {
-  await Preference.init();
-  await DatabaseManager.instance.init();
-  await PermissionHandler.instance.init();
-  await AudioManager.instance.init();
-  if (PlatformSupport.isMobile) {
-    createAudioSerivce();
-  }
-  await BackgroundManager.instance.init();
-  BackgroundTransitionTimer.instance.init();
+set playListSavedScrollPosition(double value) {
+  AppState.instance.playListSavedScrollPosition = value;
+}
+
+Future<void> initApp({bool loadPreference = true}) async {
+  await AppInitializer.initialize(loadPreference: loadPreference);
 }
 
 void setVisualizerColor() {
-  String color = Preference.randomColorVisualizer
-      ? getRandomColor()
-      : (PlayList.instance.currentAudioColor ?? 'ffffff');
-  color = color == 'null' ? 'ffffff' : color;
-  currentVisualizerColor = color;
+  AppState.instance.updateVisualizerColor();
 }

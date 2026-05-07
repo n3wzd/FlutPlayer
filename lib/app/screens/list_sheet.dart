@@ -13,8 +13,7 @@ import '../widgets/scrollbar.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
 import '../screens/background_select.dart';
-
-import '../global.dart' as global;
+import '../app_state.dart';
 
 class ListSheet extends StatefulWidget {
   const ListSheet({Key? key}) : super(key: key);
@@ -42,16 +41,18 @@ class _ListSheetState extends State<ListSheet> {
   void _onEndScroll(ScrollMetrics metrics) async {
     _isExpand =
         _controller.size - _minChildSize < _maxChildSize - _controller.size
-            ? false
-            : true;
+        ? false
+        : true;
     await _animateExpand();
   }
 
   Future<void> _animateExpand() async {
     _expandController.add(_isExpand);
-    await _controller.animateTo(!_isExpand ? _minChildSize : _maxChildSize,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutQuart);
+    await _controller.animateTo(
+      !_isExpand ? _minChildSize : _maxChildSize,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutQuart,
+    );
   }
 
   @override
@@ -67,165 +68,158 @@ class _ListSheetState extends State<ListSheet> {
         return true;
       },
       child: DraggableScrollableSheet(
-          initialChildSize: _minChildSize,
-          minChildSize: _minChildSize,
-          maxChildSize: _maxChildSize,
-          controller: _controller,
-          builder: (context, scrollController) {
-            scrollController.addListener(() {
-              global.playListSavedScrollPosition =
-                  scrollController.position.pixels;
-            });
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              scrollController.jumpTo(global.playListSavedScrollPosition);
-            });
-            return AudioStreamBuilder.playList(
-              (context, value) => Scaffold(
-                backgroundColor: ColorPalette.black,
-                appBar: AppBar(
-                  leading: StreamBuilder(
-                    stream: _expandController.stream,
-                    builder: (context, value) => Visibility(
-                      visible: _isExpand && Preference.showPlayListDeleteButton,
-                      child: ButtonFactory.iconButton(
-                        icon: const Icon(Icons.delete,
-                            color: ColorPalette.lightGrey),
-                        iconSize: 25,
-                        onPressed: PlayList.instance.clear,
-                        outline: false,
-                      ),
-                    ),
-                  ),
-                  title: GestureDetector(
-                    onTap: _toggleSheetExpanding,
-                    child: StreamBuilder(
-                      stream: _expandController.stream,
-                      builder: (context, value) => Icon(
-                        _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-                        size: 36,
+        initialChildSize: _minChildSize,
+        minChildSize: _minChildSize,
+        maxChildSize: _maxChildSize,
+        controller: _controller,
+        builder: (context, scrollController) {
+          scrollController.addListener(() {
+            AppState.instance.playListSavedScrollPosition =
+                scrollController.position.pixels;
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            scrollController.jumpTo(
+              AppState.instance.playListSavedScrollPosition,
+            );
+          });
+          return AudioStreamBuilder.playList(
+            (context, value) => Scaffold(
+              backgroundColor: ColorPalette.black,
+              appBar: AppBar(
+                leading: StreamBuilder(
+                  stream: _expandController.stream,
+                  builder: (context, value) => Visibility(
+                    visible: _isExpand && Preference.showPlayListDeleteButton,
+                    child: ButtonFactory.iconButton(
+                      icon: const Icon(
+                        Icons.delete,
                         color: ColorPalette.lightGrey,
                       ),
+                      iconSize: 25,
+                      onPressed: PlayList.instance.clear,
+                      outline: false,
                     ),
                   ),
-                  centerTitle: true,
-                  backgroundColor: ColorPalette.darkWine,
-                  flexibleSpace: GestureDetector(
-                    onTap: _toggleSheetExpanding,
+                ),
+                title: GestureDetector(
+                  onTap: _toggleSheetExpanding,
+                  child: StreamBuilder(
+                    stream: _expandController.stream,
+                    builder: (context, value) => Icon(
+                      _isExpand ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+                      size: 36,
+                      color: ColorPalette.lightGrey,
+                    ),
                   ),
-                  automaticallyImplyLeading: false,
-                  actions: [
-                    StreamBuilder(
-                      stream: _expandController.stream,
-                      builder: (context, value) => Visibility(
-                        visible:
-                            _isExpand && Preference.showPlayListOrderButton,
-                        child: ButtonFactory.iconButton(
-                          icon: Icon(
-                            PlayList.instance.playListOrderState ==
-                                    PlayListOrderState.ascending
-                                ? Icons.vertical_align_top
-                                : (PlayList.instance.playListOrderState ==
+                ),
+                centerTitle: true,
+                backgroundColor: ColorPalette.darkWine,
+                flexibleSpace: GestureDetector(onTap: _toggleSheetExpanding),
+                automaticallyImplyLeading: false,
+                actions: [
+                  StreamBuilder(
+                    stream: _expandController.stream,
+                    builder: (context, value) => Visibility(
+                      visible: _isExpand && Preference.showPlayListOrderButton,
+                      child: ButtonFactory.iconButton(
+                        icon: Icon(
+                          PlayList.instance.playListOrderState ==
+                                  PlayListOrderState.ascending
+                              ? Icons.vertical_align_top
+                              : (PlayList.instance.playListOrderState ==
                                         PlayListOrderState.descending
                                     ? Icons.vertical_align_bottom
                                     : Icons.sort),
-                            size: 25,
-                            color: ColorPalette.lightGrey,
-                          ),
-                          iconSize: 24,
-                          onPressed: PlayList.instance.sort,
+                          size: 25,
+                          color: ColorPalette.lightGrey,
                         ),
+                        iconSize: 24,
+                        onPressed: PlayList.instance.sort,
                       ),
                     ),
-                  ],
-                ),
-                body: AudioStreamBuilder.playListSheet(
-                  (context, value) => StatefulBuilder(
-                    builder: (context, setListState) =>
-                        ScrollbarFactory.scrollbar(
-                      controller: scrollController,
-                      child: ReorderableListView.builder(
-                        scrollController: scrollController,
-                        onReorder: (oldIndex, newIndex) {
-                          setListState(() {
-                            if (oldIndex < newIndex) {
-                              newIndex -= 1;
-                            }
-                            PlayList.instance.shift(oldIndex, newIndex);
-                          });
-                        },
-                        itemCount: PlayList.instance.playListLength,
-                        itemBuilder: (context, index) => Dismissible(
-                          key: Key(PlayList.instance.audioTitle(index)),
-                          onDismissed: (DismissDirection direction) {
+                  ),
+                ],
+              ),
+              body: AudioStreamBuilder.playListSheet(
+                (context, value) => StatefulBuilder(
+                  builder: (context, setListState) =>
+                      ScrollbarFactory.scrollbar(
+                        controller: scrollController,
+                        child: ReorderableListView.builder(
+                          scrollController: scrollController,
+                          onReorder: (oldIndex, newIndex) {
                             setListState(() {
-                              AudioManager.instance.removePlayListItem(index);
+                              if (oldIndex < newIndex) {
+                                newIndex -= 1;
+                              }
+                              PlayList.instance.shift(oldIndex, newIndex);
                             });
                           },
-                          child: ListTileFactory.multiItem(
+                          itemCount: PlayList.instance.playListLength,
+                          itemBuilder: (context, index) => Dismissible(
                             key: Key(PlayList.instance.audioTitle(index)),
-                            index: index,
-                            text: PlayList.instance.audioTitle(index),
-                            onTap: () async {
-                              await AudioManager.instance.seekTrack(index);
+                            onDismissed: (DismissDirection direction) {
+                              setListState(() {
+                                AudioManager.instance.removePlayListItem(index);
+                              });
                             },
-                            selected: PlayList.instance
-                                .compareIndexWithCurrent(index),
-                            trailing: PopupMenuButton(
-                              color: ColorPalette.lightBlack,
-                              icon: const Icon(Icons.add,
-                                  color: ColorPalette.grey),
-                              onSelected: (value) {
-                                if (value == 0) {
-                                  Navigator.push(
+                            child: ListTileFactory.multiItem(
+                              key: Key(PlayList.instance.audioTitle(index)),
+                              index: index,
+                              text: PlayList.instance.audioTitle(index),
+                              onTap: () async {
+                                await AudioManager.instance.seekTrack(index);
+                              },
+                              selected: PlayList.instance
+                                  .compareIndexWithCurrent(index),
+                              trailing: PopupMenuButton(
+                                color: ColorPalette.lightBlack,
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: ColorPalette.grey,
+                                ),
+                                onSelected: (value) {
+                                  if (value == 0) {
+                                    Navigator.push(
                                       context,
                                       MaterialPageRoute<void>(
-                                        builder: (context) => TagSelector(
-                                          trackTitle: PlayList.instance
-                                              .audioTitle(index),
-                                        ),
-                                      ));
-                                } else if (value == 1) {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute<void>(
-                                        builder: (context) => ColorSelector(
-                                          trackIndex: index,
-                                        ),
-                                      ));
-                                } else if (value == 2) {
-                                  Navigator.push(
+                                        builder: (context) =>
+                                            ColorSelector(trackIndex: index),
+                                      ),
+                                    );
+                                  } else if (value == 1) {
+                                    Navigator.push(
                                       context,
                                       MaterialPageRoute<void>(
                                         builder: (context) =>
                                             BackgroundSelectPage(
-                                                trackIndex: index),
-                                      ));
-                                }
-                              },
-                              itemBuilder: (context) => <PopupMenuEntry>[
-                                PopupMenuItem(
-                                  value: 0,
-                                  child: TextFactory.text('tag'),
-                                ),
-                                PopupMenuItem(
-                                  value: 1,
-                                  child: TextFactory.text('color'),
-                                ),
-                                PopupMenuItem(
-                                  value: 2,
-                                  child: TextFactory.text('background'),
-                                ),
-                              ],
+                                              trackIndex: index,
+                                            ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                itemBuilder: (context) => <PopupMenuEntry>[
+                                  PopupMenuItem(
+                                    value: 0,
+                                    child: TextFactory.text('color'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 1,
+                                    child: TextFactory.text('background'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
                 ),
               ),
-            );
-          }),
+            ),
+          );
+        },
+      ),
     );
   }
 }

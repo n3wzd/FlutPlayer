@@ -235,13 +235,12 @@ class AudioPlayer {
 }
 
 class SoLoudEqualizer {
-  static const int bandsLength = 10;
-  static const double minGain = 0.0;
-  static const double maxGain = 4.0;
-  static const double defaultGain = 1.0;
-  static final List<double> _gains = List<double>.filled(
-    bandsLength,
-    defaultGain,
+  static const int bandsLength = Preference.equalizerBandsLength;
+  static const double minGain = Preference.equalizerMinGain;
+  static const double maxGain = Preference.equalizerMaxGain;
+  static const double defaultGain = Preference.equalizerDefaultGain;
+  static final List<double> _gains = List<double>.from(
+    Preference.equalizerGains,
   );
 
   Future<SoLoudEqualizerParameters> get parameters async {
@@ -284,6 +283,7 @@ class SoLoudEqualizer {
 
   void setBandGain(int index, double gain) {
     _gains[index] = gain.clamp(minGain, maxGain).toDouble();
+    Preference.equalizerGains[index] = _gains[index];
     if (Preference.enableEqualizer) {
       SoLoud.instance.filters.parametricEqFilter.bandGain(index).value =
           _gains[index];

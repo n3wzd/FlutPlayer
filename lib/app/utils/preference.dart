@@ -6,10 +6,17 @@ class Preference {
   static final Preference _instance = Preference._();
   static Preference get instance => _instance;
 
-  static late final SharedPreferences prefs;
+  static SharedPreferences? _prefs;
+  static SharedPreferences get prefs {
+    final preferences = _prefs;
+    if (preferences == null) {
+      throw StateError('Preference.init() must be called before using prefs.');
+    }
+    return preferences;
+  }
 
   static Future<void> init() async {
-    prefs = await SharedPreferences.getInstance();
+    _prefs ??= await SharedPreferences.getInstance();
     load();
   }
 
@@ -41,6 +48,12 @@ class Preference {
         break;
       case 'smoothSliderEqualizer':
         await prefs.setBool(target, smoothSliderEqualizer);
+        break;
+      case 'equalizerGains':
+        await prefs.setStringList(
+          target,
+          equalizerGains.map((gain) => gain.toString()).toList(),
+        );
         break;
 
       case 'enableBackground':
@@ -78,6 +91,13 @@ class Preference {
       case 'showPlayListDeleteButton':
         await prefs.setBool(target, showPlayListDeleteButton);
         break;
+
+      case 'tagRootPath':
+        await prefs.setString(target, tagRootPath);
+        break;
+      case 'resourceRootPath':
+        await prefs.setString(target, resourceRootPath);
+        break;
     }
   }
 
@@ -87,8 +107,8 @@ class Preference {
     showPlayListOrderButton =
         prefs.getBool('showPlayListOrderButton') ?? showPlayListOrderButton;
     playListOrderMethod = PlayListOrderMethod.toEnum(
-        prefs.getString('playListOrderMethod') ??
-            playListOrderMethod.toString());
+      prefs.getString('playListOrderMethod') ?? playListOrderMethod.toString(),
+    );
 
     mashupTransitionTime =
         prefs.getInt('mashupTransitionTime') ?? mashupTransitionTime;
@@ -100,24 +120,44 @@ class Preference {
     enableEqualizer = prefs.getBool('enableEqualizer') ?? enableEqualizer;
     smoothSliderEqualizer =
         prefs.getBool('smoothSliderEqualizer') ?? smoothSliderEqualizer;
+    final savedEqualizerGains = prefs.getStringList('equalizerGains');
+    if (savedEqualizerGains != null &&
+        savedEqualizerGains.length == equalizerGains.length) {
+      equalizerGains = savedEqualizerGains
+          .map(
+            (gain) => (double.tryParse(gain) ?? equalizerDefaultGain)
+                .clamp(equalizerMinGain, equalizerMaxGain)
+                .toDouble(),
+          )
+          .toList();
+    }
 
     enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
-        prefs.getString('backgroundMethod') ?? backgroundMethod.toString());
-    enableBackgroundTransition = prefs.getBool('enableBackgroundTransition') ?? enableBackgroundTransition;
+      prefs.getString('backgroundMethod') ?? backgroundMethod.toString(),
+    );
+    enableBackgroundTransition =
+        prefs.getBool('enableBackgroundTransition') ??
+        enableBackgroundTransition;
     backgroundNextTriggerMinTime =
-        prefs.getInt('backgroundNextTriggerMinTime') ?? backgroundNextTriggerMinTime;
+        prefs.getInt('backgroundNextTriggerMinTime') ??
+        backgroundNextTriggerMinTime;
     backgroundNextTriggerMaxTime =
-        prefs.getInt('backgroundNextTriggerMaxTime') ?? backgroundNextTriggerMaxTime;
+        prefs.getInt('backgroundNextTriggerMaxTime') ??
+        backgroundNextTriggerMaxTime;
 
     enableVisualizer = prefs.getBool('enableVisualizer') ?? enableVisualizer;
-    randomColorVisualizer = prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
+    randomColorVisualizer =
+        prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
     enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
 
     instantlyPlay = prefs.getBool('instantlyPlay') ?? instantlyPlay;
     shuffleReload = prefs.getBool('shuffleReload') ?? shuffleReload;
     showPlayListDeleteButton =
         prefs.getBool('showPlayListDeleteButton') ?? showPlayListDeleteButton;
+
+    tagRootPath = prefs.getString('tagRootPath') ?? tagRootPath;
+    resourceRootPath = prefs.getString('resourceRootPath') ?? resourceRootPath;
   }
 
   // Volume
@@ -133,8 +173,16 @@ class Preference {
   static int mashupNextTriggerMaxTime = 40;
 
   // Equalizer
+  static const int equalizerBandsLength = 10;
+  static const double equalizerMinGain = 0.0;
+  static const double equalizerMaxGain = 4.0;
+  static const double equalizerDefaultGain = 1.0;
   static bool enableEqualizer = false;
   static bool smoothSliderEqualizer = true;
+  static List<double> equalizerGains = List<double>.filled(
+    equalizerBandsLength,
+    equalizerDefaultGain,
+  );
 
   // Background
   static bool enableBackground = true;
@@ -152,6 +200,8 @@ class Preference {
   static bool instantlyPlay = true;
   static bool shuffleReload = true;
   static bool showPlayListDeleteButton = true;
+  static String tagRootPath = '';
+  static String resourceRootPath = '';
 }
 
 class PreferenceConstant {

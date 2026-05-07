@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
+import 'dart:convert';
 import 'dart:io';
 import './database_interface.dart';
-import './playlist.dart';
+import './preference.dart';
 import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/api.dart';
@@ -17,11 +19,14 @@ class DatabaseManager {
   final String backgroundDBTableName = '_background';
   final String backgroundGroupDBTableName = '_background_group';
   final String mixDBTableName = '_mix';
-  late final String databasesPath;
-
-  String _tagDBtableName(String name) => '_tag_${name.replaceAll(' ', '_')}';
+  String databasesPath = '';
+  bool _initialized = false;
+  final List<String> _audioExtensions = ['mp3', 'wav', 'ogg'];
 
   Future<void> init() async {
+    if (_initialized) {
+      return;
+    }
     DatabaseInterface.instance.init();
     final path = await DatabaseInterface.instance.getDatabasesPath();
     databasesPath = '$path/$databaseFileName';
@@ -42,51 +47,36 @@ class DatabaseManager {
     await DatabaseInterface.instance.execute(
       'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);',
     );
+    _initialized = true;
   }
 
   void dispose() {
     DatabaseInterface.instance.dispose();
-  }
-
-  Future<void> exportList(String tableName, bool autoAddPlaylist) async {
-    if (!(await checkDBTableExist(tableName))) {
-      await DatabaseInterface.instance.transaction((txn) async {
-        await _createDBTable(txn, tableName);
-        if (autoAddPlaylist) {
-          await _insertListToDBTagTable(txn, tableName);
-        }
-      });
-    }
-  }
-
-  Future<void> deleteList(String tableName) async {
-    if (await checkDBTableExist(tableName)) {
-      await DatabaseInterface.instance.transaction((txn) async {
-        await _deleteDBTable(txn, tableName);
-      });
-    }
-  }
-
-  Future<void> updateList(String tableName) async {
-    if (await checkDBTableExist(tableName)) {
-      await DatabaseInterface.instance.transaction((txn) async {
-        await _deleteDBTable(txn, tableName);
-        await _createDBTable(txn, tableName);
-        await _insertListToDBTagTable(txn, tableName);
-      });
-    }
+    _initialized = false;
   }
 
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
-      return await DatabaseInterface.instance.rawQuery(
-        'SELECT $mainDBTableName.title, path, modified_time, color FROM $mainDBTableName, ${_tagDBtableName(tableName)} WHERE $mainDBTableName.title = ${_tagDBtableName(tableName)}.title ORDER BY sortIdx ASC;',
-      );
+      List<Map> tracks = [];
+      for (String title in _readTagTitles(tableName)) {
+        AudioTrack? track = await importTrack(title);
+        if (track != null) {
+          tracks.add({
+            'title': track.title,
+            'path': track.path,
+            'modified_time': track.modifiedDateTime,
+            'color': track.color,
+          });
+        }
+      }
+      return tracks;
     }
     return [];
   }
 
   Future<List<Map>> selectAllDBTable({bool favoriteFilter = false}) async {
+    final tags = _selectTagFiles();
+    await _syncTagMetadata(tags);
     String extraQuery = favoriteFilter ? 'WHERE favorite=1' : '';
     var list = await DatabaseInterface.instance.rawQuery(
       'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;',
@@ -116,33 +106,7 @@ class DatabaseManager {
   }
 
   Future<bool> checkDBTableExist(String tableName) async {
-    List<Map> data = await DatabaseInterface.instance.rawQuery(
-      'SELECT name FROM $tableMasterDBTableName WHERE name="$tableName";',
-    );
-    return data.isNotEmpty;
-  }
-
-  Future<void> addTrackInDBTable({
-    required String tableName,
-    required String trackTitle,
-  }) async {
-    AudioTrack? track = PlayList.instance.playMap[trackTitle];
-    if (track != null) {
-      if (await checkDBTableExist(tableName)) {
-        await DatabaseInterface.instance.transaction((txn) async {
-          await _insertTrackToDBMainTable(txn, track);
-          await _insertTrackToDBTagTable(txn, tableName, track.title);
-        });
-      }
-    }
-  }
-
-  Future<void> createDBTable(String tableName) async {
-    if (!(await checkDBTableExist(tableName))) {
-      await DatabaseInterface.instance.transaction((txn) async {
-        await _createDBTable(txn, tableName);
-      });
-    }
+    return File(_tagCsvPath(tableName)).existsSync();
   }
 
   Future<void> updateDBTrackColor(AudioTrack track, String color) async {
@@ -175,7 +139,7 @@ class DatabaseManager {
     if (datas.isNotEmpty) {
       return AudioTrack(
         title: datas[0]['title'],
-        path: datas[0]['path'],
+        path: _fullResourcePath(datas[0]['path']),
         modifiedDateTime: datas[0]['modified_time'],
         color: datas[0]['color'],
         background: await _importBackground(trackName),
@@ -260,19 +224,9 @@ class DatabaseManager {
     return null;
   }
 
-  Future<void> _insertListToDBTagTable(txn, String tableName) async {
-    for (String trackTitle in PlayList.instance.playList) {
-      AudioTrack? track = PlayList.instance.playMap[trackTitle];
-      if (track != null) {
-        await _insertTrackToDBMainTable(txn, track);
-        await _insertTrackToDBTagTable(txn, tableName, track.title);
-      }
-    }
-  }
-
-  Future<void> _insertTrackToDBMainTable(txn, AudioTrack track) async {
+  Future<void> _insertTrackToDBMainTable(dynamic txn, AudioTrack track) async {
     String sql =
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES("${track.title}", "${track.path}", "${track.modifiedDateTime}", "${track.color}")';
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES("${_sql(track.title)}", "${_sql(_resourcePathForStorage(track.path))}", "${_sql(track.modifiedDateTime)}", "${_sql(track.color ?? '')}")';
     if (txn != null) {
       await txn.rawInsert(sql);
     } else {
@@ -280,23 +234,8 @@ class DatabaseManager {
     }
   }
 
-  Future<void> _insertTrackToDBTagTable(
-    txn,
-    String tableName,
-    String title,
-  ) async {
-    List<Map> data = await txn.rawQuery(
-      'SELECT * FROM $mainDBTableName WHERE title = "$title";',
-    );
-    if (data.isNotEmpty) {
-      await txn.rawInsert(
-        'INSERT OR IGNORE INTO ${_tagDBtableName(tableName)}(title) VALUES("$title");',
-      );
-    }
-  }
-
   Future<void> _insertDataToDBBackgroundTable(
-    txn,
+    dynamic txn,
     String trackTitle,
     BackgroundData data,
   ) async {
@@ -307,20 +246,6 @@ class DatabaseManager {
     } else {
       await DatabaseInterface.instance.rawQuery(sql);
     }
-  }
-
-  Future<void> _createDBTable(txn, String tableName) async {
-    txn.rawInsert(
-      'CREATE TABLE ${_tagDBtableName(tableName)} (sortIdx INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT UNIQUE);',
-    );
-    txn.rawInsert(
-      'INSERT INTO $tableMasterDBTableName(name) VALUES("$tableName");',
-    );
-  }
-
-  Future<void> _deleteDBTable(txn, String tableName) async {
-    txn.execute('DROP TABLE ${_tagDBtableName(tableName)};');
-    txn.execute('DELETE FROM $tableMasterDBTableName WHERE name="$tableName";');
   }
 
   Future<APIResult> exportDBFile() async {
@@ -369,24 +294,15 @@ class DatabaseManager {
     return APIResult(success: success, msg: msg);
   }
 
-  Future<APIResult> tagDBToCsv() async {
+  Future<APIResult> selectTagRootPath() async {
     bool success = true;
     String msg = '';
     try {
       String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
       if (selectedDirectoryPath != null) {
-        List<Map> tables = await selectAllDBTable();
-        for (Map table in tables) {
-          String tableName = table['name'];
-          List<Map>? datas = await importList(tableName);
-          File file = File('$selectedDirectoryPath/$tableName.csv');
-          String buffer = '';
-          buffer += '"title"\n';
-          for (Map data in datas) {
-            buffer += '"${data["title"]}"\n';
-          }
-          file.writeAsStringSync(buffer);
-        }
+        Preference.tagRootPath = selectedDirectoryPath;
+        await Preference.save('tagRootPath');
+        await selectAllDBTable();
       } else {
         success = false;
         msg = 'No Directory Chosen.';
@@ -398,44 +314,17 @@ class DatabaseManager {
     return APIResult(success: success, msg: msg);
   }
 
-  Future<APIResult> tagCsvToDB() async {
+  Future<APIResult> selectResourceRootPath() async {
     bool success = true;
     String msg = '';
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result != null) {
-        for (PlatformFile file in result.files) {
-          String? path = file.path;
-          String tableName = file.name;
-          tableName = tableName.substring(0, tableName.length - 4);
-          if (path != null) {
-            File file = File(path);
-            List<String> datas = file.readAsLinesSync();
-            if (!(await checkDBTableExist(tableName))) {
-              await DatabaseInterface.instance.transaction((txn) async {
-                await _createDBTable(txn, tableName);
-                int cnt = 0;
-                for (String data in datas) {
-                  if (cnt++ == 0) {
-                    continue;
-                  }
-                  await _insertTrackToDBTagTable(
-                    txn,
-                    tableName,
-                    data.substring(1, data.length - 1),
-                  );
-                }
-              });
-            }
-          }
-        }
+      String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
+      if (selectedDirectoryPath != null) {
+        Preference.resourceRootPath = selectedDirectoryPath;
+        await Preference.save('resourceRootPath');
       } else {
         success = false;
-        msg = 'No File Chosen.';
+        msg = 'No Directory Chosen.';
       }
     } catch (e) {
       success = false;
@@ -444,27 +333,57 @@ class DatabaseManager {
     return APIResult(success: success, msg: msg);
   }
 
-  Future<APIResult> mainDBToCsv() async {
+  Future<APIResult> syncResourceDatabase() async {
     bool success = true;
     String msg = '';
     try {
-      String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
-      if (selectedDirectoryPath != null) {
-        List<Map> datas = await DatabaseInterface.instance.rawQuery(
-          'SELECT title, path, modified_time, color FROM $mainDBTableName;',
+      if (Preference.resourceRootPath.isEmpty ||
+          !Directory(Preference.resourceRootPath).existsSync()) {
+        success = false;
+        msg = 'Resource root path is not set.';
+        return APIResult(success: success, msg: msg);
+      }
+
+      final root = Directory(Preference.resourceRootPath);
+      final syncedTitles = <String>{};
+      await DatabaseInterface.instance.transaction((txn) async {
+        for (FileSystemEntity entity in root.listSync(recursive: true)) {
+          if (entity is! File) {
+            continue;
+          }
+          final extension = path.extension(entity.path).replaceFirst('.', '');
+          if (!_audioExtensions.contains(extension.toLowerCase())) {
+            continue;
+          }
+
+          final title = path.basenameWithoutExtension(entity.path);
+          final relativePath = path.relative(
+            entity.path,
+            from: Preference.resourceRootPath,
+          );
+          final modifiedDateTime = dateTimeToString(entity.statSync().modified);
+          syncedTitles.add(title);
+          await txn.rawInsert(
+            'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES("${_sql(title)}", "${_sql(relativePath)}", "$modifiedDateTime", "");',
+          );
+          await txn.execute(
+            'UPDATE $mainDBTableName SET path="${_sql(relativePath)}", modified_time="$modifiedDateTime" WHERE title="${_sql(title)}";',
+          );
+        }
+
+        final savedRows = await txn.rawQuery(
+          'SELECT title FROM $mainDBTableName;',
         );
-        File file = File('$selectedDirectoryPath/$mainDBTableName.csv');
-        String buffer = '';
-        buffer += '"title","path","modified_time","color"\n';
-        for (Map data in datas) {
-          buffer +=
-              '"${data["title"]}","${data["path"]}","${data["modified_time"]}","${data["color"]}"\n';
+        for (Map row in savedRows) {
+          final title = row['title'];
+          if (!syncedTitles.contains(title)) {
+            await txn.execute(
+              'DELETE FROM $mainDBTableName WHERE title="${_sql(title)}";',
+            );
+          }
         }
-        file.writeAsStringSync(buffer);
-      } else {
-        success = false;
-        msg = 'No Directory Chosen.';
-      }
+      });
+      msg = '${syncedTitles.length} tracks synchronized.';
     } catch (e) {
       success = false;
       msg = e.toString();
@@ -472,49 +391,114 @@ class DatabaseManager {
     return APIResult(success: success, msg: msg);
   }
 
-  Future<APIResult> mainCsvToDB() async {
-    bool success = true;
-    String msg = '';
-    try {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        allowMultiple: false,
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result != null) {
-        String? path = result.files[0].path;
-        if (path != null) {
-          File file = File(path);
-          List<String> datas = file.readAsLinesSync();
-          await DatabaseInterface.instance.transaction((txn) async {
-            int cnt = 0;
-            for (String data in datas) {
-              if (cnt++ == 0) {
-                continue;
-              }
-              List<String> substrings = data.split(RegExp(r'"'));
-              if (substrings.length == 11) {
-                await _insertTrackToDBMainTable(
-                  txn,
-                  AudioTrack(
-                    title: substrings[1],
-                    path: substrings[3],
-                    modifiedDateTime: substrings[5],
-                    color: substrings[7],
-                  ),
-                );
-              }
-            }
-          });
-        }
-      } else {
-        success = false;
-        msg = 'No Files Chosen.';
-      }
-    } catch (e) {
-      success = false;
-      msg = e.toString();
+  List<Map> _selectTagFiles() {
+    if (Preference.tagRootPath.isEmpty ||
+        !Directory(Preference.tagRootPath).existsSync()) {
+      return [];
     }
-    return APIResult(success: success, msg: msg);
+    final files = Directory(Preference.tagRootPath)
+        .listSync()
+        .whereType<File>()
+        .where((file) => path.extension(file.path).toLowerCase() == '.csv')
+        .map<Map<String, String>>(
+          (file) => {'name': path.basenameWithoutExtension(file.path)},
+        )
+        .toList();
+    files.sort((a, b) => a['name']!.compareTo(b['name']!));
+    return files;
   }
+
+  Future<void> _syncTagMetadata(List<Map> tags) async {
+    final tagNames = tags.map((tag) => tag['name'] as String).toSet();
+    await DatabaseInterface.instance.transaction((txn) async {
+      for (String name in tagNames) {
+        await txn.rawInsert(
+          'INSERT OR IGNORE INTO $tableMasterDBTableName(name) VALUES("${_sql(name)}");',
+        );
+      }
+      final savedRows = await txn.rawQuery(
+        'SELECT name FROM $tableMasterDBTableName;',
+      );
+      for (Map row in savedRows) {
+        final name = row['name'];
+        if (!tagNames.contains(name)) {
+          await txn.execute(
+            'DELETE FROM $tableMasterDBTableName WHERE name="${_sql(name)}";',
+          );
+        }
+      }
+    });
+  }
+
+  List<String> _readTagTitles(String tableName) {
+    final file = File(_tagCsvPath(tableName));
+    if (!file.existsSync()) {
+      return [];
+    }
+    final lines = file.readAsLinesSync(encoding: utf8);
+    final titles = <String>[];
+    for (int index = 0; index < lines.length; index++) {
+      final columns = _parseCsvLine(lines[index]);
+      if (columns.isEmpty) {
+        continue;
+      }
+      if (index == 0 && columns[0].trim().toLowerCase() == 'title') {
+        continue;
+      }
+      final title = columns[0].trim();
+      if (title.isNotEmpty) {
+        titles.add(title);
+      }
+    }
+    return titles;
+  }
+
+  List<String> _parseCsvLine(String line) {
+    final columns = <String>[];
+    final buffer = StringBuffer();
+    bool quoted = false;
+    for (int index = 0; index < line.length; index++) {
+      final char = line[index];
+      if (char == '"') {
+        if (quoted && index + 1 < line.length && line[index + 1] == '"') {
+          buffer.write('"');
+          index++;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (char == ',' && !quoted) {
+        columns.add(buffer.toString());
+        buffer.clear();
+      } else {
+        buffer.write(char);
+      }
+    }
+    columns.add(buffer.toString());
+    return columns;
+  }
+
+  String _tagCsvPath(String tableName) =>
+      path.join(Preference.tagRootPath, '$tableName.csv');
+
+  String _resourcePathForStorage(String filePath) {
+    if (Preference.resourceRootPath.isEmpty) {
+      return filePath;
+    }
+    final normalizedFile = path.normalize(filePath);
+    final normalizedRoot = path.normalize(Preference.resourceRootPath);
+    if (!path.isWithin(normalizedRoot, normalizedFile) &&
+        normalizedFile != normalizedRoot) {
+      return filePath;
+    }
+    return path.relative(normalizedFile, from: normalizedRoot);
+  }
+
+  String _fullResourcePath(String savedPath) {
+    if (path.isAbsolute(savedPath) || Preference.resourceRootPath.isEmpty) {
+      return savedPath;
+    }
+    return path.join(Preference.resourceRootPath, savedPath);
+  }
+
+  String _sql(Object? value) => value.toString().replaceAll('"', '""');
 }

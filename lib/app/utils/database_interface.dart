@@ -22,7 +22,11 @@ class DatabaseInterface {
   }
 
   void dispose() {
-    if (isOpen) _database.close();
+    if (isOpen) {
+      _database.close();
+      _databaseSqflite = null;
+      _databaseFfi = null;
+    }
   }
 
   Future<String> getDatabasesPath() async {
@@ -33,6 +37,9 @@ class DatabaseInterface {
   }
 
   Future<void> openDatabaseFile(String databasesPath) async {
+    if (isOpen) {
+      return;
+    }
     if (_useFfi) {
       _databaseFfi = await sqflite_ffi.databaseFactoryFfi.openDatabase(
         databasesPath,

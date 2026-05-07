@@ -13,7 +13,7 @@ import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/enum.dart';
 import '../models/timer.dart';
-import '../global.dart' as global;
+import '../app_state.dart';
 
 class AudioManager {
   AudioManager._();
@@ -35,6 +35,7 @@ class AudioManager {
   StreamSubscription<double>? _mashupVolumeTransitionTimer;
   AdvancedTimer? _mashupNextTriggerTimer;
   Map<String, CustomMixData> _customMixData = {};
+  bool _initialized = false;
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
   AudioPlayer get audioPlayerSub =>
@@ -60,14 +61,20 @@ class AudioManager {
   }
 
   Future<void> init() async {
+    if (_initialized) {
+      return;
+    }
     await audioPlayer.init(0, nextEventWhenPlayerCompleted);
     await audioPlayerSub.init(1, nextEventWhenPlayerCompleted);
     setAudioPlayerVolumeDefault();
+    _initialized = true;
   }
 
-  void dispose() {
-    audioPlayer.dispose();
-    audioPlayerSub.dispose();
+  Future<void> dispose() async {
+    await cancelMashupTimer();
+    await audioPlayer.dispose();
+    await audioPlayerSub.dispose();
+    _initialized = false;
   }
 
   void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
@@ -216,7 +223,7 @@ class AudioManager {
       setCurrentByteData();
       BackgroundManager.instance.randomizeCurrentBackgroundList();
       AudioStreamController.backgroundFile.add(null);
-      global.setVisualizerColor();
+      AppState.instance.updateVisualizerColor();
 
       if (_mashupMode) {
         await cancelMashupTimer();

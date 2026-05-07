@@ -5,7 +5,6 @@ import '../utils/database_manager.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/text.dart';
-import '../widgets/dialog.dart';
 import '../models/color.dart';
 
 class TagSelectPage extends StatefulWidget {
@@ -30,7 +29,8 @@ class _TagSelectPageState extends State<TagSelectPage> {
 
   Future<void> setPlayList() async {
     _tagList = await DatabaseManager.instance.selectAllDBTable(
-        favoriteFilter: _selectedPageIndex == 1 ? false : true);
+      favoriteFilter: _selectedPageIndex == 1 ? false : true,
+    );
     _selectedList = List<bool>.filled(_tagList.length, false, growable: true);
     setState(() {});
   }
@@ -50,16 +50,6 @@ class _TagSelectPageState extends State<TagSelectPage> {
     return 0;
   }
 
-  List<int> getSelectedItemIndex() {
-    List<int> selected = [];
-    for (int i = 0; i < _selectedList.length; i++) {
-      if (_selectedList[i]) {
-        selected.add(i);
-      }
-    }
-    return selected;
-  }
-
   @override
   Widget build(BuildContext context) {
     int length = _tagList.length;
@@ -73,59 +63,28 @@ class _TagSelectPageState extends State<TagSelectPage> {
             iconColor: _isSelectedItemFavorite
                 ? ColorPalette.lightWine
                 : ColorPalette.lightGrey,
-            onPressed: _selectedItemCount == 1 ? () {
-                int selectedItemIndex = getUniqueItemIndex();
-                DatabaseManager.instance.toggleDBTableFavorite(
-                    _tagList[selectedItemIndex]['name']);
-                _isSelectedItemFavorite = !_isSelectedItemFavorite;
-                if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
-                  deletePlayListItem(selectedItemIndex);
-                }
-                setState(() {});
-              } : null,
-            outline: false,
-          ),
-          ButtonFactory.iconButton(
-            icon: const Icon(Icons.change_circle),
-            iconColor: ColorPalette.lightGrey,
             onPressed: _selectedItemCount == 1
                 ? () {
                     int selectedItemIndex = getUniqueItemIndex();
-                    String name = _tagList[selectedItemIndex]['name'];
-                    DialogFactory.choiceDialog(
-                      context: context,
-                      onOkPressed: () {
-                        DatabaseManager.instance.updateList(name);
-                        setState(() {});
-                      },
-                      onCancelPressed: () {},
-                      content: TextFactory.text('update $name?'),
+                    DatabaseManager.instance.toggleDBTableFavorite(
+                      _tagList[selectedItemIndex]['name'],
                     );
+                    _isSelectedItemFavorite = !_isSelectedItemFavorite;
+                    if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
+                      deletePlayListItem(selectedItemIndex);
+                    }
+                    setState(() {});
                   }
                 : null,
             outline: false,
           ),
           ButtonFactory.iconButton(
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.refresh),
             iconColor: ColorPalette.lightGrey,
-            onPressed: () {
-              DialogFactory.choiceDialog(
-                context: context,
-                onOkPressed: () {
-                  List<int> selected = getSelectedItemIndex();
-                  for(int i = selected.length -
-                      1; i >= 0; i--) {
-                    int selectedItemIndex = selected[i];
-                    DatabaseManager.instance
-                        .deleteList(_tagList[selectedItemIndex]['name']);
-                    deletePlayListItem(selectedItemIndex);
-                  }
-                  setState(() {});
-                },
-                onCancelPressed: () {},
-                content: TextFactory.text('delete selected tags?'),
-              );
-              },
+            onPressed: () async {
+              _selectedItemCount = 0;
+              await setPlayList();
+            },
             outline: false,
           ),
         ],
@@ -135,10 +94,12 @@ class _TagSelectPageState extends State<TagSelectPage> {
           children: [
             NavigationBarTheme(
               data: NavigationBarThemeData(
-                labelTextStyle:
-                    MaterialStateProperty.all(TextStyleFactory.style()),
+                labelTextStyle: MaterialStateProperty.all(
+                  TextStyleFactory.style(),
+                ),
                 iconTheme: MaterialStateProperty.all(
-                    const IconThemeData(color: ColorPalette.lightGrey)),
+                  const IconThemeData(color: ColorPalette.lightGrey),
+                ),
               ),
               child: NavigationBar(
                 destinations: const [
@@ -173,9 +134,10 @@ class _TagSelectPageState extends State<TagSelectPage> {
                         ? _selectedItemCount++
                         : _selectedItemCount--;
                     if (_selectedItemCount == 1) {
-                      _isSelectedItemFavorite = await DatabaseManager.instance
-                              .selectDBTableFavorite(
-                                  _tagList[getUniqueItemIndex()]['name']) ??
+                      _isSelectedItemFavorite =
+                          await DatabaseManager.instance.selectDBTableFavorite(
+                            _tagList[getUniqueItemIndex()]['name'],
+                          ) ??
                           false;
                     }
                     setState(() {});
@@ -185,31 +147,35 @@ class _TagSelectPageState extends State<TagSelectPage> {
               ),
             ),
             Container(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ButtonFactory.textButton(
-                        onPressed: () {
-                          for (int index = 0; index < length; index++) {
-                            if (_selectedList[index]) {
-                              AudioManager.instance
-                                  .importTagList(_tagList[index]['name']);
-                            }
-                          }
-                          Navigator.pop(context);
-                        },
-                        text: 'ok',
-                        fontSize: 24),
-                    ButtonFactory.textButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        text: 'cancel',
-                        fontSize: 24,
-                        backgroundTransparent: true),
-                  ],
-                )),
+              alignment: Alignment.bottomCenter,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ButtonFactory.textButton(
+                    onPressed: () {
+                      for (int index = 0; index < length; index++) {
+                        if (_selectedList[index]) {
+                          AudioManager.instance.importTagList(
+                            _tagList[index]['name'],
+                          );
+                        }
+                      }
+                      Navigator.pop(context);
+                    },
+                    text: 'ok',
+                    fontSize: 24,
+                  ),
+                  ButtonFactory.textButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    text: 'cancel',
+                    fontSize: 24,
+                    backgroundTransparent: true,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

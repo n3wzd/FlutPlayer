@@ -5,7 +5,7 @@ import 'package:video_player/video_player.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
-import '../global.dart' as global;
+import '../app_state.dart';
 import '../utils/background_manager.dart';
 import '../utils/playlist.dart';
 import '../utils/platform_support.dart';
@@ -102,7 +102,7 @@ class _DefaultBackgroundState extends State<DefaultBackground>
   @override
   Widget build(BuildContext context) {
     return AudioStreamBuilder.visualizerColor((context, value) {
-      Color startColor = stringToColor(global.currentVisualizerColor);
+      Color startColor = stringToColor(AppState.instance.visualizerColor);
       Color endColor = ColorPalette.black;
       if (startColor == ColorPalette.black) {
         startColor = ColorPalette.black;

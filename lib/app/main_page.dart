@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import './global.dart' as global;
+import './app_initializer.dart';
+import './app_state.dart';
 import './screens/top_menu.dart';
 import './screens/center.dart';
 import './screens/bottom.dart';
@@ -26,58 +29,82 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    init();
+    _init();
   }
 
-  void init() async {
-    await global.initApp();
-    setState(() {});
+  Future<void> _init() async {
+    await AppInitializer.initialize(
+      onPreferenceLoaded: () {
+        if (!mounted || _initialized) {
+          return;
+        }
+        setState(() {
+          _initialized = true;
+        });
+      },
+    );
+    if (mounted && !_initialized) {
+      setState(() {
+        _initialized = true;
+      });
+    }
   }
 
   @override
   void dispose() {
-    AudioManager.instance.dispose();
+    unawaited(AudioManager.instance.dispose());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    if (!_initialized) {
+      return Container(color: ColorPalette.black);
+    }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _showExitDialog();
+        }
+      },
       child: AudioStreamBuilder.enabledFullscreen(
         (context, value) => Scaffold(
           key: _scaffoldKey,
-          appBar: !global.isFullScreen
+          appBar: !AppState.instance.isFullScreen
               ? AppBar(
                   automaticallyImplyLeading: false,
-                  title: TopMenu(onDrawTap: () {
-                    _scaffoldKey.currentState!.openDrawer();
-                  }),
+                  title: TopMenu(
+                    onDrawTap: () {
+                      _scaffoldKey.currentState!.openDrawer();
+                    },
+                  ),
                   backgroundColor: ColorPalette.black,
                   elevation: 0.0,
                   titleSpacing: 0,
                 )
               : null,
           drawer: const PageDrawer(),
-          body: const SafeArea(
-            child: ScreenPage(),
-          ),
+          body: const SafeArea(child: ScreenPage()),
         ),
       ),
-      onWillPop: () {
-        DialogFactory.choiceDialog(
-            context: context,
-            onOkPressed: () {
-              AudioManager.instance.dispose();
-              SystemNavigator.pop();
-            },
-            onCancelPressed: () {},
-            content: TextFactory.text('Exit?', fontSize: 20));
-        return Future<bool>.value(false);
+    );
+  }
+
+  void _showExitDialog() {
+    DialogFactory.choiceDialog(
+      context: context,
+      onOkPressed: () {
+        unawaited(AudioManager.instance.dispose());
+        SystemNavigator.pop();
       },
+      onCancelPressed: () {},
+      content: TextFactory.text('Exit?', fontSize: 20),
     );
   }
 }
@@ -87,9 +114,10 @@ class ScreenPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AudioStreamBuilder.enabledFullscreen(
-      (context, value) => global.isFullScreen
-          ? const ScreenPageFullscreen()
-          : const ScreenPageNormalScreen());
+    (context, value) => AppState.instance.isFullScreen
+        ? const ScreenPageFullscreen()
+        : const ScreenPageNormalScreen(),
+  );
 }
 
 class ScreenPageFullscreen extends StatelessWidget {
@@ -97,59 +125,59 @@ class ScreenPageFullscreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: ColorPalette.black,
-        child: Stack(
-          children: [
-            const ScreenPageCenter(),
-            FadeInOutWidget(
-              child: Container(
-                color: Colors.transparent,
-                child: const Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: SizedBox(
-                        height: 120,
-                        child: Column(
-                          children: [
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: FullscreenButton(),
-                            ),
-                            ControlSection(),
-                          ],
+    color: ColorPalette.black,
+    child: Stack(
+      children: [
+        const ScreenPageCenter(),
+        FadeInOutWidget(
+          child: Container(
+            color: Colors.transparent,
+            child: const Stack(
+              children: [
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SizedBox(
+                    height: 120,
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: FullscreenButton(),
                         ),
-                      ),
+                        ControlSection(),
+                      ],
                     ),
-                    Center(
-                      child: Row(
-                        children: [
-                          Spacer(),
-                          Expanded(
-                            flex: 2,
-                            child: SeekToPreviousButton(outline: false),
-                          ),
-                          Spacer(),
-                          Expanded(
-                            flex: 2,
-                            child: PlayButton(outline: false, iconSize: 55),
-                          ),
-                          Spacer(),
-                          Expanded(
-                            flex: 2,
-                            child: SeekToNextButton(outline: false),
-                          ),
-                          Spacer(),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                Center(
+                  child: Row(
+                    children: [
+                      Spacer(),
+                      Expanded(
+                        flex: 2,
+                        child: SeekToPreviousButton(outline: false),
+                      ),
+                      Spacer(),
+                      Expanded(
+                        flex: 2,
+                        child: PlayButton(outline: false, iconSize: 55),
+                      ),
+                      Spacer(),
+                      Expanded(
+                        flex: 2,
+                        child: SeekToNextButton(outline: false),
+                      ),
+                      Spacer(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class ScreenPageNormalScreen extends StatelessWidget {
@@ -158,31 +186,25 @@ class ScreenPageNormalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-        children: [
-          Container(
-            color: ColorPalette.black,
-            child: Column(
-              children: [
-                const Expanded(
-                  flex: 2,
-                  child: ScreenPageCenter(),
-                ),
-                Visibility(
-                  visible: MediaQuery.of(context).size.height >= minHeight,
-                  child: const Expanded(
-                    flex: 1,
-                    child: BottomSection(),
-                  ),
-                ),
-              ],
+    children: [
+      Container(
+        color: ColorPalette.black,
+        child: Column(
+          children: [
+            const Expanded(flex: 2, child: ScreenPageCenter()),
+            Visibility(
+              visible: MediaQuery.of(context).size.height >= minHeight,
+              child: const Expanded(flex: 1, child: BottomSection()),
             ),
-          ),
-          Visibility(
-            visible: MediaQuery.of(context).size.height >= minHeight,
-            child: const ListSheet(),
-          ),
-        ],
-      );
+          ],
+        ),
+      ),
+      Visibility(
+        visible: MediaQuery.of(context).size.height >= minHeight,
+        child: const ListSheet(),
+      ),
+    ],
+  );
 }
 
 class ScreenPageCenter extends StatelessWidget {
@@ -190,9 +212,9 @@ class ScreenPageCenter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-        children: [
-          OptionalVisibility.background(context, const Background()),
-          const CenterSection(),
-        ],
-      );
+    children: [
+      OptionalVisibility.background(context, const Background()),
+      const CenterSection(),
+    ],
+  );
 }

@@ -3,12 +3,14 @@ import 'dart:math';
 
 import '../utils/audio_manager.dart';
 import '../models/color.dart';
-import '../global.dart' as global;
+import '../app_state.dart';
 
 class VisualizerController extends StatefulWidget {
-  const VisualizerController(
-      {Key? key, required this.widgetWidth, required this.widgetHeight})
-      : super(key: key);
+  const VisualizerController({
+    Key? key,
+    required this.widgetWidth,
+    required this.widgetHeight,
+  }) : super(key: key);
   final double widgetWidth;
   final double widgetHeight;
 
@@ -19,8 +21,9 @@ class VisualizerController extends StatefulWidget {
 class _VisualizerControllerState extends State<VisualizerController>
     with TickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
-      vsync: this, duration: Duration(milliseconds: sampleLength))
-    ..forward();
+    vsync: this,
+    duration: Duration(milliseconds: sampleLength),
+  )..forward();
   late double maxSize;
   late double minSize;
   final double maxSampleDepth = 32768;
@@ -76,9 +79,12 @@ class _VisualizerControllerState extends State<VisualizerController>
 
     for (int p = _position; p > _position - sampleLength && p >= 0; p--) {
       sample += pow(
-          extractSample(
-              bytes, ((_position / _duration) * (bytes.length - 1)).toInt()),
-          2);
+        extractSample(
+          bytes,
+          ((_position / _duration) * (bytes.length - 1)).toInt(),
+        ),
+        2,
+      );
     }
     return sqrt(sample / sampleLength);
   }
@@ -96,13 +102,13 @@ class _VisualizerControllerState extends State<VisualizerController>
   }
 
   void setAnimation() {
-    _animation = Tween<double>(
-      begin: _previousSize / minSize,
-      end: _currentSize / minSize,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOutCubic,
-    ));
+    _animation =
+        Tween<double>(
+          begin: _previousSize / minSize,
+          end: _currentSize / minSize,
+        ).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
+        );
   }
 
   void updateVisualizerSize() {
@@ -117,27 +123,27 @@ class _VisualizerControllerState extends State<VisualizerController>
 
     return ScaleTransition(
       scale: _animation,
-      child: CircleVisualizer(size: _currentSize, color: stringToColor(global.currentVisualizerColor)),
+      child: CircleVisualizer(
+        size: _currentSize,
+        color: stringToColor(AppState.instance.visualizerColor),
+      ),
     );
   }
 }
 
 class CircleVisualizer extends StatelessWidget {
   const CircleVisualizer({Key? key, required this.size, required this.color})
-      : super(key: key);
+    : super(key: key);
   final double size;
   final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: color,
-            width: 5.0,
-          ),
-        ),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(color: color, width: 5.0),
+    ),
+  );
 }

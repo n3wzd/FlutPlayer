@@ -70,12 +70,17 @@ class _EqualizerControlsState extends State<EqualizerControls> {
     AudioManager.instance.syncEqualizer();
   }
 
+  void gainSave() {
+    Preference.save('equalizerGains');
+  }
+
   void gainReset() {
     for (var bandItem in bands) {
       bandItem.sliderValue = bandItem.band.defaultGain;
       bandItem.band.setGain(bandItem.sliderValue);
     }
     AudioManager.instance.syncEqualizer();
+    gainSave();
   }
 
   @override
@@ -151,6 +156,11 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                               ? (double value) {
                                   gainUpdate(bandItem.index, value);
                                   _sliderStreamController.add(null);
+                                }
+                              : null,
+                          onChangeEnd: Preference.enableEqualizer
+                              ? (double value) {
+                                  gainSave();
                                 }
                               : null,
                         ),
