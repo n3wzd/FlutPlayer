@@ -63,6 +63,7 @@ class _ControlUIState extends State<ControlUI> {
   void didUpdateWidget(ControlUI oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.trackDuration != widget.trackDuration) {
+      _sliderValue = 0;
       _syncPosition();
     }
   }
@@ -138,7 +139,7 @@ class _ControlUIState extends State<ControlUI> {
     }
     final sliderMax = widget.trackDuration.inMilliseconds.toDouble();
     final position = AudioManager.instance.position.inMilliseconds.toDouble();
-    if (AudioManager.instance.isPlaying && position <= 0 && _sliderValue > 0) {
+    if (position <= 0 && _sliderValue > 0) {
       return;
     }
     setState(() {

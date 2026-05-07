@@ -43,6 +43,11 @@ class ButtonFactory {
           style: ButtonStyle(
             iconColor: WidgetStateProperty.all(ColorPalette.lightGrey),
             backgroundColor: WidgetStateProperty.all(ColorPalette.transparent),
+            mouseCursor: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.disabled)
+                  ? SystemMouseCursors.basic
+                  : SystemMouseCursors.click;
+            }),
             shape: outline
                 ? WidgetStateProperty.all(
                     const CircleBorder(

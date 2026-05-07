@@ -14,6 +14,7 @@ class AudioPlayer {
 
   AudioSource? _source;
   SoundHandle? _handle;
+  Duration _lastKnownPosition = Duration.zero;
   double _volume = 1.0;
   AudioPlayerProcessingState _processingState = AudioPlayerProcessingState.idle;
   StreamSubscription<StreamSoundEvent>? _soundEventSubscription;
@@ -50,11 +51,19 @@ class AudioPlayer {
       return Duration.zero;
     }
     try {
-      return _soloud.getIsValidVoiceHandle(handle)
-          ? _soloud.getPosition(handle)
-          : Duration.zero;
+      if (!_soloud.getIsValidVoiceHandle(handle)) {
+        return _lastKnownPosition;
+      }
+      final currentPosition = _soloud.getPosition(handle);
+      if (currentPosition <= Duration.zero &&
+          isPlaying &&
+          _lastKnownPosition > Duration.zero) {
+        return _lastKnownPosition;
+      }
+      _lastKnownPosition = currentPosition;
+      return currentPosition;
     } catch (_) {
-      return Duration.zero;
+      return _lastKnownPosition;
     }
   }
 
@@ -106,6 +115,7 @@ class AudioPlayer {
 
     final source = await _soloud.loadFile(audioTrack.path);
     _source = source;
+    _lastKnownPosition = Duration.zero;
     _createHandle(paused: true);
     _processingState = AudioPlayerProcessingState.ready;
     _emitPlaybackState();
@@ -151,6 +161,7 @@ class AudioPlayer {
       return;
     }
     _soloud.seek(handle, pos);
+    _lastKnownPosition = pos;
     _emitPosition();
     _emitPlaybackState();
   }
@@ -217,6 +228,7 @@ class AudioPlayer {
     final source = _source;
     _handle = null;
     _source = null;
+    _lastKnownPosition = Duration.zero;
     await _soundEventSubscription?.cancel();
     _soundEventSubscription = null;
     if (handle != null && !handle.isError && _soloud.isInitialized) {
