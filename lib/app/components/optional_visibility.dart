@@ -5,25 +5,25 @@ import './stream_builder.dart';
 import '../app_state.dart';
 
 class OptionalVisibility {
-  static fullScreen(BuildContext context, Widget child) =>
+  static StreamBuilder<void> fullScreen(BuildContext context, Widget child) =>
       AudioStreamBuilder.enabledFullscreen(
         (context, data) =>
             Visibility(visible: !AppState.instance.isFullScreen, child: child),
       );
 
-  static background(BuildContext context, Widget child) =>
+  static StreamBuilder<void> background(BuildContext context, Widget child) =>
       AudioStreamBuilder.enabledBackground(
         (context, data) =>
             Visibility(visible: Preference.enableBackground, child: child),
       );
 
-  static logoNCS(BuildContext context, Widget child) =>
+  static StreamBuilder<void> logoNCS(BuildContext context, Widget child) =>
       AudioStreamBuilder.enabledNCSLogo(
         (context, data) =>
             Visibility(visible: Preference.enableNCSLogo, child: child),
       );
 
-  static visualizer(BuildContext context, Widget child) =>
+  static StreamBuilder<void> visualizer(BuildContext context, Widget child) =>
       AudioStreamBuilder.enabledVisualizer(
         (context, data) =>
             Visibility(visible: Preference.enableVisualizer, child: child),

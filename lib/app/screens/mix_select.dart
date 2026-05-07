@@ -9,7 +9,7 @@ import '../widgets/dialog.dart';
 import '../models/color.dart';
 
 class MixSelectPage extends StatefulWidget {
-  const MixSelectPage({Key? key}) : super(key: key);
+  const MixSelectPage({super.key});
 
   @override
   State<MixSelectPage> createState() => _MixSelectState();

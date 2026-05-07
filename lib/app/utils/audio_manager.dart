@@ -1,8 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'dart:math';
-import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import './audio_mashup_controller.dart';
 import './audio_player.dart';
 import './background_manager.dart';
 import './playlist.dart';
@@ -12,7 +12,6 @@ import './permission_handler.dart';
 import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/enum.dart';
-import '../models/timer.dart';
 import '../app_state.dart';
 
 class AudioManager {
@@ -32,8 +31,7 @@ class AudioManager {
   int _currentIndexAudioPlayerList = 0;
   double _volumeTransitionRate = 1.0;
   List<int> _currentByteData = [];
-  StreamSubscription<double>? _mashupVolumeTransitionTimer;
-  AdvancedTimer? _mashupNextTriggerTimer;
+  final AudioMashupController _mashupController = AudioMashupController();
   Map<String, CustomMixData> _customMixData = {};
   bool _initialized = false;
 
@@ -78,7 +76,7 @@ class AudioManager {
   }
 
   void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
-    AudioStreamController.track.add(null);
+    AudioStreamController.emitTrackChanged();
     if (audioPlayerCode != _currentIndexAudioPlayerList) {
       return;
     }
@@ -103,9 +101,9 @@ class AudioManager {
     if (Preference.shuffleReload && playListLength > 0 && !_customMixMode) {
       PlayList.instance.currentIndex = Random().nextInt(playListLength);
       PlayList.instance.shuffle();
-      AudioStreamController.playListOrderState.add(null);
+      AudioStreamController.emitPlayListOrderChanged();
     }
-    AudioStreamController.playList.add(null);
+    AudioStreamController.emitPlayListChanged();
     initPlayListUpdated();
   }
 
@@ -120,9 +118,9 @@ class AudioManager {
           PlayList.instance.audioTitle(0),
         ),
       );
-      AudioStreamController.track.add(null);
-      AudioStreamController.visualizerColor.add(null);
-      AudioStreamController.backgroundFile.add(null);
+      AudioStreamController.emitTrackChanged();
+      AudioStreamController.emitVisualizerColorChanged();
+      AudioStreamController.emitBackgroundFileChanged();
       if (Preference.instantlyPlay || _customMixMode) {
         play();
       } else {
@@ -132,46 +130,30 @@ class AudioManager {
   }
 
   void setMashupVolumeTransition() {
-    int transitionTime = Preference.mashupTransitionTime * 1000;
-    Stream<double> mashupVolumeTransition = Stream.periodic(
-      const Duration(milliseconds: 100),
-      (x) => x * 1.0 / (transitionTime / 100),
-    ).take(transitionTime ~/ 100);
-    _mashupVolumeTransitionTimer = mashupVolumeTransition.listen((x) {
-      transitionVolume = x;
-    }, onDone: setAudioPlayerVolumeDefault);
+    _mashupController.startVolumeTransition(
+      duration: Duration(seconds: Preference.mashupTransitionTime),
+      onTick: (value) {
+        transitionVolume = value;
+      },
+      onDone: setAudioPlayerVolumeDefault,
+    );
   }
 
   void setMashupNextTrigger() {
-    final playList = PlayList.instance;
-    if (_customMixMode) {
-      int nextSecond = _customMixData[playList.currentAudioTitle]!.duration;
-      _mashupNextTriggerTimer = AdvancedTimer(
-        duration: Duration(seconds: nextSecond),
-        onComplete: () {
-          if (_customMixMode) {
-            seekToNext();
-          }
-        },
-      );
-    } else {
-      int nextMilliseconds =
-          ((Preference.mashupNextTriggerMaxTime -
-                          Preference.mashupNextTriggerMinTime) *
-                      1000 *
-                      Random().nextDouble() +
-                  Preference.mashupNextTriggerMinTime * 1000)
-              .toInt();
-      _mashupNextTriggerTimer = AdvancedTimer(
-        duration: Duration(milliseconds: nextMilliseconds),
-        onComplete: () {
-          if (_mashupMode) {
-            seekToNext();
-          }
-        },
-      );
-    }
-    _mashupNextTriggerTimer!.start();
+    final duration = _customMixMode
+        ? Duration(
+            seconds:
+                _customMixData[PlayList.instance.currentAudioTitle]!.duration,
+          )
+        : AudioMashupController.randomTriggerDuration(
+            minSeconds: Preference.mashupNextTriggerMinTime,
+            maxSeconds: Preference.mashupNextTriggerMaxTime,
+          );
+    _mashupController.startNextTrigger(
+      duration: duration,
+      shouldAdvance: () => _mashupMode,
+      onNext: seekToNext,
+    );
   }
 
   void setAudioPlayerVolumeDefault() {
@@ -215,14 +197,14 @@ class AudioManager {
         ),
       );
 
-      AudioStreamController.track.add(null);
-      AudioStreamController.visualizerColor.add(null);
+      AudioStreamController.emitTrackChanged();
+      AudioStreamController.emitVisualizerColorChanged();
 
       play();
       PlayList.instance.currentIndex = index;
       setCurrentByteData();
       BackgroundManager.instance.randomizeCurrentBackgroundList();
-      AudioStreamController.backgroundFile.add(null);
+      AudioStreamController.emitBackgroundFileChanged();
       AppState.instance.updateVisualizerColor();
 
       if (_mashupMode) {
@@ -251,12 +233,7 @@ class AudioManager {
     if (!isAudioPlayerEmpty && !isPlaying) {
       audioPlayer.play();
       audioPlayerSub.play();
-      if (_mashupVolumeTransitionTimer != null) {
-        _mashupVolumeTransitionTimer!.resume();
-      }
-      if (_mashupNextTriggerTimer != null) {
-        _mashupNextTriggerTimer!.resume();
-      }
+      _mashupController.resume();
     }
   }
 
@@ -264,12 +241,7 @@ class AudioManager {
     if (!isAudioPlayerEmpty && isPlaying) {
       await audioPlayer.pause();
       await audioPlayerSub.pause();
-      if (_mashupVolumeTransitionTimer != null) {
-        _mashupVolumeTransitionTimer!.pause();
-      }
-      if (_mashupNextTriggerTimer != null) {
-        _mashupNextTriggerTimer!.pause();
-      }
+      _mashupController.pause();
     }
   }
 
@@ -278,36 +250,12 @@ class AudioManager {
   }
 
   void updateAudioPlayerVolume() {
-    double logScale = 8.0;
-    double expPower = 3.5;
-    double volumeA = 1.0;
-    double volumeB = 1.0;
-    if (_customMixMode) {
-      double baseA = 0.6;
-      double baseB = 0.1;
-      double volumeThreshold1 = 0.2;
-      double volumeThreshold2 = 0.7;
-      if (_volumeTransitionRate < volumeThreshold1) {
-        double v = _volumeTransitionRate / volumeThreshold1;
-        volumeA = (log(1 + v * logScale) / log(1 + logScale)) * baseA;
-        volumeB = 1.0 - (pow(v, expPower).toDouble()) * baseB;
-      } else if (_volumeTransitionRate < volumeThreshold2) {
-        volumeA = baseA;
-        volumeB = 1.0 - baseB;
-      } else {
-        double v =
-            (_volumeTransitionRate - volumeThreshold2) /
-            (1.0 - volumeThreshold2);
-        volumeA =
-            (log(1 + v * logScale) / log(1 + logScale)) * (1.0 - baseA) + baseA;
-        volumeB = 1.0 - (pow(v, expPower).toDouble() * (1.0 - baseB) + baseB);
-      }
-    } else {
-      volumeA = log(1 + _volumeTransitionRate * logScale) / log(1 + logScale);
-      volumeB = 1.0 - pow(_volumeTransitionRate, expPower).toDouble();
-    }
-    audioPlayer.setVolume(volumeA * Preference.volumeMasterRate);
-    audioPlayerSub.setVolume(volumeB * Preference.volumeMasterRate);
+    final levels = AudioVolumeMixer.calculate(
+      customMixMode: _customMixMode,
+      transitionRate: _volumeTransitionRate,
+    );
+    audioPlayer.setVolume(levels.primary * Preference.volumeMasterRate);
+    audioPlayerSub.setVolume(levels.secondary * Preference.volumeMasterRate);
   }
 
   void filesOpen() async {
@@ -373,12 +321,12 @@ class AudioManager {
     } else {
       _loopMode = PlayerLoopMode.off;
     }
-    AudioStreamController.loopMode.add(null);
+    AudioStreamController.emitLoopModeChanged();
   }
 
   void toggleShuffleMode() {
     PlayList.instance.toggleShuffleMode();
-    AudioStreamController.playListOrderState.add(null);
+    AudioStreamController.emitPlayListOrderChanged();
   }
 
   void toggleMashupMode() async {
@@ -391,7 +339,7 @@ class AudioManager {
         await cancelMashupTimer();
         setAudioPlayerVolumeDefault();
       }
-      AudioStreamController.mashupButton.add(null);
+      AudioStreamController.emitMashupButtonChanged();
     }
   }
 
@@ -401,12 +349,7 @@ class AudioManager {
   }
 
   Future<void> cancelMashupTimer() async {
-    if (_mashupVolumeTransitionTimer != null) {
-      await _mashupVolumeTransitionTimer!.cancel();
-    }
-    if (_mashupNextTriggerTimer != null) {
-      _mashupNextTriggerTimer!.cancel();
-    }
+    await _mashupController.cancel();
   }
 
   void removePlayListItem(int index) {
@@ -495,7 +438,7 @@ class AudioManager {
       newList.shuffle();
 
       _customMixMode = true;
-      AudioStreamController.mashupButton.add(null);
+      AudioStreamController.emitMashupButtonChanged();
       playListAddList(newList);
       activeMashupMode();
     }

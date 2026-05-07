@@ -7,10 +7,10 @@ import '../app_state.dart';
 
 class VisualizerController extends StatefulWidget {
   const VisualizerController({
-    Key? key,
+    super.key,
     required this.widgetWidth,
     required this.widgetHeight,
-  }) : super(key: key);
+  });
   final double widgetWidth;
   final double widgetHeight;
 
@@ -132,8 +132,7 @@ class _VisualizerControllerState extends State<VisualizerController>
 }
 
 class CircleVisualizer extends StatelessWidget {
-  const CircleVisualizer({Key? key, required this.size, required this.color})
-    : super(key: key);
+  const CircleVisualizer({super.key, required this.size, required this.color});
   final double size;
   final Color color;
 

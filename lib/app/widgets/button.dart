@@ -4,7 +4,7 @@ import './text.dart';
 import '../models/color.dart';
 
 class ButtonFactory {
-  static textButton({
+  static Widget textButton({
     required VoidCallback? onPressed,
     required String text,
     double? fontSize,
@@ -13,58 +13,55 @@ class ButtonFactory {
     return ElevatedButton(
       onPressed: onPressed,
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.resolveWith((states) {
-          return states.contains(MaterialState.disabled)
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.disabled)
               ? ColorPalette.disableGrey
               : (backgroundTransparent
-                  ? ColorPalette.transparent
-                  : ColorPalette.lightWine);
+                    ? ColorPalette.transparent
+                    : ColorPalette.lightWine);
         }),
-        foregroundColor: MaterialStateProperty.all(ColorPalette.white),
-        padding: MaterialStateProperty.all(const EdgeInsets.all(16)),
+        foregroundColor: WidgetStateProperty.all(ColorPalette.white),
+        padding: WidgetStateProperty.all(const EdgeInsets.all(16)),
       ),
       child: TextFactory.text(text, fontSize: fontSize),
     );
   }
 
-  static iconButton(
-      {required Icon icon,
-      double iconSize = 35,
-      required VoidCallback? onPressed,
-      Color? iconColor,
-      bool outline = true,
-      bool hasOverlay = true,
-      bool? isSelected,
-      Icon? selectedIcon}) {
+  static Widget iconButton({
+    required Icon icon,
+    double iconSize = 35,
+    required VoidCallback? onPressed,
+    Color? iconColor,
+    bool outline = true,
+    bool hasOverlay = true,
+    bool? isSelected,
+    Icon? selectedIcon,
+  }) {
     return Theme(
       data: ThemeData(
         iconButtonTheme: IconButtonThemeData(
           style: ButtonStyle(
-            iconColor: MaterialStateProperty.all(ColorPalette.lightGrey),
-            backgroundColor:
-                MaterialStateProperty.all(ColorPalette.transparent),
+            iconColor: WidgetStateProperty.all(ColorPalette.lightGrey),
+            backgroundColor: WidgetStateProperty.all(ColorPalette.transparent),
             shape: outline
-                ? MaterialStateProperty.all(
+                ? WidgetStateProperty.all(
                     const CircleBorder(
-                      side: BorderSide(
-                        color: ColorPalette.lightGrey,
-                        width: 1,
-                      ),
+                      side: BorderSide(color: ColorPalette.lightGrey, width: 1),
                     ),
                   )
                 : null,
-            overlayColor: MaterialStateProperty.resolveWith(
-              (Set<MaterialState> states) {
-                if (hasOverlay) {
-                  if (states.contains(MaterialState.pressed)) {
-                    return ColorPalette.overlayPressedGrey;
-                  } else if (states.contains(MaterialState.hovered)) {
-                    return ColorPalette.overlayHoveredGrey;
-                  }
+            overlayColor: WidgetStateProperty.resolveWith((
+              Set<WidgetState> states,
+            ) {
+              if (hasOverlay) {
+                if (states.contains(WidgetState.pressed)) {
+                  return ColorPalette.overlayPressedGrey;
+                } else if (states.contains(WidgetState.hovered)) {
+                  return ColorPalette.overlayHoveredGrey;
                 }
-                return ColorPalette.transparent;
-              },
-            ),
+              }
+              return ColorPalette.transparent;
+            }),
           ),
         ),
         useMaterial3: true,

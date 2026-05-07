@@ -1,15 +1,6 @@
-enum PlayerLoopMode {
-  off,
-  one,
-  all,
-}
+enum PlayerLoopMode { off, one, all }
 
-enum PlayListOrderState {
-  none,
-  ascending,
-  descending,
-  shuffled,
-}
+enum PlayListOrderState { none, ascending, descending, shuffled }
 
 enum PlayListOrderMethod {
   title('title'),
@@ -20,8 +11,10 @@ enum PlayListOrderMethod {
   final String code;
 
   factory PlayListOrderMethod.toEnum(String code) {
-    return PlayListOrderMethod.values.firstWhere((value) => value.code == code,
-        orElse: () => PlayListOrderMethod.undefined);
+    return PlayListOrderMethod.values.firstWhere(
+      (value) => value.code == code,
+      orElse: () => PlayListOrderMethod.undefined,
+    );
   }
 
   @override
@@ -40,8 +33,10 @@ enum BackgroundMethod {
   final String code;
 
   factory BackgroundMethod.toEnum(String code) {
-    return BackgroundMethod.values.firstWhere((value) => value.code == code,
-        orElse: () => BackgroundMethod.undefined);
+    return BackgroundMethod.values.firstWhere(
+      (value) => value.code == code,
+      orElse: () => BackgroundMethod.undefined,
+    );
   }
 
   @override

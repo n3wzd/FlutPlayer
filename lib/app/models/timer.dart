@@ -3,7 +3,7 @@ import 'dart:async';
 
 class AdvancedTimer {
   AdvancedTimer({required this.duration, required this.onComplete})
-      : _remainingTime = duration;
+    : _remainingTime = duration;
 
   final Stopwatch _stopwatch = Stopwatch();
   final Duration duration;

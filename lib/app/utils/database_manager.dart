@@ -89,7 +89,8 @@ class DatabaseManager {
       bool? fav = await selectDBTableFavorite(tableName);
       if (fav != null) {
         await DatabaseInterface.instance.execute(
-          'UPDATE $tableMasterDBTableName SET favorite=${fav ? 0 : 1} WHERE name="$tableName";',
+          'UPDATE $tableMasterDBTableName SET favorite=? WHERE name=?;',
+          [fav ? 0 : 1, tableName],
         );
       }
     }
@@ -98,7 +99,8 @@ class DatabaseManager {
   Future<bool?> selectDBTableFavorite(String tableName) async {
     if (await checkDBTableExist(tableName)) {
       List<Map> data = await DatabaseInterface.instance.rawQuery(
-        'SELECT favorite FROM $tableMasterDBTableName WHERE name="$tableName";',
+        'SELECT favorite FROM $tableMasterDBTableName WHERE name=?;',
+        [tableName],
       );
       return data[0]['favorite'] == 1 ? true : false;
     }
@@ -114,9 +116,10 @@ class DatabaseManager {
       await _insertTrackToDBMainTable(txn, track);
     });
     await DatabaseInterface.instance.execute(
-      'UPDATE $mainDBTableName SET color="$color" WHERE title="${track.title}";',
+      'UPDATE $mainDBTableName SET color=? WHERE title=?;',
+      [color, track.title],
     );
-    AudioStreamController.visualizerColor.add(null);
+    AudioStreamController.emitVisualizerColorChanged();
   }
 
   Future<void> updateDBTrackBackground(
@@ -127,14 +130,23 @@ class DatabaseManager {
       await _insertDataToDBBackgroundTable(txn, trackTitle, data);
     });
     await DatabaseInterface.instance.execute(
-      'UPDATE $backgroundDBTableName SET path="${data.path}", rotate=${data.rotate ? 1 : 0}, scale=${data.scale ? 1 : 0}, color=${data.color ? 1 : 0}, value=${data.value} WHERE track="$trackTitle";',
+      'UPDATE $backgroundDBTableName SET path=?, rotate=?, scale=?, color=?, value=? WHERE track=?;',
+      [
+        data.path,
+        data.rotate ? 1 : 0,
+        data.scale ? 1 : 0,
+        data.color ? 1 : 0,
+        data.value,
+        trackTitle,
+      ],
     );
-    AudioStreamController.backgroundFile.add(null);
+    AudioStreamController.emitBackgroundFileChanged();
   }
 
   Future<AudioTrack?> importTrack(String trackName) async {
     List<Map> datas = await DatabaseInterface.instance.rawQuery(
-      'SELECT title, path, modified_time, color FROM $mainDBTableName WHERE title="$trackName";',
+      'SELECT title, path, modified_time, color FROM $mainDBTableName WHERE title=?;',
+      [trackName],
     );
     if (datas.isNotEmpty) {
       return AudioTrack(
@@ -149,9 +161,17 @@ class DatabaseManager {
   }
 
   Future<void> insertBackgroundGroup(BackgroundData data, bool active) async {
-    String sql =
-        'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, active, rotate, scale, color, value) VALUES("${data.path}", ${active ? 1 : 0}, ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.rawInsert(
+      'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, active, rotate, scale, color, value) VALUES(?, ?, ?, ?, ?, ?);',
+      [
+        data.path,
+        active ? 1 : 0,
+        data.rotate ? 1 : 0,
+        data.scale ? 1 : 0,
+        data.color ? 1 : 0,
+        data.value,
+      ],
+    );
   }
 
   Future<List<Map>> selectAllBackgroundGroup() async {
@@ -163,7 +183,8 @@ class DatabaseManager {
 
   Future<BackgroundData> selectBackgroundGroup(String path) async {
     var data = await DatabaseInterface.instance.rawQuery(
-      'SELECT * FROM $backgroundGroupDBTableName WHERE path="$path";',
+      'SELECT * FROM $backgroundGroupDBTableName WHERE path=?;',
+      [path],
     );
     return BackgroundData(
       path: path,
@@ -175,25 +196,37 @@ class DatabaseManager {
   }
 
   Future<void> updateBackgroundGroup(String path, BackgroundData data) async {
-    String sql =
-        'UPDATE $backgroundGroupDBTableName SET rotate=${data.rotate ? 1 : 0}, scale=${data.scale ? 1 : 0}, color=${data.color ? 1 : 0}, value=${data.value} WHERE path="$path";';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.execute(
+      'UPDATE $backgroundGroupDBTableName SET rotate=?, scale=?, color=?, value=? WHERE path=?;',
+      [
+        data.rotate ? 1 : 0,
+        data.scale ? 1 : 0,
+        data.color ? 1 : 0,
+        data.value,
+        path,
+      ],
+    );
   }
 
   Future<void> deleteBackgroundGroup(String path) async {
-    String sql = 'DELETE FROM $backgroundGroupDBTableName WHERE path="$path";';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.execute(
+      'DELETE FROM $backgroundGroupDBTableName WHERE path=?;',
+      [path],
+    );
   }
 
   Future<void> toggleBackgroundGroupActive(String path, bool value) async {
-    String sql =
-        'UPDATE $backgroundGroupDBTableName SET active=${value ? 1 : 0} WHERE path="$path";';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.execute(
+      'UPDATE $backgroundGroupDBTableName SET active=? WHERE path=?;',
+      [value ? 1 : 0, path],
+    );
   }
 
   Future<void> insertMix(String path) async {
-    String sql = 'INSERT OR IGNORE INTO $mixDBTableName(path) VALUES("$path")';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.rawInsert(
+      'INSERT OR IGNORE INTO $mixDBTableName(path) VALUES(?);',
+      [path],
+    );
   }
 
   Future<List<Map>> selectAllMix() async {
@@ -204,13 +237,16 @@ class DatabaseManager {
   }
 
   Future<void> deleteMix(String path) async {
-    String sql = 'DELETE FROM $mixDBTableName WHERE path="$path";';
-    await DatabaseInterface.instance.rawQuery(sql);
+    await DatabaseInterface.instance.execute(
+      'DELETE FROM $mixDBTableName WHERE path=?;',
+      [path],
+    );
   }
 
   Future<BackgroundData?> _importBackground(String trackName) async {
     List<Map> datas = await DatabaseInterface.instance.rawQuery(
-      'SELECT path, rotate, scale, color, value FROM $backgroundDBTableName WHERE track="$trackName";',
+      'SELECT path, rotate, scale, color, value FROM $backgroundDBTableName WHERE track=?;',
+      [trackName],
     );
     if (datas.isNotEmpty) {
       return BackgroundData(
@@ -225,12 +261,19 @@ class DatabaseManager {
   }
 
   Future<void> _insertTrackToDBMainTable(dynamic txn, AudioTrack track) async {
-    String sql =
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES("${_sql(track.title)}", "${_sql(_resourcePathForStorage(track.path))}", "${_sql(track.modifiedDateTime)}", "${_sql(track.color ?? '')}")';
+    const fallbackColor = '';
+    final sql =
+        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES(?, ?, ?, ?);';
+    final arguments = [
+      track.title,
+      _resourcePathForStorage(track.path),
+      track.modifiedDateTime,
+      track.color ?? fallbackColor,
+    ];
     if (txn != null) {
-      await txn.rawInsert(sql);
+      await txn.rawInsert(sql, arguments);
     } else {
-      await DatabaseInterface.instance.rawQuery(sql);
+      await DatabaseInterface.instance.rawInsert(sql, arguments);
     }
   }
 
@@ -239,12 +282,20 @@ class DatabaseManager {
     String trackTitle,
     BackgroundData data,
   ) async {
-    String sql =
-        'INSERT OR IGNORE INTO $backgroundDBTableName(track, path, rotate, scale, color, value) VALUES("$trackTitle", "${data.path}", ${data.rotate ? 1 : 0}, ${data.scale ? 1 : 0}, ${data.color ? 1 : 0}, ${data.value})';
+    final sql =
+        'INSERT OR IGNORE INTO $backgroundDBTableName(track, path, rotate, scale, color, value) VALUES(?, ?, ?, ?, ?, ?);';
+    final arguments = [
+      trackTitle,
+      data.path,
+      data.rotate ? 1 : 0,
+      data.scale ? 1 : 0,
+      data.color ? 1 : 0,
+      data.value,
+    ];
     if (txn != null) {
-      await txn.rawInsert(sql);
+      await txn.rawInsert(sql, arguments);
     } else {
-      await DatabaseInterface.instance.rawQuery(sql);
+      await DatabaseInterface.instance.rawInsert(sql, arguments);
     }
   }
 
@@ -301,7 +352,7 @@ class DatabaseManager {
       String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
       if (selectedDirectoryPath != null) {
         Preference.tagRootPath = selectedDirectoryPath;
-        await Preference.save('tagRootPath');
+        await Preference.save(PreferenceKey.tagRootPath);
         await selectAllDBTable();
       } else {
         success = false;
@@ -321,7 +372,7 @@ class DatabaseManager {
       String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
       if (selectedDirectoryPath != null) {
         Preference.resourceRootPath = selectedDirectoryPath;
-        await Preference.save('resourceRootPath');
+        await Preference.save(PreferenceKey.resourceRootPath);
       } else {
         success = false;
         msg = 'No Directory Chosen.';
@@ -364,10 +415,12 @@ class DatabaseManager {
           final modifiedDateTime = dateTimeToString(entity.statSync().modified);
           syncedTitles.add(title);
           await txn.rawInsert(
-            'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES("${_sql(title)}", "${_sql(relativePath)}", "$modifiedDateTime", "");',
+            'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES(?, ?, ?, "");',
+            [title, relativePath, modifiedDateTime],
           );
           await txn.execute(
-            'UPDATE $mainDBTableName SET path="${_sql(relativePath)}", modified_time="$modifiedDateTime" WHERE title="${_sql(title)}";',
+            'UPDATE $mainDBTableName SET path=?, modified_time=? WHERE title=?;',
+            [relativePath, modifiedDateTime, title],
           );
         }
 
@@ -377,9 +430,9 @@ class DatabaseManager {
         for (Map row in savedRows) {
           final title = row['title'];
           if (!syncedTitles.contains(title)) {
-            await txn.execute(
-              'DELETE FROM $mainDBTableName WHERE title="${_sql(title)}";',
-            );
+            await txn.execute('DELETE FROM $mainDBTableName WHERE title=?;', [
+              title,
+            ]);
           }
         }
       });
@@ -413,7 +466,8 @@ class DatabaseManager {
     await DatabaseInterface.instance.transaction((txn) async {
       for (String name in tagNames) {
         await txn.rawInsert(
-          'INSERT OR IGNORE INTO $tableMasterDBTableName(name) VALUES("${_sql(name)}");',
+          'INSERT OR IGNORE INTO $tableMasterDBTableName(name) VALUES(?);',
+          [name],
         );
       }
       final savedRows = await txn.rawQuery(
@@ -423,7 +477,8 @@ class DatabaseManager {
         final name = row['name'];
         if (!tagNames.contains(name)) {
           await txn.execute(
-            'DELETE FROM $tableMasterDBTableName WHERE name="${_sql(name)}";',
+            'DELETE FROM $tableMasterDBTableName WHERE name=?;',
+            [name],
           );
         }
       }
@@ -499,6 +554,4 @@ class DatabaseManager {
     }
     return path.join(Preference.resourceRootPath, savedPath);
   }
-
-  String _sql(Object? value) => value.toString().replaceAll('"', '""');
 }

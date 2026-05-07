@@ -29,7 +29,7 @@ class AppState extends ChangeNotifier {
       );
     }
     notifyListeners();
-    AudioStreamController.enabledFullscreen.add(null);
+    AudioStreamController.emitEnabledFullscreenChanged();
   }
 
   void updateVisualizerColor() {

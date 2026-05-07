@@ -8,40 +8,42 @@ import '../widgets/slider.dart';
 import '../widgets/text.dart';
 
 class BottomSection extends StatelessWidget {
-  const BottomSection({Key? key}) : super(key: key);
+  const BottomSection({super.key});
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(color: ColorPalette.darkWine),
-        child: const Column(
-          children: [
-            SizedBox(height: 10),
-            ControlSection(),
-            SizedBox(height: 10),
-            ButtonUI(),
-          ],
-        ),
-      );
+    decoration: const BoxDecoration(color: ColorPalette.darkWine),
+    child: const Column(
+      children: [
+        SizedBox(height: 10),
+        ControlSection(),
+        SizedBox(height: 10),
+        ButtonUI(),
+      ],
+    ),
+  );
 }
 
 class ControlSection extends StatelessWidget {
-  const ControlSection({Key? key}) : super(key: key);
+  const ControlSection({super.key});
 
   @override
   Widget build(BuildContext context) => AudioStreamBuilder.track(
-        (context, duration) => AudioStreamBuilder.position(
-          (context, position) => ControlUI(
-            trackDuration: AudioManager.instance.duration,
-            trackPosition: position.data ?? const Duration(milliseconds: 0),
-          ),
-        ),
-      );
+    (context, duration) => AudioStreamBuilder.position(
+      (context, position) => ControlUI(
+        trackDuration: AudioManager.instance.duration,
+        trackPosition: position.data ?? const Duration(milliseconds: 0),
+      ),
+    ),
+  );
 }
 
 class ControlUI extends StatefulWidget {
-  const ControlUI(
-      {Key? key, required this.trackDuration, required this.trackPosition})
-      : super(key: key);
+  const ControlUI({
+    super.key,
+    required this.trackDuration,
+    required this.trackPosition,
+  });
   final Duration trackDuration;
   final Duration trackPosition;
 
@@ -84,8 +86,9 @@ class _ControlUIState extends State<ControlUI> {
               });
             },
             onChangeEnd: (double value) {
-              AudioManager.instance
-                  .seekPosition(Duration(milliseconds: value.toInt()));
+              AudioManager.instance.seekPosition(
+                Duration(milliseconds: value.toInt()),
+              );
               _isSliderChanging = false;
               _afterChangedCount = 2;
             },
@@ -100,7 +103,8 @@ class _ControlUIState extends State<ControlUI> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: TextFactory.timeFormatText(
-                      Duration(milliseconds: _sliderValue.toInt())),
+                    Duration(milliseconds: _sliderValue.toInt()),
+                  ),
                 ),
               ),
               Expanded(
@@ -118,21 +122,21 @@ class _ControlUIState extends State<ControlUI> {
 }
 
 class ButtonUI extends StatelessWidget {
-  const ButtonUI({Key? key}) : super(key: key);
+  const ButtonUI({super.key});
 
   @override
   Widget build(BuildContext context) => const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ShuffleButton(),
-          SizedBox(width: 20),
-          SeekToPreviousButton(),
-          SizedBox(width: 20),
-          PlayButton(iconSize: 55),
-          SizedBox(width: 20),
-          SeekToNextButton(),
-          SizedBox(width: 20),
-          LoopButton(),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      ShuffleButton(),
+      SizedBox(width: 20),
+      SeekToPreviousButton(),
+      SizedBox(width: 20),
+      PlayButton(iconSize: 55),
+      SizedBox(width: 20),
+      SeekToNextButton(),
+      SizedBox(width: 20),
+      LoopButton(),
+    ],
+  );
 }

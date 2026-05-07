@@ -8,7 +8,7 @@ import '../widgets/text.dart';
 import '../models/color.dart';
 
 class TagSelectPage extends StatefulWidget {
-  const TagSelectPage({Key? key}) : super(key: key);
+  const TagSelectPage({super.key});
 
   @override
   State<TagSelectPage> createState() => _TagSelectPageState();
@@ -94,10 +94,10 @@ class _TagSelectPageState extends State<TagSelectPage> {
           children: [
             NavigationBarTheme(
               data: NavigationBarThemeData(
-                labelTextStyle: MaterialStateProperty.all(
+                labelTextStyle: WidgetStateProperty.all(
                   TextStyleFactory.style(),
                 ),
-                iconTheme: MaterialStateProperty.all(
+                iconTheme: WidgetStateProperty.all(
                   const IconThemeData(color: ColorPalette.lightGrey),
                 ),
               ),

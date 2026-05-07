@@ -13,7 +13,7 @@ import '../models/color.dart';
 import '../models/data.dart';
 
 class BackgroundGroupPage extends StatefulWidget {
-  const BackgroundGroupPage({Key? key}) : super(key: key);
+  const BackgroundGroupPage({super.key});
 
   @override
   State<BackgroundGroupPage> createState() => _BackgroundGroupPageState();
@@ -193,7 +193,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                   ButtonFactory.textButton(
                     onPressed: () {
                       BackgroundManager.instance.updateBackgroundList();
-                      AudioStreamController.backgroundFile.add(null);
+                      AudioStreamController.emitBackgroundFileChanged();
                       Navigator.pop(context);
                     },
                     text: 'close',
@@ -210,8 +210,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
 }
 
 class BackgroundGroupSelectPage extends StatefulWidget {
-  const BackgroundGroupSelectPage({Key? key, required this.path})
-    : super(key: key);
+  const BackgroundGroupSelectPage({super.key, required this.path});
   final String path;
 
   @override
@@ -257,7 +256,7 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
       background,
     );
     BackgroundManager.instance.updateBackgroundGroup(widget.path, background);
-    AudioStreamController.backgroundFile.add(null);
+    AudioStreamController.emitBackgroundFileChanged();
   }
 
   @override

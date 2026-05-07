@@ -8,56 +8,56 @@ import './slider.dart';
 class ListTileFactory {
   static const double listPadding = 16;
 
-  static multiItem(
-          {required int index,
-          required String text,
-          Key? key,
-          VoidCallback? onTap,
-          bool selected = false,
-          Widget? trailing}) =>
-      ListTile(
-        key: key ?? UniqueKey(),
-        title: SizedBox(
-          height: 60,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: TextFactory.text(
-              text,
-              fontSize: 18,
-            ),
-          ),
-        ),
-        minVerticalPadding: 0,
-        onTap: onTap,
-        selected: selected,
-        selectedTileColor: ColorPalette.lightWine,
-        tileColor: index % 2 == 1 ? ColorPalette.darkGrey : ColorPalette.black,
-        hoverColor: ColorPalette.lightWine,
-        trailing: trailing,
-      );
+  static ListTile multiItem({
+    required int index,
+    required String text,
+    Key? key,
+    VoidCallback? onTap,
+    bool selected = false,
+    Widget? trailing,
+  }) => ListTile(
+    key: key ?? UniqueKey(),
+    title: SizedBox(
+      height: 60,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextFactory.text(text, fontSize: 18),
+      ),
+    ),
+    minVerticalPadding: 0,
+    onTap: onTap,
+    selected: selected,
+    selectedTileColor: ColorPalette.lightWine,
+    tileColor: index % 2 == 1 ? ColorPalette.darkGrey : ColorPalette.black,
+    hoverColor: ColorPalette.lightWine,
+    trailing: trailing,
+  );
 
-  static title({required String text}) => ListTile(
-        title:
-            TextFactory.text(text, fontSize: 22, fontWeight: FontWeight.bold),
-        tileColor: ColorPalette.darkWine,
-        minVerticalPadding: listPadding,
-      );
+  static ListTile title({required String text}) => ListTile(
+    title: TextFactory.text(text, fontSize: 22, fontWeight: FontWeight.bold),
+    tileColor: ColorPalette.darkWine,
+    minVerticalPadding: listPadding,
+  );
 
-  static content(
-          {required String title,
-          String subtitle = '',
-          VoidCallback? onTap,
-          Widget? trailing}) =>
-      ListTile(
-        title: TextFactory.text(title, fontSize: 18),
-        subtitle: TextFactory.text(subtitle,
-            fontSize: 14, color: ColorPalette.grey, allowLineBreak: true),
-        onTap: onTap,
-        trailing: trailing,
-        minVerticalPadding: listPadding,
-      );
+  static ListTile content({
+    required String title,
+    String subtitle = '',
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) => ListTile(
+    title: TextFactory.text(title, fontSize: 18),
+    subtitle: TextFactory.text(
+      subtitle,
+      fontSize: 14,
+      color: ColorPalette.grey,
+      allowLineBreak: true,
+    ),
+    onTap: onTap,
+    trailing: trailing,
+    minVerticalPadding: listPadding,
+  );
 
-  static contentSwitch({
+  static dynamic contentSwitch({
     required String title,
     String subtitle = '',
     bool initialValue = false,
@@ -81,30 +81,32 @@ class ListTileFactory {
     );
   }
 
-  static contentContainer(
-          {required String title,
-          String subtitle = '',
-          required Widget child}) =>
-      Container(
-        padding: const EdgeInsets.all(listPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            TextFactory.text(title, fontSize: 18),
-            (subtitle != '') ? const SizedBox(height: 2) : const SizedBox(),
-            (subtitle != '')
-                ? TextFactory.text(subtitle,
-                    fontSize: 14,
-                    color: ColorPalette.grey,
-                    allowLineBreak: true)
-                : const SizedBox(),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      );
+  static Container contentContainer({
+    required String title,
+    String subtitle = '',
+    required Widget child,
+  }) => Container(
+    padding: const EdgeInsets.all(listPadding),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        TextFactory.text(title, fontSize: 18),
+        (subtitle != '') ? const SizedBox(height: 2) : const SizedBox(),
+        (subtitle != '')
+            ? TextFactory.text(
+                subtitle,
+                fontSize: 14,
+                color: ColorPalette.grey,
+                allowLineBreak: true,
+              )
+            : const SizedBox(),
+        const SizedBox(height: 12),
+        child,
+      ],
+    ),
+  );
 
-  static contentDropDownMenu<T>({
+  static dynamic contentDropDownMenu<T>({
     required String title,
     String subtitle = '',
     required T initialSelection,
@@ -131,16 +133,16 @@ class ListTileFactory {
           dropdownColor: ColorPalette.darkGrey,
           items: List<DropdownMenuItem<T>>.generate(valueList.length, (index) {
             return DropdownMenuItem<T>(
-                value: valueList[index]['value'],
-                child:
-                    TextFactory.text(valueList[index]['label'], fontSize: 18));
+              value: valueList[index]['value'],
+              child: TextFactory.text(valueList[index]['label'], fontSize: 18),
+            );
           }),
         ),
       ),
     );
   }
 
-  static contentSlider({
+  static dynamic contentSlider({
     required String title,
     String subtitle = '',
     required double initialValue,
@@ -175,7 +177,7 @@ class ListTileFactory {
     );
   }
 
-  static contentRangeSlider({
+  static dynamic contentRangeSlider({
     required String title,
     String subtitle = '',
     required RangeValues initialValues,

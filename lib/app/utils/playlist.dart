@@ -25,8 +25,7 @@ class PlayList {
       isNotEmpty ? (currentAudioTrack?.title ?? '') : '';
   String get currentAudioPath =>
       isNotEmpty ? (currentAudioTrack?.path ?? '') : '';
-  String? get currentAudioColor =>
-      isNotEmpty ? currentAudioTrack?.color : null;
+  String? get currentAudioColor => isNotEmpty ? currentAudioTrack?.color : null;
   BackgroundData? get currentAudioBackground =>
       isNotEmpty ? currentAudioTrack?.background : null;
   PlayListOrderState get playListOrderState => _playListOrderState;
@@ -34,6 +33,7 @@ class PlayList {
   String audioTitle(int index) {
     return _playMap[_playList[index]]!.title;
   }
+
   AudioTrack? audioTrack(int index) =>
       isNotEmpty ? _playMap[(_playList[index])] : null;
   void setAudioColor(int index, String color) =>
@@ -105,12 +105,13 @@ class PlayList {
       List<String> newBackup = [];
       String currentKey = _playList[currentIndex];
       for (int i = 0, j = 0; i < _playListBackup.length; i++) {
-        if(_playMap[_playListBackup[i]] != null) {
+        if (_playMap[_playListBackup[i]] != null) {
           _playList[j] = _playListBackup[i];
           if (currentKey == _playList[j]) {
             currentIndex = j;
           }
-          j++; newBackup.add(_playListBackup[i]);
+          j++;
+          newBackup.add(_playListBackup[i]);
         }
       }
       _playListBackup = newBackup;
@@ -164,23 +165,29 @@ class PlayList {
         }
       }
     }
-    
-    AudioStreamController.playList.add(null);
-    AudioStreamController.playListOrderState.add(null);
+
+    AudioStreamController.emitPlayListChanged();
+    AudioStreamController.emitPlayListOrderChanged();
   }
 
   void sortByTitleAscending() => _playList.sort((a, b) => a.compareTo(b));
   void sortByTitleDescending() => _playList.sort((a, b) => b.compareTo(a));
-  void sortByModifiedDateTimeAscending() =>
-      _playList.sort((a, b) => stringToDateTime(_playMap[a]!.modifiedDateTime)
-              .isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
-          ? 1
-          : -1);
-  void sortByModifiedDateTimeDescending() =>
-      _playList.sort((a, b) => stringToDateTime(_playMap[a]!.modifiedDateTime)
-              .isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
-          ? -1
-          : 1);
+  void sortByModifiedDateTimeAscending() => _playList.sort(
+    (a, b) =>
+        stringToDateTime(
+          _playMap[a]!.modifiedDateTime,
+        ).isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
+        ? 1
+        : -1,
+  );
+  void sortByModifiedDateTimeDescending() => _playList.sort(
+    (a, b) =>
+        stringToDateTime(
+          _playMap[a]!.modifiedDateTime,
+        ).isBefore(stringToDateTime(_playMap[b]!.modifiedDateTime))
+        ? -1
+        : 1,
+  );
 
   void clear() {
     _playMap.clear();
@@ -189,7 +196,7 @@ class PlayList {
     currentIndex = 0;
     _playListOrderState = PlayListOrderState.none;
 
-    AudioStreamController.playList.add(null);
-    AudioStreamController.playListOrderState.add(null);
+    AudioStreamController.emitPlayListChanged();
+    AudioStreamController.emitPlayListOrderChanged();
   }
 }

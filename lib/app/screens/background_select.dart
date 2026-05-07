@@ -15,8 +15,7 @@ import '../widgets/text_field.dart';
 import '../widgets/slider.dart';
 
 class BackgroundSelectPage extends StatefulWidget {
-  const BackgroundSelectPage({Key? key, required this.trackIndex})
-    : super(key: key);
+  const BackgroundSelectPage({super.key, required this.trackIndex});
   final int trackIndex;
 
   @override
@@ -72,8 +71,8 @@ class _BackgroundSelectPageState extends State<BackgroundSelectPage> {
         background,
       );
       PlayList.instance.setAudioBackground(widget.trackIndex, background);
-      AudioStreamController.backgroundFile.add(null);
-      AudioStreamController.imageBackgroundAnimation.add(null);
+      AudioStreamController.emitBackgroundFileChanged();
+      AudioStreamController.emitImageBackgroundAnimationChanged();
       setState(() {});
     }
   }

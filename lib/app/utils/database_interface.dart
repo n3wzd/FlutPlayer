@@ -56,14 +56,19 @@ class DatabaseInterface {
     return await sqflite.databaseExists(path);
   }
 
-  Future<void> execute(String sql) async {
+  Future<void> execute(String sql, [List<Object?>? arguments]) async {
     if (!isOpen) return;
-    await _database.execute(sql);
+    await _database.execute(sql, arguments);
   }
 
-  Future<List<Map>> rawQuery(String sql) async {
+  Future<List<Map>> rawQuery(String sql, [List<Object?>? arguments]) async {
     if (!isOpen) return [];
-    return await _database.rawQuery(sql);
+    return await _database.rawQuery(sql, arguments);
+  }
+
+  Future<int> rawInsert(String sql, [List<Object?>? arguments]) async {
+    if (!isOpen) return 0;
+    return await _database.rawInsert(sql, arguments);
   }
 
   Future<void> transaction(Future<void> Function(dynamic) action) async {

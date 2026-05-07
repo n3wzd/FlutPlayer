@@ -16,7 +16,7 @@ import '../screens/background_select.dart';
 import '../app_state.dart';
 
 class ListSheet extends StatefulWidget {
-  const ListSheet({Key? key}) : super(key: key);
+  const ListSheet({super.key});
 
   @override
   State<ListSheet> createState() => _ListSheetState();

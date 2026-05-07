@@ -12,7 +12,7 @@ import '../widgets/checkbox.dart';
 import '../models/color.dart';
 
 class EqualizerControls extends StatefulWidget {
-  const EqualizerControls({Key? key}) : super(key: key);
+  const EqualizerControls({super.key});
 
   @override
   State<EqualizerControls> createState() => _EqualizerControlsState();
@@ -71,7 +71,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
   }
 
   void gainSave() {
-    Preference.save('equalizerGains');
+    Preference.save(PreferenceKey.equalizerGains);
   }
 
   void gainReset() {
@@ -96,7 +96,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                 value: Preference.enableEqualizer,
                 onChanged: (bool? value) {
                   Preference.enableEqualizer = !Preference.enableEqualizer;
-                  Preference.save('enableEqualizer');
+                  Preference.save(PreferenceKey.enableEqualizer);
                   AudioManager.instance.setEnabledEqualizer();
                   setState(() {});
                 },
@@ -111,7 +111,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
                     ? (bool? value) {
                         Preference.smoothSliderEqualizer =
                             !Preference.smoothSliderEqualizer;
-                        Preference.save('smoothSliderEqualizer');
+                        Preference.save(PreferenceKey.smoothSliderEqualizer);
                         setCheckBoxState(() {});
                       }
                     : null,
@@ -178,7 +178,7 @@ class _EqualizerControlsState extends State<EqualizerControls> {
 }
 
 class OKButton extends StatelessWidget {
-  const OKButton({Key? key}) : super(key: key);
+  const OKButton({super.key});
 
   @override
   Widget build(BuildContext context) => Container(

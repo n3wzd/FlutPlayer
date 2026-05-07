@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/color.dart';
 
 class SwitchFactory {
-  static normal({required bool value, onChanged}) => Switch(
+  static Widget normal({required bool value, ValueChanged<bool>? onChanged}) =>
+      Switch(
         value: value,
-        activeColor: ColorPalette.lightWine,
+        activeThumbColor: ColorPalette.lightWine,
         onChanged: onChanged,
       );
 }

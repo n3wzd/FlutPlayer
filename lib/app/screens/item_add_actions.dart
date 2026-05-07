@@ -11,7 +11,7 @@ import '../widgets/button.dart';
 import '../app_state.dart';
 
 class ColorSelector extends StatefulWidget {
-  const ColorSelector({Key? key, required this.trackIndex}) : super(key: key);
+  const ColorSelector({super.key, required this.trackIndex});
   final int trackIndex;
 
   @override
@@ -84,8 +84,8 @@ class _ColorSelectorState extends State<ColorSelector> {
                       widget.trackIndex,
                       _colorList[index],
                     );
-                    AudioStreamController.visualizerColor.add(null);
-                    AudioStreamController.backgroundFile.add(null);
+                    AudioStreamController.emitVisualizerColorChanged();
+                    AudioStreamController.emitBackgroundFileChanged();
                     AppState.instance.updateVisualizerColor();
                     Navigator.pop(context);
                   }
@@ -118,7 +118,7 @@ void backgroundSelector(int trackIndex) async {
         trackIndex,
         BackgroundData(path: path),
       );
-      AudioStreamController.backgroundFile.add(null);
+      AudioStreamController.emitBackgroundFileChanged();
     }
   }
 }

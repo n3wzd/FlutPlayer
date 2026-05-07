@@ -8,7 +8,7 @@ import '../components/stream_builder.dart';
 import '../models/color.dart';
 
 class TopMenu extends StatelessWidget {
-  const TopMenu({Key? key, required this.onDrawTap}) : super(key: key);
+  const TopMenu({super.key, required this.onDrawTap});
   final VoidCallback onDrawTap;
 
   @override
@@ -32,14 +32,16 @@ class TopMenu extends StatelessWidget {
           hasOverlay: false,
         ),
         StatefulBuilder(
-          builder: (context, setState) => AudioStreamBuilder.mashupButton((context, data) => 
-            ButtonFactory.iconButton(
-              icon: Icon(Icons.tornado,
-                  color: 
-                    AudioManager.instance.customMixMode ? ColorPalette.purple :
-                      (AudioManager.instance.mashupMode
-                        ? ColorPalette.lightWine
-                        : ColorPalette.lightGrey)),
+          builder: (context, setState) => AudioStreamBuilder.mashupButton(
+            (context, data) => ButtonFactory.iconButton(
+              icon: Icon(
+                Icons.tornado,
+                color: AudioManager.instance.customMixMode
+                    ? ColorPalette.purple
+                    : (AudioManager.instance.mashupMode
+                          ? ColorPalette.lightWine
+                          : ColorPalette.lightGrey),
+              ),
               iconSize: 26,
               onPressed: () {
                 setState(() {
@@ -48,7 +50,8 @@ class TopMenu extends StatelessWidget {
               },
               outline: false,
               hasOverlay: false,
-            )),
+            ),
+          ),
         ),
         const FullscreenButton(),
         Expanded(
@@ -62,12 +65,13 @@ class TopMenu extends StatelessWidget {
                   builder: (context, setState) => Row(
                     children: [
                       Icon(
-                          silderValue > silderMax / 2
-                              ? Icons.volume_up
-                              : (silderValue > 0
+                        silderValue > silderMax / 2
+                            ? Icons.volume_up
+                            : (silderValue > 0
                                   ? Icons.volume_down
                                   : Icons.volume_mute),
-                          color: ColorPalette.purple),
+                        color: ColorPalette.purple,
+                      ),
                       Expanded(
                         child: SliderFactory.slider(
                           value: silderValue,
@@ -78,7 +82,7 @@ class TopMenu extends StatelessWidget {
                             setState(() {});
                           },
                           onChangeEnd: (double value) {
-                            Preference.save('volumeMasterRate');
+                            Preference.save(PreferenceKey.volumeMasterRate);
                           },
                           useOverlayColor: false,
                         ),

@@ -17,7 +17,7 @@ import '../widgets/listtile.dart';
 import '../widgets/text.dart';
 
 class PageDrawer extends StatelessWidget {
-  const PageDrawer({Key? key}) : super(key: key);
+  const PageDrawer({super.key});
 
   void apiProcess(
     BuildContext context,
@@ -101,7 +101,7 @@ class PageDrawer extends StatelessWidget {
       onChanged: (bool value) {
         Preference.showPlayListOrderButton =
             !Preference.showPlayListOrderButton;
-        Preference.save('showPlayListOrderButton');
+        Preference.save(PreferenceKey.showPlayListOrderButton);
       },
     ),
     ListTileFactory.contentDropDownMenu<PlayListOrderMethod>(
@@ -111,7 +111,7 @@ class PageDrawer extends StatelessWidget {
       onSelected: (PlayListOrderMethod? value) {
         if (value != null) {
           Preference.playListOrderMethod = value;
-          Preference.save('playListOrderMethod');
+          Preference.save(PreferenceKey.playListOrderMethod);
         }
       },
       valueList: [
@@ -133,7 +133,7 @@ class PageDrawer extends StatelessWidget {
         Preference.mashupTransitionTime = value.toInt();
       },
       onChangeEnd: (double value) {
-        Preference.save('mashupTransitionTime');
+        Preference.save(PreferenceKey.mashupTransitionTime);
       },
       sliderDivisions: 8,
       sliderShowLabel: true,
@@ -152,8 +152,8 @@ class PageDrawer extends StatelessWidget {
         Preference.mashupNextTriggerMaxTime = values.end.toInt();
       },
       onChangeEnd: (RangeValues values) {
-        Preference.save('mashupNextTriggerMinTime');
-        Preference.save('mashupNextTriggerMaxTime');
+        Preference.save(PreferenceKey.mashupNextTriggerMinTime);
+        Preference.save(PreferenceKey.mashupNextTriggerMaxTime);
       },
       sliderDivisions: 10,
       sliderShowLabel: true,
@@ -180,8 +180,8 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.enableBackground,
       onChanged: (bool value) {
         Preference.enableBackground = !Preference.enableBackground;
-        Preference.save('enableBackground');
-        AudioStreamController.enabledBackground.add(null);
+        Preference.save(PreferenceKey.enableBackground);
+        AudioStreamController.emitEnabledBackgroundChanged();
       },
     ),
     ListTileFactory.contentDropDownMenu<BackgroundMethod>(
@@ -192,8 +192,8 @@ class PageDrawer extends StatelessWidget {
       onSelected: (BackgroundMethod? value) {
         if (value != null) {
           Preference.backgroundMethod = value;
-          Preference.save('backgroundMethod');
-          AudioStreamController.backgroundFile.add(null);
+          Preference.save(PreferenceKey.backgroundMethod);
+          AudioStreamController.emitBackgroundFileChanged();
         }
       },
       valueList: [
@@ -223,7 +223,7 @@ class PageDrawer extends StatelessWidget {
       onChanged: (bool value) {
         Preference.enableBackgroundTransition =
             !Preference.enableBackgroundTransition;
-        Preference.save('enableBackgroundTransition');
+        Preference.save(PreferenceKey.enableBackgroundTransition);
         BackgroundTransitionTimer.instance.update(value);
       },
     ),
@@ -243,8 +243,8 @@ class PageDrawer extends StatelessWidget {
         Preference.backgroundNextTriggerMaxTime = values.end.toInt();
       },
       onChangeEnd: (RangeValues values) {
-        Preference.save('backgroundNextTriggerMinTime');
-        Preference.save('backgroundNextTriggerMaxTime');
+        Preference.save(PreferenceKey.backgroundNextTriggerMinTime);
+        Preference.save(PreferenceKey.backgroundNextTriggerMaxTime);
       },
       sliderDivisions: 8,
       sliderShowLabel: true,
@@ -256,8 +256,8 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.enableVisualizer,
       onChanged: (bool value) {
         Preference.enableVisualizer = !Preference.enableVisualizer;
-        Preference.save('enableVisualizer');
-        AudioStreamController.enabledVisualizer.add(null);
+        Preference.save(PreferenceKey.enableVisualizer);
+        AudioStreamController.emitEnabledVisualizerChanged();
       },
     ),
     ListTileFactory.contentSwitch(
@@ -266,7 +266,7 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.randomColorVisualizer,
       onChanged: (bool value) {
         Preference.randomColorVisualizer = !Preference.randomColorVisualizer;
-        Preference.save('randomColorVisualizer');
+        Preference.save(PreferenceKey.randomColorVisualizer);
         AppState.instance.updateVisualizerColor();
       },
     ),
@@ -276,8 +276,8 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.enableNCSLogo,
       onChanged: (bool value) {
         Preference.enableNCSLogo = !Preference.enableNCSLogo;
-        Preference.save('enableNCSLogo');
-        AudioStreamController.enabledNCSLogo.add(null);
+        Preference.save(PreferenceKey.enableNCSLogo);
+        AudioStreamController.emitEnabledNCSLogoChanged();
       },
     ),
     ListTileFactory.title(text: 'Other'),
@@ -287,7 +287,7 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.instantlyPlay,
       onChanged: (bool value) {
         Preference.instantlyPlay = !Preference.instantlyPlay;
-        Preference.save('instantlyPlay');
+        Preference.save(PreferenceKey.instantlyPlay);
       },
     ),
     ListTileFactory.contentSwitch(
@@ -296,7 +296,7 @@ class PageDrawer extends StatelessWidget {
       initialValue: Preference.shuffleReload,
       onChanged: (bool value) {
         Preference.shuffleReload = !Preference.shuffleReload;
-        Preference.save('shuffleReload');
+        Preference.save(PreferenceKey.shuffleReload);
       },
     ),
     ListTileFactory.contentSwitch(
@@ -306,7 +306,7 @@ class PageDrawer extends StatelessWidget {
       onChanged: (bool value) {
         Preference.showPlayListDeleteButton =
             !Preference.showPlayListDeleteButton;
-        Preference.save('showPlayListDeleteButton');
+        Preference.save(PreferenceKey.showPlayListDeleteButton);
       },
     ),
     ListTileFactory.title(text: 'Advance'),

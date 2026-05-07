@@ -173,7 +173,7 @@ class BackgroundTransitionTimer {
       onComplete: () {
         if (Preference.enableBackgroundTransition) {
           BackgroundManager.instance.randomizeCurrentBackgroundList();
-          AudioStreamController.backgroundFile.add(null);
+          AudioStreamController.emitBackgroundFileChanged();
           set();
         }
       },

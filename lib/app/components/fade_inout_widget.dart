@@ -29,21 +29,23 @@ class _FadeInOutWidgetState extends State<FadeInOutWidget> {
 
   void setNextTrigger() {
     _triggerVisible =
-        Stream<void>.fromFuture(Future<void>.delayed(triggerVisibleTime, () {}))
-            .listen((x) {
-      if (!mounted) return;
-      setState(() {
-        _isVisible = false;
-      });
-    });
+        Stream<void>.fromFuture(
+          Future<void>.delayed(triggerVisibleTime, () {}),
+        ).listen((x) {
+          if (!mounted) return;
+          setState(() {
+            _isVisible = false;
+          });
+        });
     _triggerActive =
-        Stream<void>.fromFuture(Future<void>.delayed(triggerActiveTime, () {}))
-            .listen((x) {
-      if (!mounted) return;
-      setState(() {
-        _isActive = false;
-      });
-    });
+        Stream<void>.fromFuture(
+          Future<void>.delayed(triggerActiveTime, () {}),
+        ).listen((x) {
+          if (!mounted) return;
+          setState(() {
+            _isActive = false;
+          });
+        });
   }
 
   void cancelTrigger() {
@@ -58,15 +60,15 @@ class _FadeInOutWidgetState extends State<FadeInOutWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: () {
-          _activeVisibility();
-        },
-        child: AnimatedOpacity(
-          opacity: _isVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          child:
-              _isActive ? widget.child : Container(color: Colors.transparent),
-        ));
+      onTap: () {
+        _activeVisibility();
+      },
+      child: AnimatedOpacity(
+        opacity: _isVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: _isActive ? widget.child : Container(color: Colors.transparent),
+      ),
+    );
   }
 }

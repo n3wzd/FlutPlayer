@@ -58,7 +58,8 @@ class AudioStreamBuilder {
 
   static StreamBuilder<void> playListSheet(BuildParameter<void> builder) =>
       playListOrderState(
-          (context, value) => playList((context, value) => track(builder)));
+        (context, value) => playList((context, value) => track(builder)),
+      );
 
   static StreamBuilder<void> mashupButton(BuildParameter<void> builder) =>
       StreamBuilder<void>(

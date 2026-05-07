@@ -22,105 +22,115 @@ class Preference {
 
   static Future<void> save(String target) async {
     switch (target) {
-      case 'volumeMasterRate':
+      case PreferenceKey.volumeMasterRate:
         await prefs.setDouble(target, volumeMasterRate);
         break;
 
-      case 'showPlayListOrderButton':
+      case PreferenceKey.showPlayListOrderButton:
         await prefs.setBool(target, showPlayListOrderButton);
         break;
-      case 'playListOrderMethod':
+      case PreferenceKey.playListOrderMethod:
         await prefs.setString(target, playListOrderMethod.toString());
         break;
 
-      case 'mashupTransitionTime':
+      case PreferenceKey.mashupTransitionTime:
         await prefs.setInt(target, mashupTransitionTime);
         break;
-      case 'mashupNextTriggerMinTime':
+      case PreferenceKey.mashupNextTriggerMinTime:
         await prefs.setInt(target, mashupNextTriggerMinTime);
         break;
-      case 'mashupNextTriggerMaxTime':
+      case PreferenceKey.mashupNextTriggerMaxTime:
         await prefs.setInt(target, mashupNextTriggerMaxTime);
         break;
 
-      case 'enableEqualizer':
+      case PreferenceKey.enableEqualizer:
         await prefs.setBool(target, enableEqualizer);
         break;
-      case 'smoothSliderEqualizer':
+      case PreferenceKey.smoothSliderEqualizer:
         await prefs.setBool(target, smoothSliderEqualizer);
         break;
-      case 'equalizerGains':
+      case PreferenceKey.equalizerGains:
         await prefs.setStringList(
           target,
           equalizerGains.map((gain) => gain.toString()).toList(),
         );
         break;
 
-      case 'enableBackground':
+      case PreferenceKey.enableBackground:
         await prefs.setBool(target, enableBackground);
         break;
-      case 'backgroundMethod':
+      case PreferenceKey.backgroundMethod:
         await prefs.setString(target, backgroundMethod.toString());
         break;
-      case 'enableBackgroundTransition':
+      case PreferenceKey.enableBackgroundTransition:
         await prefs.setBool(target, enableBackgroundTransition);
         break;
-      case 'backgroundNextTriggerMinTime':
+      case PreferenceKey.backgroundNextTriggerMinTime:
         await prefs.setInt(target, backgroundNextTriggerMinTime);
         break;
-      case 'backgroundNextTriggerMaxTime':
+      case PreferenceKey.backgroundNextTriggerMaxTime:
         await prefs.setInt(target, backgroundNextTriggerMaxTime);
         break;
 
-      case 'enableVisualizer':
+      case PreferenceKey.enableVisualizer:
         await prefs.setBool(target, enableVisualizer);
         break;
-      case 'randomColorVisualizer':
+      case PreferenceKey.randomColorVisualizer:
         await prefs.setBool(target, randomColorVisualizer);
         break;
-      case 'enableNCSLogo':
+      case PreferenceKey.enableNCSLogo:
         await prefs.setBool(target, enableNCSLogo);
         break;
 
-      case 'instantlyPlay':
+      case PreferenceKey.instantlyPlay:
         await prefs.setBool(target, instantlyPlay);
         break;
-      case 'shuffleReload':
+      case PreferenceKey.shuffleReload:
         await prefs.setBool(target, shuffleReload);
         break;
-      case 'showPlayListDeleteButton':
+      case PreferenceKey.showPlayListDeleteButton:
         await prefs.setBool(target, showPlayListDeleteButton);
         break;
 
-      case 'tagRootPath':
+      case PreferenceKey.tagRootPath:
         await prefs.setString(target, tagRootPath);
         break;
-      case 'resourceRootPath':
+      case PreferenceKey.resourceRootPath:
         await prefs.setString(target, resourceRootPath);
         break;
     }
   }
 
   static void load() {
-    volumeMasterRate = prefs.getDouble('volumeMasterRate') ?? volumeMasterRate;
+    volumeMasterRate =
+        prefs.getDouble(PreferenceKey.volumeMasterRate) ?? volumeMasterRate;
 
     showPlayListOrderButton =
-        prefs.getBool('showPlayListOrderButton') ?? showPlayListOrderButton;
+        prefs.getBool(PreferenceKey.showPlayListOrderButton) ??
+        showPlayListOrderButton;
     playListOrderMethod = PlayListOrderMethod.toEnum(
-      prefs.getString('playListOrderMethod') ?? playListOrderMethod.toString(),
+      prefs.getString(PreferenceKey.playListOrderMethod) ??
+          playListOrderMethod.toString(),
     );
 
     mashupTransitionTime =
-        prefs.getInt('mashupTransitionTime') ?? mashupTransitionTime;
+        prefs.getInt(PreferenceKey.mashupTransitionTime) ??
+        mashupTransitionTime;
     mashupNextTriggerMinTime =
-        prefs.getInt('mashupNextTriggerMinTime') ?? mashupNextTriggerMinTime;
+        prefs.getInt(PreferenceKey.mashupNextTriggerMinTime) ??
+        mashupNextTriggerMinTime;
     mashupNextTriggerMaxTime =
-        prefs.getInt('mashupNextTriggerMaxTime') ?? mashupNextTriggerMaxTime;
+        prefs.getInt(PreferenceKey.mashupNextTriggerMaxTime) ??
+        mashupNextTriggerMaxTime;
 
-    enableEqualizer = prefs.getBool('enableEqualizer') ?? enableEqualizer;
+    enableEqualizer =
+        prefs.getBool(PreferenceKey.enableEqualizer) ?? enableEqualizer;
     smoothSliderEqualizer =
-        prefs.getBool('smoothSliderEqualizer') ?? smoothSliderEqualizer;
-    final savedEqualizerGains = prefs.getStringList('equalizerGains');
+        prefs.getBool(PreferenceKey.smoothSliderEqualizer) ??
+        smoothSliderEqualizer;
+    final savedEqualizerGains = prefs.getStringList(
+      PreferenceKey.equalizerGains,
+    );
     if (savedEqualizerGains != null &&
         savedEqualizerGains.length == equalizerGains.length) {
       equalizerGains = savedEqualizerGains
@@ -132,32 +142,38 @@ class Preference {
           .toList();
     }
 
-    enableBackground = prefs.getBool('enableBackground') ?? enableBackground;
+    enableBackground =
+        prefs.getBool(PreferenceKey.enableBackground) ?? enableBackground;
     backgroundMethod = BackgroundMethod.toEnum(
-      prefs.getString('backgroundMethod') ?? backgroundMethod.toString(),
+      prefs.getString(PreferenceKey.backgroundMethod) ??
+          backgroundMethod.toString(),
     );
     enableBackgroundTransition =
-        prefs.getBool('enableBackgroundTransition') ??
+        prefs.getBool(PreferenceKey.enableBackgroundTransition) ??
         enableBackgroundTransition;
     backgroundNextTriggerMinTime =
-        prefs.getInt('backgroundNextTriggerMinTime') ??
+        prefs.getInt(PreferenceKey.backgroundNextTriggerMinTime) ??
         backgroundNextTriggerMinTime;
     backgroundNextTriggerMaxTime =
-        prefs.getInt('backgroundNextTriggerMaxTime') ??
+        prefs.getInt(PreferenceKey.backgroundNextTriggerMaxTime) ??
         backgroundNextTriggerMaxTime;
 
-    enableVisualizer = prefs.getBool('enableVisualizer') ?? enableVisualizer;
+    enableVisualizer =
+        prefs.getBool(PreferenceKey.enableVisualizer) ?? enableVisualizer;
     randomColorVisualizer =
-        prefs.getBool('randomColorVisualizer') ?? randomColorVisualizer;
-    enableNCSLogo = prefs.getBool('enableNCSLogo') ?? enableNCSLogo;
+        prefs.getBool(PreferenceKey.randomColorVisualizer) ??
+        randomColorVisualizer;
+    enableNCSLogo = prefs.getBool(PreferenceKey.enableNCSLogo) ?? enableNCSLogo;
 
-    instantlyPlay = prefs.getBool('instantlyPlay') ?? instantlyPlay;
-    shuffleReload = prefs.getBool('shuffleReload') ?? shuffleReload;
+    instantlyPlay = prefs.getBool(PreferenceKey.instantlyPlay) ?? instantlyPlay;
+    shuffleReload = prefs.getBool(PreferenceKey.shuffleReload) ?? shuffleReload;
     showPlayListDeleteButton =
-        prefs.getBool('showPlayListDeleteButton') ?? showPlayListDeleteButton;
+        prefs.getBool(PreferenceKey.showPlayListDeleteButton) ??
+        showPlayListDeleteButton;
 
-    tagRootPath = prefs.getString('tagRootPath') ?? tagRootPath;
-    resourceRootPath = prefs.getString('resourceRootPath') ?? resourceRootPath;
+    tagRootPath = prefs.getString(PreferenceKey.tagRootPath) ?? tagRootPath;
+    resourceRootPath =
+        prefs.getString(PreferenceKey.resourceRootPath) ?? resourceRootPath;
   }
 
   // Volume
@@ -202,6 +218,31 @@ class Preference {
   static bool showPlayListDeleteButton = true;
   static String tagRootPath = '';
   static String resourceRootPath = '';
+}
+
+class PreferenceKey {
+  static const volumeMasterRate = 'volumeMasterRate';
+  static const showPlayListOrderButton = 'showPlayListOrderButton';
+  static const playListOrderMethod = 'playListOrderMethod';
+  static const mashupTransitionTime = 'mashupTransitionTime';
+  static const mashupNextTriggerMinTime = 'mashupNextTriggerMinTime';
+  static const mashupNextTriggerMaxTime = 'mashupNextTriggerMaxTime';
+  static const enableEqualizer = 'enableEqualizer';
+  static const smoothSliderEqualizer = 'smoothSliderEqualizer';
+  static const equalizerGains = 'equalizerGains';
+  static const enableBackground = 'enableBackground';
+  static const backgroundMethod = 'backgroundMethod';
+  static const enableBackgroundTransition = 'enableBackgroundTransition';
+  static const backgroundNextTriggerMinTime = 'backgroundNextTriggerMinTime';
+  static const backgroundNextTriggerMaxTime = 'backgroundNextTriggerMaxTime';
+  static const enableVisualizer = 'enableVisualizer';
+  static const randomColorVisualizer = 'randomColorVisualizer';
+  static const enableNCSLogo = 'enableNCSLogo';
+  static const instantlyPlay = 'instantlyPlay';
+  static const shuffleReload = 'shuffleReload';
+  static const showPlayListDeleteButton = 'showPlayListDeleteButton';
+  static const tagRootPath = 'tagRootPath';
+  static const resourceRootPath = 'resourceRootPath';
 }
 
 class PreferenceConstant {

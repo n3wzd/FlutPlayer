@@ -17,7 +17,7 @@ import '../models/enum.dart';
 import '../models/data.dart';
 
 class Background extends StatelessWidget {
-  const Background({Key? key}) : super(key: key);
+  const Background({super.key});
 
   @override
   Widget build(BuildContext context) => AudioStreamBuilder.backgroundFile((
@@ -70,7 +70,7 @@ class Background extends StatelessWidget {
 }
 
 class DefaultBackground extends StatefulWidget {
-  const DefaultBackground({Key? key}) : super(key: key);
+  const DefaultBackground({super.key});
 
   @override
   State<DefaultBackground> createState() => _DefaultBackgroundState();
@@ -143,7 +143,7 @@ class ImageBackgroundManager {
     imageFile: null,
   );
 
-  get widget => imageBackground;
+  ImageBackground get widget => imageBackground;
 
   void load(BackgroundData background) {
     final imageFile = FileImage(File(background.path));
@@ -156,10 +156,10 @@ class ImageBackgroundManager {
 
 class ImageBackground extends StatefulWidget {
   const ImageBackground({
-    Key? key,
+    super.key,
     required this.background,
     required this.imageFile,
-  }) : super(key: key);
+  });
   final BackgroundData background;
   final FileImage? imageFile;
 
@@ -434,10 +434,10 @@ class _WindowsVideoBackgroundState extends State<WindowsVideoBackground>
 
 class FileBackground extends StatelessWidget {
   const FileBackground({
-    Key? key,
+    super.key,
     required this.child,
     required this.background,
-  }) : super(key: key);
+  });
   final Widget child;
   final BackgroundData background;
 
