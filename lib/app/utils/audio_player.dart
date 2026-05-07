@@ -77,7 +77,7 @@ class AudioPlayer {
     _audioPlayerCode = audioPlayerCode;
     _nextEventWhenPlayerCompleted = nextEventWhenPlayerCompleted;
     await _ensureInitialized();
-    setEnabledEqualizer();
+    equalizer.loadPreferenceGains();
     _positionTimer ??= Timer.periodic(
       const Duration(milliseconds: 200),
       (_) => _emitPosition(),
@@ -164,7 +164,10 @@ class AudioPlayer {
   }
 
   void setEnabledEqualizer() {
-    equalizer.setEnabled(Preference.enableEqualizer);
+    equalizer.setEnabled(
+      Preference.enableEqualizer,
+      hasAudioHandle: _hasValidHandle,
+    );
   }
 
   Future<void> syncEqualizer(AudioPlayer sub) async {
@@ -178,6 +181,11 @@ class AudioPlayer {
     return _initFuture ??= _soloud.init();
   }
 
+  bool get _hasValidHandle {
+    final handle = _handle;
+    return handle != null && !handle.isError;
+  }
+
   SoundHandle? _createHandle({required bool paused}) {
     final source = _source;
     if (source == null) {
@@ -185,6 +193,7 @@ class AudioPlayer {
     }
     final handle = _soloud.play(source, volume: _volume, paused: paused);
     _handle = handle;
+    setEnabledEqualizer();
     _listenForCompletion(source, handle);
     return handle;
   }
@@ -244,6 +253,14 @@ class SoLoudEqualizer {
     Preference.equalizerGains,
   );
 
+  void loadPreferenceGains() {
+    for (int i = 0; i < bandsLength; i++) {
+      _gains[i] = Preference.equalizerGains[i]
+          .clamp(minGain, maxGain)
+          .toDouble();
+    }
+  }
+
   Future<SoLoudEqualizerParameters> get parameters async {
     final eq = SoLoud.instance.filters.parametricEqFilter;
     if (eq.isActive) {
@@ -261,8 +278,12 @@ class SoLoudEqualizer {
     );
   }
 
-  void setEnabled(bool enabled) {
+  void setEnabled(bool enabled, {required bool hasAudioHandle}) {
     final eq = SoLoud.instance.filters.parametricEqFilter;
+    if (enabled && !hasAudioHandle) {
+      loadPreferenceGains();
+      return;
+    }
     if (enabled && !eq.isActive) {
       eq.activate();
       eq.numBands.value = bandsLength.toDouble();

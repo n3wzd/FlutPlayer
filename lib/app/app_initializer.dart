@@ -44,6 +44,10 @@ class AppInitializer {
     required bool loadPreference,
     VoidCallback? onPreferenceLoaded,
   }) async {
+    if (!_preferenceLoaded && Preference.initialized) {
+      _preferenceLoaded = true;
+    }
+
     if (loadPreference && !_preferenceLoaded) {
       await Preference.init();
       _preferenceLoaded = true;

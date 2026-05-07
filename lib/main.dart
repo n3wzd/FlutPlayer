@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import './app/main_page.dart';
 import './app/utils/platform_support.dart';
+import './app/utils/preference.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Preference.init();
   if (PlatformSupport.isWindows) {
     MediaKit.ensureInitialized();
   }

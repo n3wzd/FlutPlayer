@@ -7,6 +7,8 @@ class Preference {
   static Preference get instance => _instance;
 
   static SharedPreferences? _prefs;
+  static bool get initialized => _prefs != null;
+
   static SharedPreferences get prefs {
     final preferences = _prefs;
     if (preferences == null) {
