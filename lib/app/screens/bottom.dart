@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../utils/audio_manager.dart';
@@ -29,45 +31,53 @@ class ControlSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AudioStreamBuilder.track(
-    (context, duration) => AudioStreamBuilder.position(
-      (context, position) => ControlUI(
-        trackDuration: AudioManager.instance.duration,
-        trackPosition: position.data ?? const Duration(milliseconds: 0),
-      ),
-    ),
+    (context, duration) =>
+        ControlUI(trackDuration: AudioManager.instance.duration),
   );
 }
 
 class ControlUI extends StatefulWidget {
-  const ControlUI({
-    super.key,
-    required this.trackDuration,
-    required this.trackPosition,
-  });
+  const ControlUI({super.key, required this.trackDuration});
   final Duration trackDuration;
-  final Duration trackPosition;
 
   @override
   State<ControlUI> createState() => _ControlUIState();
 }
 
 class _ControlUIState extends State<ControlUI> {
+  Timer? _positionTimer;
   double _sliderValue = 0;
   bool _isSliderChanging = false;
-  int _afterChangedCount = 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncPosition();
+    _positionTimer = Timer.periodic(
+      const Duration(milliseconds: 200),
+      (_) => _syncPosition(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(ControlUI oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.trackDuration != widget.trackDuration) {
+      _syncPosition();
+    }
+  }
+
+  @override
+  void dispose() {
+    _positionTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    double silderMax = widget.trackDuration.inMilliseconds.toDouble();
-    if (!_isSliderChanging) {
-      if (_afterChangedCount <= 0) {
-        _sliderValue = widget.trackPosition.inMilliseconds.toDouble();
-      } else {
-        _afterChangedCount--;
-      }
-    }
-    if (_sliderValue >= silderMax) {
-      _sliderValue = silderMax;
+    double sliderMax = widget.trackDuration.inMilliseconds.toDouble();
+    if (_sliderValue >= sliderMax) {
+      _sliderValue = sliderMax;
     }
 
     return Column(
@@ -78,7 +88,7 @@ class _ControlUIState extends State<ControlUI> {
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: SliderFactory.slider(
             value: _sliderValue,
-            max: silderMax,
+            max: sliderMax,
             onChanged: (double value) {
               setState(() {
                 _sliderValue = value;
@@ -89,8 +99,10 @@ class _ControlUIState extends State<ControlUI> {
               AudioManager.instance.seekPosition(
                 Duration(milliseconds: value.toInt()),
               );
-              _isSliderChanging = false;
-              _afterChangedCount = 2;
+              setState(() {
+                _sliderValue = value;
+                _isSliderChanging = false;
+              });
             },
           ),
         ),
@@ -118,6 +130,17 @@ class _ControlUIState extends State<ControlUI> {
         ),
       ],
     );
+  }
+
+  void _syncPosition() {
+    if (!mounted || _isSliderChanging) {
+      return;
+    }
+    final sliderMax = widget.trackDuration.inMilliseconds.toDouble();
+    final position = AudioManager.instance.position.inMilliseconds.toDouble();
+    setState(() {
+      _sliderValue = position.clamp(0, sliderMax).toDouble();
+    });
   }
 }
 

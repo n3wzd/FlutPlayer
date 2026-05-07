@@ -104,7 +104,7 @@ class AudioPlayer {
     _emitPlaybackState();
     await _stopCurrent();
 
-    final source = await _soloud.loadFile(audioTrack.path, mode: LoadMode.disk);
+    final source = await _soloud.loadFile(audioTrack.path);
     _source = source;
     _createHandle(paused: true);
     _processingState = AudioPlayerProcessingState.ready;
@@ -132,6 +132,7 @@ class AudioPlayer {
       return;
     }
     _soloud.setPause(handle, true);
+    _emitPosition();
     _emitPlaybackState();
   }
 

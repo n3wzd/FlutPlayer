@@ -1,7 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import './audio_mashup_controller.dart';
 import './audio_player.dart';
 import './background_manager.dart';
