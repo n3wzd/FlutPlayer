@@ -8,7 +8,6 @@ import './tag_select.dart';
 import '../models/api.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
-import '../utils/background_manager.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
@@ -184,24 +183,6 @@ class PageDrawer extends StatelessWidget {
         AudioStreamController.emitEnabledBackgroundChanged();
       },
     ),
-    ListTileFactory.contentDropDownMenu<BackgroundMethod>(
-      title: 'Background Method',
-      subtitle:
-          'normal: show default background.\nrandom: show random background in the directory.\nspecific: show custom background each track.',
-      initialSelection: Preference.backgroundMethod,
-      onSelected: (BackgroundMethod? value) {
-        if (value != null) {
-          Preference.backgroundMethod = value;
-          Preference.save(PreferenceKey.backgroundMethod);
-          AudioStreamController.emitBackgroundFileChanged();
-        }
-      },
-      valueList: [
-        {'value': BackgroundMethod.normal, 'label': 'normal'},
-        {'value': BackgroundMethod.random, 'label': 'random'},
-        {'value': BackgroundMethod.specific, 'label': 'specific'},
-      ],
-    ),
     ListTileFactory.content(
       title: 'Directory Path',
       subtitle: 'open background directory page.',
@@ -215,39 +196,6 @@ class PageDrawer extends StatelessWidget {
           ),
         );
       },
-    ),
-    ListTileFactory.contentSwitch(
-      title: 'Enable Background Transition',
-      subtitle: 'background changes regardless of the currently playing track.',
-      initialValue: Preference.enableBackgroundTransition,
-      onChanged: (bool value) {
-        Preference.enableBackgroundTransition =
-            !Preference.enableBackgroundTransition;
-        Preference.save(PreferenceKey.enableBackgroundTransition);
-        BackgroundTransitionTimer.instance.update(value);
-      },
-    ),
-    ListTileFactory.contentRangeSlider(
-      title: 'Time to Trigger Next',
-      subtitle: 'changes random time range to trigger next background.',
-      initialValues: RangeValues(
-        Preference.backgroundNextTriggerMinTime.toDouble(),
-        Preference.backgroundNextTriggerMaxTime.toDouble(),
-      ),
-      sliderMin: PreferenceConstant.backgroundNextTriggerTimeRangeMin
-          .toDouble(),
-      sliderMax: PreferenceConstant.backgroundNextTriggerTimeRangeMax
-          .toDouble(),
-      onChanged: (RangeValues values) {
-        Preference.backgroundNextTriggerMinTime = values.start.toInt();
-        Preference.backgroundNextTriggerMaxTime = values.end.toInt();
-      },
-      onChangeEnd: (RangeValues values) {
-        Preference.save(PreferenceKey.backgroundNextTriggerMinTime);
-        Preference.save(PreferenceKey.backgroundNextTriggerMaxTime);
-      },
-      sliderDivisions: 8,
-      sliderShowLabel: true,
     ),
     ListTileFactory.title(text: 'Visualizer'),
     ListTileFactory.contentSwitch(

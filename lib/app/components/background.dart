@@ -9,11 +9,9 @@ import '../app_state.dart';
 import '../utils/background_manager.dart';
 import '../utils/playlist.dart';
 import '../utils/platform_support.dart';
-import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
-import '../models/enum.dart';
 import '../models/data.dart';
 
 class Background extends StatelessWidget {
@@ -24,15 +22,9 @@ class Background extends StatelessWidget {
     context,
     value,
   ) {
-    BackgroundTransitionTimer.instance.reset();
-    BackgroundData? background;
-    if (Preference.backgroundMethod == BackgroundMethod.specific) {
-      background = PlayList.instance.currentAudioBackground;
-    } else if (Preference.backgroundMethod == BackgroundMethod.random) {
-      if (BackgroundManager.instance.isListNotEmpty) {
-        background = BackgroundManager.instance.currentBackgroundData;
-      }
-    }
+    final BackgroundData? background = BackgroundManager.instance.isListNotEmpty
+        ? BackgroundManager.instance.currentBackgroundData
+        : null;
     if (background != null) {
       File backgroundFile = File(background.path);
       if (backgroundFile.existsSync()) {
@@ -178,7 +170,6 @@ class _ImageBackgroundState extends State<ImageBackground>
   double _scale = 1;
   final double _scaleSpeed = 1.5;
   double _prevControllerValue = 0;
-  bool _toggleImage = true;
 
   @override
   void initState() {
@@ -237,7 +228,6 @@ class _ImageBackgroundState extends State<ImageBackground>
     ).listen((x) {
       if (widget.background.scale) {
         _scale = 1;
-        _toggleImage = !_toggleImage;
       }
       _triggerScale = setScaleTrigger();
     });
@@ -264,21 +254,17 @@ class _ImageBackgroundState extends State<ImageBackground>
             double b = max(constraints.maxWidth, constraints.maxHeight);
             rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
           }
-          return AnimatedSwitcher(
-            duration: const Duration(seconds: 1),
-            child: Transform.scale(
-              key: ValueKey<bool>(_toggleImage),
-              scale: widget.background.scale
-                  ? _scale * rotationScale
-                  : rotationScale,
-              child: Transform.rotate(
-                angle: widget.background.rotate ? _angle * 2 * pi : 0,
-                child: SizedBox.expand(
-                  child: Image(
-                    image: widget.imageFile!,
-                    gaplessPlayback: true,
-                    fit: BoxFit.cover,
-                  ),
+          return Transform.scale(
+            scale: widget.background.scale
+                ? _scale * rotationScale
+                : rotationScale,
+            child: Transform.rotate(
+              angle: widget.background.rotate ? _angle * 2 * pi : 0,
+              child: SizedBox.expand(
+                child: Image(
+                  image: widget.imageFile!,
+                  gaplessPlayback: true,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -448,22 +434,16 @@ class FileBackground extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Opacity(
-    opacity: background.value.toDouble() / 100,
-    child: AnimatedSwitcher(
-      duration: const Duration(seconds: 1),
-      child: Container(
-        key: ValueKey<String>(background.path),
-        child: Stack(
-          children: [
-            child,
-            Opacity(
-              opacity: background.color ? 0.4 : 0,
-              child: Container(color: getColor()),
-            ),
-          ],
+  Widget build(BuildContext context) => Container(
+    key: ValueKey<String>(background.path),
+    child: Stack(
+      children: [
+        child,
+        Opacity(
+          opacity: background.color ? 0.4 : 0,
+          child: Container(color: getColor()),
         ),
-      ),
+      ],
     ),
   );
 }

@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io';
 import './database_interface.dart';
 import './preference.dart';
-import './stream_controller.dart';
 import '../models/data.dart';
 import '../models/api.dart';
 
@@ -16,7 +15,6 @@ class DatabaseManager {
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
   final String tableMasterDBTableName = '_table';
-  final String backgroundDBTableName = '_background';
   final String backgroundGroupDBTableName = '_background_group';
   final String mixDBTableName = '_mix';
   String databasesPath = '';
@@ -37,9 +35,6 @@ class DatabaseManager {
     );
     await DatabaseInterface.instance.execute(
       'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite INTEGER NOT NULL DEFAULT 0);',
-    );
-    await DatabaseInterface.instance.execute(
-      'CREATE TABLE IF NOT EXISTS $backgroundDBTableName (track TEXT PRIMARY KEY, path TEXT NOT NULL, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);',
     );
     await DatabaseInterface.instance.execute(
       'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, active BOOL NOT NULL DEFAULT FALSE, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);',
@@ -111,38 +106,6 @@ class DatabaseManager {
     return File(_tagCsvPath(tableName)).existsSync();
   }
 
-  Future<void> updateDBTrackColor(AudioTrack track, String color) async {
-    await DatabaseInterface.instance.transaction((txn) async {
-      await _insertTrackToDBMainTable(txn, track);
-    });
-    await DatabaseInterface.instance.execute(
-      'UPDATE $mainDBTableName SET color=? WHERE title=?;',
-      [color, track.title],
-    );
-    AudioStreamController.emitVisualizerColorChanged();
-  }
-
-  Future<void> updateDBTrackBackground(
-    String trackTitle,
-    BackgroundData data,
-  ) async {
-    await DatabaseInterface.instance.transaction((txn) async {
-      await _insertDataToDBBackgroundTable(txn, trackTitle, data);
-    });
-    await DatabaseInterface.instance.execute(
-      'UPDATE $backgroundDBTableName SET path=?, rotate=?, scale=?, color=?, value=? WHERE track=?;',
-      [
-        data.path,
-        data.rotate ? 1 : 0,
-        data.scale ? 1 : 0,
-        data.color ? 1 : 0,
-        data.value,
-        trackTitle,
-      ],
-    );
-    AudioStreamController.emitBackgroundFileChanged();
-  }
-
   Future<AudioTrack?> importTrack(String trackName) async {
     List<Map> datas = await DatabaseInterface.instance.rawQuery(
       'SELECT title, path, modified_time, color FROM $mainDBTableName WHERE title=?;',
@@ -154,7 +117,6 @@ class DatabaseManager {
         path: _fullResourcePath(datas[0]['path']),
         modifiedDateTime: datas[0]['modified_time'],
         color: datas[0]['color'],
-        background: await _importBackground(trackName),
       );
     }
     return null;
@@ -241,62 +203,6 @@ class DatabaseManager {
       'DELETE FROM $mixDBTableName WHERE path=?;',
       [path],
     );
-  }
-
-  Future<BackgroundData?> _importBackground(String trackName) async {
-    List<Map> datas = await DatabaseInterface.instance.rawQuery(
-      'SELECT path, rotate, scale, color, value FROM $backgroundDBTableName WHERE track=?;',
-      [trackName],
-    );
-    if (datas.isNotEmpty) {
-      return BackgroundData(
-        path: datas[0]['path'],
-        rotate: datas[0]['rotate'] == 1 ? true : false,
-        scale: datas[0]['scale'] == 1 ? true : false,
-        color: datas[0]['color'] == 1 ? true : false,
-        value: datas[0]['value'],
-      );
-    }
-    return null;
-  }
-
-  Future<void> _insertTrackToDBMainTable(dynamic txn, AudioTrack track) async {
-    const fallbackColor = '';
-    final sql =
-        'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES(?, ?, ?, ?);';
-    final arguments = [
-      track.title,
-      _resourcePathForStorage(track.path),
-      track.modifiedDateTime,
-      track.color ?? fallbackColor,
-    ];
-    if (txn != null) {
-      await txn.rawInsert(sql, arguments);
-    } else {
-      await DatabaseInterface.instance.rawInsert(sql, arguments);
-    }
-  }
-
-  Future<void> _insertDataToDBBackgroundTable(
-    dynamic txn,
-    String trackTitle,
-    BackgroundData data,
-  ) async {
-    final sql =
-        'INSERT OR IGNORE INTO $backgroundDBTableName(track, path, rotate, scale, color, value) VALUES(?, ?, ?, ?, ?, ?);';
-    final arguments = [
-      trackTitle,
-      data.path,
-      data.rotate ? 1 : 0,
-      data.scale ? 1 : 0,
-      data.color ? 1 : 0,
-      data.value,
-    ];
-    if (txn != null) {
-      await txn.rawInsert(sql, arguments);
-    } else {
-      await DatabaseInterface.instance.rawInsert(sql, arguments);
-    }
   }
 
   Future<APIResult> exportDBFile() async {
@@ -534,19 +440,6 @@ class DatabaseManager {
 
   String _tagCsvPath(String tableName) =>
       path.join(Preference.tagRootPath, '$tableName.csv');
-
-  String _resourcePathForStorage(String filePath) {
-    if (Preference.resourceRootPath.isEmpty) {
-      return filePath;
-    }
-    final normalizedFile = path.normalize(filePath);
-    final normalizedRoot = path.normalize(Preference.resourceRootPath);
-    if (!path.isWithin(normalizedRoot, normalizedFile) &&
-        normalizedFile != normalizedRoot) {
-      return filePath;
-    }
-    return path.relative(normalizedFile, from: normalizedRoot);
-  }
 
   String _fullResourcePath(String savedPath) {
     if (path.isAbsolute(savedPath) || Preference.resourceRootPath.isEmpty) {

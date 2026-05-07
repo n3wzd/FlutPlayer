@@ -138,6 +138,9 @@ class _ControlUIState extends State<ControlUI> {
     }
     final sliderMax = widget.trackDuration.inMilliseconds.toDouble();
     final position = AudioManager.instance.position.inMilliseconds.toDouble();
+    if (AudioManager.instance.isPlaying && position <= 0 && _sliderValue > 0) {
+      return;
+    }
     setState(() {
       _sliderValue = position.clamp(0, sliderMax).toDouble();
     });

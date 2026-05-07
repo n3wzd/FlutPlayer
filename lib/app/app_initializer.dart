@@ -63,7 +63,6 @@ class AppInitializer {
       await createAudioSerivce();
     }
     await BackgroundManager.instance.init();
-    BackgroundTransitionTimer.instance.init();
     AppState.instance.updateVisualizerColor();
     _initialized = true;
   }

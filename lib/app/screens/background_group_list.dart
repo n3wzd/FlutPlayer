@@ -6,7 +6,6 @@ import '../utils/stream_controller.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/switch.dart';
-import '../widgets/slider.dart';
 import '../widgets/text.dart';
 import '../widgets/dialog.dart';
 import '../models/color.dart';
@@ -219,12 +218,9 @@ class BackgroundGroupSelectPage extends StatefulWidget {
 }
 
 class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
-  final double valueSliderMax = 100;
-  final double valueSliderMin = 0;
   bool rotateSwitchValue = false;
   bool scaleSwitchValue = false;
   bool tintSwitchValue = false;
-  double valueSliderValue = 75;
 
   @override
   void initState() {
@@ -239,7 +235,6 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
     rotateSwitchValue = data.rotate;
     scaleSwitchValue = data.scale;
     tintSwitchValue = data.color;
-    valueSliderValue = data.value.toDouble();
     setState(() {});
   }
 
@@ -249,7 +244,6 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
       rotate: rotateSwitchValue,
       scale: scaleSwitchValue,
       color: tintSwitchValue,
-      value: valueSliderValue.toInt(),
     );
     await DatabaseManager.instance.updateBackgroundGroup(
       widget.path,
@@ -315,23 +309,6 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
                           onChanged: (newValue) {
                             tintSwitchValue = newValue;
                             setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 64, child: TextFactory.text('Value')),
-                        StatefulBuilder(
-                          builder: (context, setSliderState) {
-                            return SliderFactory.slider(
-                              value: valueSliderValue,
-                              max: valueSliderMax,
-                              onChanged: (value) {
-                                valueSliderValue = value;
-                                setSliderState(() {});
-                              },
-                            );
                           },
                         ),
                       ],

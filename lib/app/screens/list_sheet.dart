@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import './item_add_actions.dart';
 import '../utils/audio_manager.dart';
 import '../utils/preference.dart';
 import '../utils/playlist.dart';
 import '../widgets/listtile.dart';
 import '../components/stream_builder.dart';
 import '../widgets/button.dart';
-import '../widgets/text.dart';
 import '../widgets/scrollbar.dart';
 import '../models/color.dart';
 import '../models/enum.dart';
-import '../screens/background_select.dart';
 import '../app_state.dart';
 
 class ListSheet extends StatefulWidget {
@@ -172,44 +169,6 @@ class _ListSheetState extends State<ListSheet> {
                               },
                               selected: PlayList.instance
                                   .compareIndexWithCurrent(index),
-                              trailing: PopupMenuButton(
-                                color: ColorPalette.lightBlack,
-                                icon: const Icon(
-                                  Icons.add,
-                                  color: ColorPalette.grey,
-                                ),
-                                onSelected: (value) {
-                                  if (value == 0) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute<void>(
-                                        builder: (context) =>
-                                            ColorSelector(trackIndex: index),
-                                      ),
-                                    );
-                                  } else if (value == 1) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute<void>(
-                                        builder: (context) =>
-                                            BackgroundSelectPage(
-                                              trackIndex: index,
-                                            ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                itemBuilder: (context) => <PopupMenuEntry>[
-                                  PopupMenuItem(
-                                    value: 0,
-                                    child: TextFactory.text('color'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 1,
-                                    child: TextFactory.text('background'),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ),

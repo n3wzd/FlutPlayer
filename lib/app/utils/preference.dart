@@ -61,18 +61,6 @@ class Preference {
       case PreferenceKey.enableBackground:
         await prefs.setBool(target, enableBackground);
         break;
-      case PreferenceKey.backgroundMethod:
-        await prefs.setString(target, backgroundMethod.toString());
-        break;
-      case PreferenceKey.enableBackgroundTransition:
-        await prefs.setBool(target, enableBackgroundTransition);
-        break;
-      case PreferenceKey.backgroundNextTriggerMinTime:
-        await prefs.setInt(target, backgroundNextTriggerMinTime);
-        break;
-      case PreferenceKey.backgroundNextTriggerMaxTime:
-        await prefs.setInt(target, backgroundNextTriggerMaxTime);
-        break;
 
       case PreferenceKey.enableVisualizer:
         await prefs.setBool(target, enableVisualizer);
@@ -146,19 +134,6 @@ class Preference {
 
     enableBackground =
         prefs.getBool(PreferenceKey.enableBackground) ?? enableBackground;
-    backgroundMethod = BackgroundMethod.toEnum(
-      prefs.getString(PreferenceKey.backgroundMethod) ??
-          backgroundMethod.toString(),
-    );
-    enableBackgroundTransition =
-        prefs.getBool(PreferenceKey.enableBackgroundTransition) ??
-        enableBackgroundTransition;
-    backgroundNextTriggerMinTime =
-        prefs.getInt(PreferenceKey.backgroundNextTriggerMinTime) ??
-        backgroundNextTriggerMinTime;
-    backgroundNextTriggerMaxTime =
-        prefs.getInt(PreferenceKey.backgroundNextTriggerMaxTime) ??
-        backgroundNextTriggerMaxTime;
 
     enableVisualizer =
         prefs.getBool(PreferenceKey.enableVisualizer) ?? enableVisualizer;
@@ -204,10 +179,6 @@ class Preference {
 
   // Background
   static bool enableBackground = true;
-  static BackgroundMethod backgroundMethod = BackgroundMethod.specific;
-  static bool enableBackgroundTransition = true;
-  static int backgroundNextTriggerMinTime = 4;
-  static int backgroundNextTriggerMaxTime = 6;
 
   // Visualizer
   static bool enableVisualizer = true;
@@ -233,10 +204,6 @@ class PreferenceKey {
   static const smoothSliderEqualizer = 'smoothSliderEqualizer';
   static const equalizerGains = 'equalizerGains';
   static const enableBackground = 'enableBackground';
-  static const backgroundMethod = 'backgroundMethod';
-  static const enableBackgroundTransition = 'enableBackgroundTransition';
-  static const backgroundNextTriggerMinTime = 'backgroundNextTriggerMinTime';
-  static const backgroundNextTriggerMaxTime = 'backgroundNextTriggerMaxTime';
   static const enableVisualizer = 'enableVisualizer';
   static const randomColorVisualizer = 'randomColorVisualizer';
   static const enableNCSLogo = 'enableNCSLogo';
@@ -252,6 +219,4 @@ class PreferenceConstant {
   static int mashupTransitionTimeMax = 9;
   static int mashupNextTriggerTimeRangeMin = 10;
   static int mashupNextTriggerTimeRangeMax = 60;
-  static int backgroundNextTriggerTimeRangeMin = 1;
-  static int backgroundNextTriggerTimeRangeMax = 9;
 }

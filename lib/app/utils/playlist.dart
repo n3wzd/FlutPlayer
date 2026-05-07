@@ -26,8 +26,6 @@ class PlayList {
   String get currentAudioPath =>
       isNotEmpty ? (currentAudioTrack?.path ?? '') : '';
   String? get currentAudioColor => isNotEmpty ? currentAudioTrack?.color : null;
-  BackgroundData? get currentAudioBackground =>
-      isNotEmpty ? currentAudioTrack?.background : null;
   PlayListOrderState get playListOrderState => _playListOrderState;
 
   String audioTitle(int index) {
@@ -36,10 +34,6 @@ class PlayList {
 
   AudioTrack? audioTrack(int index) =>
       isNotEmpty ? _playMap[(_playList[index])] : null;
-  void setAudioColor(int index, String color) =>
-      isNotEmpty ? _playMap[(_playList[index])]!.color = color : null;
-  void setAudioBackground(int index, BackgroundData background) =>
-      isNotEmpty ? _playMap[(_playList[index])]!.background = background : null;
 
   bool compareIndexWithCurrent(int index) => currentIndex == index;
   void updateTrack(int index, AudioTrack? track) {

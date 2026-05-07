@@ -1,11 +1,6 @@
 import 'dart:io';
-import 'dart:async';
-import 'dart:math';
 import './database_manager.dart';
 import '../models/data.dart';
-import '../models/timer.dart';
-import '../utils/stream_controller.dart';
-import '../utils/preference.dart';
 
 const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
 
@@ -137,68 +132,5 @@ class BackgroundGroup {
       );
     }
     return list;
-  }
-}
-
-class BackgroundTransitionTimer {
-  BackgroundTransitionTimer._();
-  static final BackgroundTransitionTimer _instance =
-      BackgroundTransitionTimer._();
-  static BackgroundTransitionTimer get instance => _instance;
-
-  AdvancedTimer? _timer;
-  bool _initialized = false;
-
-  void init() {
-    if (_initialized) {
-      return;
-    }
-    if (Preference.enableBackgroundTransition) {
-      set();
-    }
-    _initialized = true;
-  }
-
-  void set() {
-    cancel();
-    int nextMilliseconds =
-        ((Preference.backgroundNextTriggerMaxTime -
-                        Preference.backgroundNextTriggerMinTime) *
-                    1000 *
-                    Random().nextDouble() +
-                Preference.backgroundNextTriggerMinTime * 1000)
-            .toInt();
-    _timer = AdvancedTimer(
-      duration: Duration(milliseconds: nextMilliseconds),
-      onComplete: () {
-        if (Preference.enableBackgroundTransition) {
-          BackgroundManager.instance.randomizeCurrentBackgroundList();
-          AudioStreamController.emitBackgroundFileChanged();
-          set();
-        }
-      },
-    );
-    _timer!.start();
-  }
-
-  void cancel() {
-    if (_timer != null) {
-      _timer!.cancel();
-    }
-  }
-
-  void reset() async {
-    if (_timer != null) {
-      cancel();
-      set();
-    }
-  }
-
-  void update(bool value) {
-    if (value) {
-      set();
-    } else {
-      cancel();
-    }
   }
 }
