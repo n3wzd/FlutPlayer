@@ -70,13 +70,16 @@ class _TagSelectPageState extends State<TagSelectPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ButtonFactory.textButton(
-                    onPressed: () {
+                    onPressed: () async {
                       for (int index = 0; index < length; index++) {
                         if (_selectedList[index]) {
-                          AudioManager.instance.importTagList(
+                          await AudioManager.instance.importTagList(
                             _tagList[index]['name'],
                           );
                         }
+                      }
+                      if (!context.mounted) {
+                        return;
                       }
                       Navigator.pop(context);
                     },

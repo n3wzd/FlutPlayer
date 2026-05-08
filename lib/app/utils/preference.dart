@@ -158,7 +158,8 @@ class Preference {
 
   // Sort
   static bool showPlayListOrderButton = true;
-  static PlayListOrderMethod playListOrderMethod = PlayListOrderMethod.title;
+  static PlayListOrderMethod playListOrderMethod =
+      PlayListOrderMethod.modifiedDateTime;
 
   // Mashup
   static int mashupTransitionTime = 5;

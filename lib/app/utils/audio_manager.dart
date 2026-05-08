@@ -361,12 +361,12 @@ class AudioManager {
     }
   }
 
-  void importTagList(String listName) async {
-    List<Map>? datas = await DatabaseManager.instance.importList(listName);
+  Future<void> importTagList(String listName) async {
+    List<Map> datas = await DatabaseManager.instance.importList(listName);
     List<AudioTrack> newList = [];
     for (Map data in datas) {
       String path = data['path'];
-      if (File(path).existsSync()) {
+      if (await File(path).exists()) {
         newList.add(
           AudioTrack(
             title: data['title'],

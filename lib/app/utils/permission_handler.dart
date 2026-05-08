@@ -17,5 +17,6 @@ class PermissionHandler {
 
   Future<void> activePermission() async {
     _permissionStatus = await Permission.manageExternalStorage.request();
+    await Permission.notification.request();
   }
 }

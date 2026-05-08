@@ -49,20 +49,28 @@ class DatabaseManager {
 
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
-      List<Map> tracks = [];
-      final titles = _readTagTitles(tableName);
-      for (String title in titles) {
-        AudioTrack? track = await importTrack(title);
-        if (track != null) {
-          tracks.add({
-            'title': track.title,
-            'path': track.path,
-            'modified_time': track.modifiedDateTime,
-            'color': track.color,
-          });
-        }
+      final titles = await _readTagTitles(tableName);
+      if (titles.isEmpty) {
+        return [];
       }
-      return tracks;
+
+      final placeholders = List.filled(titles.length, '?').join(',');
+      final rows = await DatabaseInterface.instance.rawQuery(
+        'SELECT title, path, modified_time, color FROM $mainDBTableName WHERE title IN ($placeholders);',
+        titles,
+      );
+      final rowsByTitle = {for (final row in rows) row['title'] as String: row};
+
+      return [
+        for (final title in titles)
+          if (rowsByTitle[title] case final row?)
+            {
+              'title': row['title'],
+              'path': _fullResourcePath(row['path']),
+              'modified_time': row['modified_time'],
+              'color': row['color'],
+            },
+      ];
     }
     return [];
   }
@@ -72,7 +80,7 @@ class DatabaseManager {
   }
 
   Future<bool> checkDBTableExist(String tableName) async {
-    return File(_tagCsvPath(tableName)).existsSync();
+    return File(_tagCsvPath(tableName)).exists();
   }
 
   Future<AudioTrack?> importTrack(String trackName) async {
@@ -272,19 +280,21 @@ class DatabaseManager {
     return APIResult(success: success, msg: msg);
   }
 
-  List<Map> _selectTagFiles() {
+  Future<List<Map>> _selectTagFiles() async {
     if (Preference.tagRootPath.isEmpty ||
-        !Directory(Preference.tagRootPath).existsSync()) {
+        !await Directory(Preference.tagRootPath).exists()) {
       return [];
     }
-    final files = Directory(Preference.tagRootPath)
-        .listSync()
-        .whereType<File>()
-        .where((file) => path.extension(file.path).toLowerCase() == '.csv')
-        .map<Map<String, String>>(
-          (file) => {'name': path.basenameWithoutExtension(file.path)},
-        )
-        .toList();
+    final files = <Map<String, String>>[];
+    await for (final entity in Directory(Preference.tagRootPath).list()) {
+      if (entity is! File) {
+        continue;
+      }
+      if (path.extension(entity.path).toLowerCase() != '.csv') {
+        continue;
+      }
+      files.add({'name': path.basenameWithoutExtension(entity.path)});
+    }
     files.sort((a, b) => a['name']!.compareTo(b['name']!));
     return files;
   }
@@ -293,12 +303,12 @@ class DatabaseManager {
     await DatabaseInterface.instance.execute('DROP TABLE IF EXISTS _table;');
   }
 
-  List<String> _readTagTitles(String tableName) {
+  Future<List<String>> _readTagTitles(String tableName) async {
     final file = File(_tagCsvPath(tableName));
-    if (!file.existsSync()) {
+    if (!await file.exists()) {
       return [];
     }
-    final lines = file.readAsLinesSync(encoding: utf8);
+    final lines = await file.readAsLines(encoding: utf8);
     final titles = <String>[];
     for (int index = 0; index < lines.length; index++) {
       final columns = _parseCsvLine(lines[index]);
