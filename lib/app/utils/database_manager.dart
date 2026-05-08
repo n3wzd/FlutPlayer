@@ -174,52 +174,6 @@ class DatabaseManager {
     );
   }
 
-  Future<APIResult> exportDBFile() async {
-    bool success = true;
-    String msg = '';
-    try {
-      String? selectedDirectoryPath = await FilePicker.getDirectoryPath();
-      if (selectedDirectoryPath != null) {
-        File file = File(databasesPath);
-        file.copySync('$selectedDirectoryPath/$databaseFileName');
-      } else {
-        success = false;
-        msg = 'No Directory Chosen.';
-      }
-    } catch (e) {
-      success = false;
-      msg = e.toString();
-    }
-    return APIResult(success: success, msg: msg);
-  }
-
-  Future<APIResult> importDBFile() async {
-    bool success = true;
-    String msg = '';
-    try {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        allowMultiple: false,
-      );
-      if (result != null) {
-        String name = result.files[0].name;
-        if (name == databaseFileName) {
-          String? path = result.files[0].path;
-          if (path != null) {
-            File file = File(path);
-            File(databasesPath).writeAsBytesSync(file.readAsBytesSync());
-          }
-        }
-      } else {
-        success = false;
-        msg = 'No File Chosen.';
-      }
-    } catch (e) {
-      success = false;
-      msg = e.toString();
-    }
-    return APIResult(success: success, msg: msg);
-  }
-
   Future<APIResult> selectTagRootPath() async {
     bool success = true;
     String msg = '';

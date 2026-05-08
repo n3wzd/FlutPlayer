@@ -275,21 +275,6 @@ class _PageDrawerState extends State<PageDrawer> {
         Preference.save(PreferenceKey.showPlayListDeleteButton);
       },
     ),
-    ListTileFactory.title(text: 'Advance'),
-    ListTileFactory.content(
-      title: 'Export Database',
-      subtitle: 'export database file.',
-      onTap: () {
-        apiProcess(DatabaseManager.instance.exportDBFile);
-      },
-    ),
-    ListTileFactory.content(
-      title: 'Import Database',
-      subtitle: 'import database file.',
-      onTap: () {
-        apiProcess(DatabaseManager.instance.importDBFile);
-      },
-    ),
   ];
 
   @override

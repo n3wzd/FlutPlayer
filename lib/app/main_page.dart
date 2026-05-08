@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +17,7 @@ import './components/action_button.dart';
 import './components/stream_builder.dart';
 import './components/fade_inout_widget.dart';
 import './utils/audio_manager.dart';
+import './utils/platform_support.dart';
 import './widgets/dialog.dart';
 import './widgets/text.dart';
 import './models/color.dart';
@@ -91,7 +93,10 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
                 )
               : null,
           drawer: const PageDrawer(),
-          body: const SafeArea(child: ScreenPage()),
+          body: _MobileSafeArea(
+            includeBottom: !AppState.instance.isFullScreen,
+            child: const ScreenPage(),
+          ),
         ),
       ),
     );
@@ -133,24 +138,29 @@ class ScreenPageFullscreen extends StatelessWidget {
         FadeInOutWidget(
           child: Container(
             color: Colors.transparent,
-            child: const Stack(
+            child: Stack(
               children: [
                 Align(
                   alignment: Alignment.bottomCenter,
-                  child: SizedBox(
-                    height: 120,
-                    child: Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: FullscreenButton(),
-                        ),
-                        ControlSection(),
-                      ],
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: _mobileSystemBottomInset(context),
+                    ),
+                    child: const SizedBox(
+                      height: 120,
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: FullscreenButton(),
+                          ),
+                          ControlSection(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                Center(
+                const Center(
                   child: Row(
                     children: [
                       Spacer(),
@@ -178,6 +188,36 @@ class ScreenPageFullscreen extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+class _MobileSafeArea extends StatelessWidget {
+  const _MobileSafeArea({required this.child, required this.includeBottom});
+
+  final Widget child;
+  final bool includeBottom;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!PlatformSupport.isMobile) {
+      return child;
+    }
+    return SafeArea(
+      bottom: includeBottom,
+      maintainBottomViewPadding: true,
+      child: child,
+    );
+  }
+}
+
+double _mobileSystemBottomInset(BuildContext context) {
+  if (!PlatformSupport.isMobile) {
+    return 0;
+  }
+  final mediaQuery = MediaQuery.of(context);
+  return max(
+    mediaQuery.viewPadding.bottom,
+    mediaQuery.systemGestureInsets.bottom,
   );
 }
 
