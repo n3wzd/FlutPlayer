@@ -123,6 +123,12 @@ class AudioPlayer {
     return duration;
   }
 
+  Future<void> clearAudioSource() async {
+    await _stopCurrent();
+    _emitPlaybackState();
+    _emitPosition();
+  }
+
   void play() {
     var handle = _handle;
     if ((handle == null || handle.isError) && _source != null) {

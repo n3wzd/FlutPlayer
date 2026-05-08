@@ -46,30 +46,36 @@ class AudioHandlerManager extends BaseAudioHandler {
   }
 
   void _notifyAudioHandler() {
-    AudioManager.instance.audioPlayer.playbackEventStream.listen((event) {
-      bool isPlaying = AudioManager.instance.isPlaying;
-      playbackState.add(
-        playbackState.value.copyWith(
-          controls: [
-            MediaControl.skipToPrevious,
-            isPlaying ? MediaControl.pause : MediaControl.play,
-            MediaControl.skipToNext,
-          ],
-          systemActions: const {MediaAction.seek},
-          androidCompactActionIndices: const [0, 1, 2],
-          playing: isPlaying,
-          processingState: const {
-            AudioPlayerProcessingState.idle: AudioProcessingState.idle,
-            AudioPlayerProcessingState.loading: AudioProcessingState.loading,
-            AudioPlayerProcessingState.ready: AudioProcessingState.ready,
-            AudioPlayerProcessingState.completed:
-                AudioProcessingState.completed,
-          }[AudioManager.instance.audioPlayer.processingState]!,
-          updatePosition: AudioManager.instance.position,
-          bufferedPosition: AudioManager.instance.duration,
-        ),
-      );
-    });
+    AudioManager.instance.audioPlayer.playbackEventStream.listen(
+      (_) => _emitPlaybackState(),
+    );
+    AudioManager.instance.audioPlayerSub.playbackEventStream.listen(
+      (_) => _emitPlaybackState(),
+    );
+  }
+
+  void _emitPlaybackState() {
+    bool isPlaying = AudioManager.instance.isPlaying;
+    playbackState.add(
+      playbackState.value.copyWith(
+        controls: [
+          MediaControl.skipToPrevious,
+          isPlaying ? MediaControl.pause : MediaControl.play,
+          MediaControl.skipToNext,
+        ],
+        systemActions: const {MediaAction.seek},
+        androidCompactActionIndices: const [0, 1, 2],
+        playing: isPlaying,
+        processingState: const {
+          AudioPlayerProcessingState.idle: AudioProcessingState.idle,
+          AudioPlayerProcessingState.loading: AudioProcessingState.loading,
+          AudioPlayerProcessingState.ready: AudioProcessingState.ready,
+          AudioPlayerProcessingState.completed: AudioProcessingState.completed,
+        }[AudioManager.instance.audioPlayer.processingState]!,
+        updatePosition: AudioManager.instance.position,
+        bufferedPosition: AudioManager.instance.duration,
+      ),
+    );
   }
 
   void _listenForTrackChanges() {

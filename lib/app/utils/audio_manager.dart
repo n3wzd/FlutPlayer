@@ -189,7 +189,11 @@ class AudioManager {
           );
         }
       } else {
+        final previousAudioPlayer = audioPlayer;
+        _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
         await audioPlayer.setAudioSource(PlayList.instance.audioTrack(index));
+        updateAudioPlayerVolume();
+        await previousAudioPlayer.clearAudioSource();
       }
       PlayList.instance.updateTrack(
         index,
