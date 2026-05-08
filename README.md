@@ -47,7 +47,9 @@
 - sqflite: ^2.3.0
 - sqflite_common_ffi: ^2.3.0
 - shared_preferences: ^2.2.2
-- video_player: ^2.8.2
+- media_kit: ^1.1.11
+- media_kit_video: ^2.0.1
+- media_kit_libs_video: ^1.0.4
 
 ## File Structure
 ```

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:video_player/video_player.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:async';
 import '../app_state.dart';
 import '../utils/background_manager.dart';
 import '../utils/playlist.dart';
-import '../utils/platform_support.dart';
 import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
@@ -282,135 +280,73 @@ class VideoBackgroundManager {
   static final VideoBackgroundManager _instance = VideoBackgroundManager._();
   static VideoBackgroundManager get instance => _instance;
 
+  final Player _player = Player();
+  late final VideoController _controller = VideoController(_player);
   String _path = "";
+  Future<void>? _opening;
 
-  Widget get widget => PlatformSupport.isWindows
-      ? WindowsVideoBackground(path: _path)
-      : MobileVideoBackground(path: _path);
+  VideoController get controller => _controller;
+  Widget get widget => const MediaKitVideoBackground();
 
   void load(String path) {
+    if (_path == path) {
+      return;
+    }
     _path = path;
-  }
-}
-
-class MobileVideoBackground extends StatefulWidget {
-  const MobileVideoBackground({super.key, required this.path});
-  final String path;
-
-  @override
-  State<MobileVideoBackground> createState() => _MobileVideoBackgroundState();
-}
-
-class _MobileVideoBackgroundState extends State<MobileVideoBackground>
-    with WidgetsBindingObserver {
-  late VideoPlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        VideoPlayerController.file(
-            File(widget.path),
-            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-          )
-          ..initialize().then((_) {
-            _controller.setVolume(0);
-            _controller.setLooping(true);
-            _controller.play();
-            setState(() {});
-          });
-    WidgetsBinding.instance.addObserver(this);
+    _opening = _open(path);
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
-    super.dispose();
+  Future<void> play() async {
+    await _opening;
+    await _player.play();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _controller.play();
-    }
-  }
+  Future<void> dispose() => _player.dispose();
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _controller.value.size.width,
-            height: _controller.value.size.height,
-            child: VideoPlayer(_controller),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class WindowsVideoBackground extends StatefulWidget {
-  const WindowsVideoBackground({super.key, required this.path});
-  final String path;
-
-  @override
-  State<WindowsVideoBackground> createState() => _WindowsVideoBackgroundState();
-}
-
-class _WindowsVideoBackgroundState extends State<WindowsVideoBackground>
-    with WidgetsBindingObserver {
-  late final Player _player;
-  late final VideoController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _player = Player();
-    _controller = VideoController(_player);
-    _open();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didUpdateWidget(covariant WindowsVideoBackground oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.path != widget.path) {
-      _open();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _player.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _player.play();
-    }
-  }
-
-  Future<void> _open() async {
-    if (widget.path.isEmpty) {
+  Future<void> _open(String path) async {
+    if (path.isEmpty) {
       return;
     }
     await _player.setPlaylistMode(PlaylistMode.single);
     await _player.setVolume(0);
-    await _player.open(Media(widget.path), play: true);
+    await _player.open(Media(Uri.file(path).toString()), play: true);
+  }
+}
+
+class MediaKitVideoBackground extends StatefulWidget {
+  const MediaKitVideoBackground({super.key});
+
+  @override
+  State<MediaKitVideoBackground> createState() =>
+      _MediaKitVideoBackgroundState();
+}
+
+class _MediaKitVideoBackgroundState extends State<MediaKitVideoBackground>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(VideoBackgroundManager.instance.play());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
       child: Video(
-        controller: _controller,
+        controller: VideoBackgroundManager.instance.controller,
         controls: (state) => const SizedBox.shrink(),
         fit: BoxFit.cover,
       ),

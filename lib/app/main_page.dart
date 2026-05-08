@@ -57,6 +57,7 @@ class _MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    unawaited(VideoBackgroundManager.instance.dispose());
     unawaited(AudioManager.instance.dispose());
     super.dispose();
   }

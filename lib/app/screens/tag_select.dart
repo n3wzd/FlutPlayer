@@ -4,7 +4,6 @@ import '../utils/audio_manager.dart';
 import '../utils/database_manager.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
-import '../widgets/text.dart';
 import '../models/color.dart';
 
 class TagSelectPage extends StatefulWidget {
@@ -17,9 +16,6 @@ class TagSelectPage extends StatefulWidget {
 class _TagSelectPageState extends State<TagSelectPage> {
   List<Map> _tagList = [];
   List<bool> _selectedList = [];
-  int _selectedItemCount = 0;
-  bool _isSelectedItemFavorite = false;
-  int _selectedPageIndex = 0;
 
   @override
   void initState() {
@@ -28,26 +24,9 @@ class _TagSelectPageState extends State<TagSelectPage> {
   }
 
   Future<void> setPlayList() async {
-    _tagList = await DatabaseManager.instance.selectAllDBTable(
-      favoriteFilter: _selectedPageIndex == 1 ? false : true,
-    );
+    _tagList = await DatabaseManager.instance.selectAllDBTable();
     _selectedList = List<bool>.filled(_tagList.length, false, growable: true);
     setState(() {});
-  }
-
-  void deletePlayListItem(int index) {
-    _tagList.removeAt(index);
-    _selectedList.removeAt(index);
-    _selectedItemCount--;
-  }
-
-  int getUniqueItemIndex() {
-    for (int i = 0; i < _selectedList.length; i++) {
-      if (_selectedList[i]) {
-        return i;
-      }
-    }
-    return 0;
   }
 
   @override
@@ -59,30 +38,9 @@ class _TagSelectPageState extends State<TagSelectPage> {
         backgroundColor: ColorPalette.darkWine,
         actions: [
           ButtonFactory.iconButton(
-            icon: const Icon(Icons.star),
-            iconColor: _isSelectedItemFavorite
-                ? ColorPalette.lightWine
-                : ColorPalette.lightGrey,
-            onPressed: _selectedItemCount == 1
-                ? () {
-                    int selectedItemIndex = getUniqueItemIndex();
-                    DatabaseManager.instance.toggleDBTableFavorite(
-                      _tagList[selectedItemIndex]['name'],
-                    );
-                    _isSelectedItemFavorite = !_isSelectedItemFavorite;
-                    if (_selectedPageIndex == 0 && !_isSelectedItemFavorite) {
-                      deletePlayListItem(selectedItemIndex);
-                    }
-                    setState(() {});
-                  }
-                : null,
-            outline: false,
-          ),
-          ButtonFactory.iconButton(
             icon: const Icon(Icons.refresh),
             iconColor: ColorPalette.lightGrey,
             onPressed: () async {
-              _selectedItemCount = 0;
               await setPlayList();
             },
             outline: false,
@@ -92,36 +50,6 @@ class _TagSelectPageState extends State<TagSelectPage> {
       body: SafeArea(
         child: Column(
           children: [
-            NavigationBarTheme(
-              data: NavigationBarThemeData(
-                labelTextStyle: WidgetStateProperty.all(
-                  TextStyleFactory.style(),
-                ),
-                iconTheme: WidgetStateProperty.all(
-                  const IconThemeData(color: ColorPalette.lightGrey),
-                ),
-              ),
-              child: NavigationBar(
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.star),
-                    label: 'Favorite',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.present_to_all),
-                    label: 'All',
-                  ),
-                ],
-                backgroundColor: ColorPalette.transparent,
-                selectedIndex: _selectedPageIndex,
-                indicatorColor: ColorPalette.lightWine,
-                onDestinationSelected: (index) async {
-                  _selectedPageIndex = index;
-                  _selectedItemCount = 0;
-                  await setPlayList();
-                },
-              ),
-            ),
             Expanded(
               child: ListView.builder(
                 itemCount: length,
@@ -130,16 +58,6 @@ class _TagSelectPageState extends State<TagSelectPage> {
                   text: _tagList[index]['name'],
                   onTap: () async {
                     _selectedList[index] = !_selectedList[index];
-                    _selectedList[index]
-                        ? _selectedItemCount++
-                        : _selectedItemCount--;
-                    if (_selectedItemCount == 1) {
-                      _isSelectedItemFavorite =
-                          await DatabaseManager.instance.selectDBTableFavorite(
-                            _tagList[getUniqueItemIndex()]['name'],
-                          ) ??
-                          false;
-                    }
                     setState(() {});
                   },
                   selected: _selectedList[index],

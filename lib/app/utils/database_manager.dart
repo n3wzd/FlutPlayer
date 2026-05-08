@@ -14,7 +14,6 @@ class DatabaseManager {
 
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
-  final String tableMasterDBTableName = '_table';
   final String backgroundGroupDBTableName = '_background_group';
   final String mixDBTableName = '_mix';
   String databasesPath = '';
@@ -34,14 +33,12 @@ class DatabaseManager {
       'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT);',
     );
     await DatabaseInterface.instance.execute(
-      'CREATE TABLE IF NOT EXISTS $tableMasterDBTableName (name TEXT PRIMARY KEY, favorite INTEGER NOT NULL DEFAULT 0);',
-    );
-    await DatabaseInterface.instance.execute(
       'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, active BOOL NOT NULL DEFAULT FALSE, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);',
     );
     await DatabaseInterface.instance.execute(
       'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);',
     );
+    await _dropTagTable();
     _initialized = true;
   }
 
@@ -53,7 +50,8 @@ class DatabaseManager {
   Future<List<Map>> importList(String tableName) async {
     if (await checkDBTableExist(tableName)) {
       List<Map> tracks = [];
-      for (String title in _readTagTitles(tableName)) {
+      final titles = _readTagTitles(tableName);
+      for (String title in titles) {
         AudioTrack? track = await importTrack(title);
         if (track != null) {
           tracks.add({
@@ -69,37 +67,8 @@ class DatabaseManager {
     return [];
   }
 
-  Future<List<Map>> selectAllDBTable({bool favoriteFilter = false}) async {
-    final tags = _selectTagFiles();
-    await _syncTagMetadata(tags);
-    String extraQuery = favoriteFilter ? 'WHERE favorite=1' : '';
-    var list = await DatabaseInterface.instance.rawQuery(
-      'SELECT * FROM $tableMasterDBTableName $extraQuery ORDER BY name ASC;',
-    );
-    return List<Map>.from(list);
-  }
-
-  Future<void> toggleDBTableFavorite(String tableName) async {
-    if (await checkDBTableExist(tableName)) {
-      bool? fav = await selectDBTableFavorite(tableName);
-      if (fav != null) {
-        await DatabaseInterface.instance.execute(
-          'UPDATE $tableMasterDBTableName SET favorite=? WHERE name=?;',
-          [fav ? 0 : 1, tableName],
-        );
-      }
-    }
-  }
-
-  Future<bool?> selectDBTableFavorite(String tableName) async {
-    if (await checkDBTableExist(tableName)) {
-      List<Map> data = await DatabaseInterface.instance.rawQuery(
-        'SELECT favorite FROM $tableMasterDBTableName WHERE name=?;',
-        [tableName],
-      );
-      return data[0]['favorite'] == 1 ? true : false;
-    }
-    return null;
+  Future<List<Map>> selectAllDBTable() async {
+    return _selectTagFiles();
   }
 
   Future<bool> checkDBTableExist(String tableName) async {
@@ -259,7 +228,6 @@ class DatabaseManager {
       if (selectedDirectoryPath != null) {
         Preference.tagRootPath = selectedDirectoryPath;
         await Preference.save(PreferenceKey.tagRootPath);
-        await selectAllDBTable();
       } else {
         success = false;
         msg = 'No Directory Chosen.';
@@ -321,8 +289,8 @@ class DatabaseManager {
           final modifiedDateTime = dateTimeToString(entity.statSync().modified);
           syncedTitles.add(title);
           await txn.rawInsert(
-            'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES(?, ?, ?, "");',
-            [title, relativePath, modifiedDateTime],
+            'INSERT OR IGNORE INTO $mainDBTableName(title, path, modified_time, color) VALUES(?, ?, ?, ?);',
+            [title, relativePath, modifiedDateTime, ''],
           );
           await txn.execute(
             'UPDATE $mainDBTableName SET path=?, modified_time=? WHERE title=?;',
@@ -367,28 +335,8 @@ class DatabaseManager {
     return files;
   }
 
-  Future<void> _syncTagMetadata(List<Map> tags) async {
-    final tagNames = tags.map((tag) => tag['name'] as String).toSet();
-    await DatabaseInterface.instance.transaction((txn) async {
-      for (String name in tagNames) {
-        await txn.rawInsert(
-          'INSERT OR IGNORE INTO $tableMasterDBTableName(name) VALUES(?);',
-          [name],
-        );
-      }
-      final savedRows = await txn.rawQuery(
-        'SELECT name FROM $tableMasterDBTableName;',
-      );
-      for (Map row in savedRows) {
-        final name = row['name'];
-        if (!tagNames.contains(name)) {
-          await txn.execute(
-            'DELETE FROM $tableMasterDBTableName WHERE name=?;',
-            [name],
-          );
-        }
-      }
-    });
+  Future<void> _dropTagTable() async {
+    await DatabaseInterface.instance.execute('DROP TABLE IF EXISTS _table;');
   }
 
   List<String> _readTagTitles(String tableName) {

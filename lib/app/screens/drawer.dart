@@ -11,59 +11,50 @@ import '../models/enum.dart';
 import '../utils/database_manager.dart';
 import '../utils/preference.dart';
 import '../utils/stream_controller.dart';
-import '../widgets/dialog.dart';
 import '../widgets/listtile.dart';
-import '../widgets/text.dart';
 
-class PageDrawer extends StatelessWidget {
+class PageDrawer extends StatefulWidget {
   const PageDrawer({super.key});
 
-  void apiProcess(
-    BuildContext context,
-    Future<APIResult> Function() process,
-  ) async {
-    APIResult res = await process();
-    if (context.mounted) {
-      DialogFactory.alertDialog(
-        context: context,
-        onPressed: () async {
-          return true;
-        },
-        content: TextFactory.text(
-          res.success ? 'Success!\n${res.msg}' : 'Failed!\n${res.msg}',
-          allowLineBreak: true,
-        ),
-      );
+  @override
+  State<PageDrawer> createState() => _PageDrawerState();
+}
+
+class _PageDrawerState extends State<PageDrawer> {
+  String _apiStatus = '';
+
+  Future<void> apiProcess(Future<APIResult> Function() process) async {
+    final result = await process();
+    if (mounted) {
+      _apiStatus = result.msg.isEmpty
+          ? (result.success ? 'success.' : 'failed.')
+          : result.msg;
+      setState(() {});
     }
+  }
+
+  String pathSubtitle(String description, String savedPath) {
+    if (savedPath.isEmpty) {
+      return '$description\nnot selected.';
+    }
+    return '$description\n$savedPath';
+  }
+
+  String syncResourceDatabaseSubtitle() {
+    final buffer = StringBuffer(
+      'scan resource root and update track database.',
+    );
+    if (Preference.resourceRootPath.isNotEmpty) {
+      buffer.write('\n${Preference.resourceRootPath}');
+    }
+    if (_apiStatus.isNotEmpty) {
+      buffer.write('\n$_apiStatus');
+    }
+    return buffer.toString();
   }
 
   List<Widget> _drawerItems(BuildContext context) => [
     ListTileFactory.title(text: 'Tag & Mix'),
-    ListTileFactory.content(
-      title: 'Tag Root Path',
-      subtitle: Preference.tagRootPath.isEmpty
-          ? 'select tag csv root path.'
-          : Preference.tagRootPath,
-      onTap: () {
-        apiProcess(context, DatabaseManager.instance.selectTagRootPath);
-      },
-    ),
-    ListTileFactory.content(
-      title: 'Resource Root Path',
-      subtitle: Preference.resourceRootPath.isEmpty
-          ? 'select music resource root path.'
-          : Preference.resourceRootPath,
-      onTap: () {
-        apiProcess(context, DatabaseManager.instance.selectResourceRootPath);
-      },
-    ),
-    ListTileFactory.content(
-      title: 'Sync Resource Database',
-      subtitle: 'scan resource root and update track database.',
-      onTap: () {
-        apiProcess(context, DatabaseManager.instance.syncResourceDatabase);
-      },
-    ),
     ListTileFactory.content(
       title: 'Load Tag',
       subtitle: 'loads tracks from tag csv files.',
@@ -90,6 +81,33 @@ class PageDrawer extends StatelessWidget {
             },
           ),
         );
+      },
+    ),
+    ListTileFactory.content(
+      title: 'Tag Root Path',
+      subtitle: pathSubtitle(
+        'select tag csv root path.',
+        Preference.tagRootPath,
+      ),
+      onTap: () {
+        apiProcess(DatabaseManager.instance.selectTagRootPath);
+      },
+    ),
+    ListTileFactory.content(
+      title: 'Resource Root Path',
+      subtitle: pathSubtitle(
+        'select music resource root path.',
+        Preference.resourceRootPath,
+      ),
+      onTap: () {
+        apiProcess(DatabaseManager.instance.selectResourceRootPath);
+      },
+    ),
+    ListTileFactory.content(
+      title: 'Sync Resource Database',
+      subtitle: syncResourceDatabaseSubtitle(),
+      onTap: () {
+        apiProcess(DatabaseManager.instance.syncResourceDatabase);
       },
     ),
     ListTileFactory.title(text: 'Sort'),
@@ -262,14 +280,14 @@ class PageDrawer extends StatelessWidget {
       title: 'Export Database',
       subtitle: 'export database file.',
       onTap: () {
-        apiProcess(context, DatabaseManager.instance.exportDBFile);
+        apiProcess(DatabaseManager.instance.exportDBFile);
       },
     ),
     ListTileFactory.content(
       title: 'Import Database',
       subtitle: 'import database file.',
       onTap: () {
-        apiProcess(context, DatabaseManager.instance.importDBFile);
+        apiProcess(DatabaseManager.instance.importDBFile);
       },
     ),
   ];
