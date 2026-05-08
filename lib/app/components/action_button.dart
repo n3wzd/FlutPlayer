@@ -61,16 +61,17 @@ class PlayButton extends StatelessWidget {
   final bool? outline;
 
   @override
-  Widget build(BuildContext context) => AudioStreamBuilder.playing(
-    (context, isPlaying) => ButtonFactory.iconButton(
-      isSelected: AudioManager.instance.isPlaying,
-      icon: const Icon(Icons.play_arrow),
-      selectedIcon: const Icon(Icons.pause),
-      iconSize: iconSize ?? 35,
-      outline: outline ?? true,
-      onPressed: AudioManager.instance.togglePlayMode,
-    ),
-  );
+  Widget build(BuildContext context) =>
+      AudioStreamBuilder.playing((context, data) {
+        final isPlaying = AudioManager.instance.isPlaying;
+        return ButtonFactory.iconButton(
+          icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+          iconSize: iconSize ?? 35,
+          outline: outline ?? true,
+          tooltip: isPlaying ? 'Pause' : 'Play',
+          onPressed: AudioManager.instance.togglePlayMode,
+        );
+      });
 }
 
 class ShuffleButton extends StatelessWidget {

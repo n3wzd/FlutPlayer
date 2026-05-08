@@ -1,6 +1,7 @@
 import 'dart:async';
 
 class AudioStreamController {
+  static final playing = StreamController<void>.broadcast();
   static final track = StreamController<void>.broadcast();
   static final playList = StreamController<void>.broadcast();
   static final loopMode = StreamController<void>.broadcast();
@@ -15,6 +16,7 @@ class AudioStreamController {
   static final enabledNCSLogo = StreamController<void>.broadcast();
   static final enabledFullscreen = StreamController<void>.broadcast();
 
+  static void emitPlayingChanged() => playing.add(null);
   static void emitTrackChanged() => track.add(null);
   static void emitPlayListChanged() => playList.add(null);
   static void emitLoopModeChanged() => loopMode.add(null);

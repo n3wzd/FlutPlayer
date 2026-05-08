@@ -36,6 +36,7 @@ class ButtonFactory {
     bool hasOverlay = true,
     bool? isSelected,
     Icon? selectedIcon,
+    String? tooltip,
   }) {
     return Theme(
       data: ThemeData(
@@ -78,6 +79,7 @@ class ButtonFactory {
         onPressed: onPressed,
         isSelected: isSelected,
         selectedIcon: selectedIcon,
+        tooltip: tooltip,
         disabledColor: ColorPalette.disableGrey,
       ),
     );

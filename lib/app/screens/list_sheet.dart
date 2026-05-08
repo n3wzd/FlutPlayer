@@ -111,6 +111,10 @@ class _ListSheetState extends State<ListSheet> {
                 ),
                 centerTitle: true,
                 backgroundColor: ColorPalette.darkWine,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                surfaceTintColor: ColorPalette.transparent,
+                shadowColor: ColorPalette.transparent,
                 flexibleSpace: GestureDetector(onTap: _toggleSheetExpanding),
                 automaticallyImplyLeading: false,
                 actions: [

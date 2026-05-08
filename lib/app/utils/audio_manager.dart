@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:io';
 import 'dart:convert';
@@ -33,6 +34,7 @@ class AudioManager {
   double _volumeTransitionRate = 1.0;
   List<int> _currentByteData = [];
   final AudioMashupController _mashupController = AudioMashupController();
+  final List<StreamSubscription<void>> _playbackSubscriptions = [];
   Map<String, CustomMixData> _customMixData = {};
   bool _initialized = false;
 
@@ -65,15 +67,33 @@ class AudioManager {
     }
     await audioPlayer.init(0, nextEventWhenPlayerCompleted);
     await audioPlayerSub.init(1, nextEventWhenPlayerCompleted);
+    _listenForPlaybackChanges();
     setAudioPlayerVolumeDefault();
     _initialized = true;
   }
 
   Future<void> dispose() async {
     await cancelMashupTimer();
+    for (final subscription in _playbackSubscriptions) {
+      await subscription.cancel();
+    }
+    _playbackSubscriptions.clear();
     await audioPlayer.dispose();
     await audioPlayerSub.dispose();
     _initialized = false;
+  }
+
+  void _listenForPlaybackChanges() {
+    if (_playbackSubscriptions.isNotEmpty) {
+      return;
+    }
+    for (final player in _audioPlayerList) {
+      _playbackSubscriptions.add(
+        player.playbackEventStream.listen(
+          (_) => AudioStreamController.emitPlayingChanged(),
+        ),
+      );
+    }
   }
 
   void nextEventWhenPlayerCompleted(int audioPlayerCode) async {
@@ -166,6 +186,7 @@ class AudioManager {
     if (PlayList.instance.isNotEmpty &&
         (index != PlayList.instance.currentIndex || forceLoad)) {
       index %= playListLength;
+      final wasPlaying = isPlaying;
       if (_mashupMode) {
         play();
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
@@ -193,6 +214,9 @@ class AudioManager {
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
         await audioPlayer.setAudioSource(PlayList.instance.audioTrack(index));
         updateAudioPlayerVolume();
+        if (wasPlaying) {
+          audioPlayer.play();
+        }
         await previousAudioPlayer.clearAudioSource();
       }
       PlayList.instance.updateTrack(
@@ -237,7 +261,9 @@ class AudioManager {
   void play() {
     if (!isAudioPlayerEmpty && !isPlaying) {
       audioPlayer.play();
-      audioPlayerSub.play();
+      if (_mashupMode) {
+        audioPlayerSub.play();
+      }
       _mashupController.resume();
     }
   }
@@ -245,7 +271,9 @@ class AudioManager {
   Future<void> pause() async {
     if (!isAudioPlayerEmpty && isPlaying) {
       await audioPlayer.pause();
-      await audioPlayerSub.pause();
+      if (_mashupMode) {
+        await audioPlayerSub.pause();
+      }
       _mashupController.pause();
     }
   }
@@ -342,6 +370,7 @@ class AudioManager {
         activeMashupMode();
       } else {
         await cancelMashupTimer();
+        await audioPlayerSub.pause();
         setAudioPlayerVolumeDefault();
       }
       AudioStreamController.emitMashupButtonChanged();

@@ -7,11 +7,8 @@ typedef BuildParameter<T> = Widget Function(BuildContext, AsyncSnapshot<T>);
 class AudioStreamBuilder {
   static StreamBuilder<void> playing(BuildParameter<void> builder) =>
       StreamBuilder<void>(
-        stream: AudioManager.instance.audioPlayer.playingStream,
-        builder: (context, data) => StreamBuilder<void>(
-          stream: AudioManager.instance.audioPlayerSub.playingStream,
-          builder: builder,
-        ),
+        stream: AudioStreamController.playing.stream,
+        builder: builder,
       );
 
   static StreamBuilder<Duration> position(BuildParameter<Duration> builder) =>
