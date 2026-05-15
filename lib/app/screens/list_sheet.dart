@@ -22,29 +22,63 @@ class ListSheet extends StatefulWidget {
 class _ListSheetState extends State<ListSheet> {
   final _controller = DraggableScrollableController();
   final _expandController = StreamController<bool>.broadcast();
+  ScrollController? _sheetScrollController;
   double _minChildSize = 0;
   double _maxChildSize = 0;
   bool _isExpand = false;
+  bool _didRestoreScrollPosition = false;
 
-  void _toggleSheetExpanding() async {
-    if (_controller.size == _minChildSize) {
-      _isExpand = true;
-    } else if (_controller.size == _maxChildSize) {
-      _isExpand = false;
+  void _saveScrollPosition() {
+    final scrollController = _sheetScrollController;
+    if (scrollController == null || !scrollController.hasClients) {
+      return;
     }
-    await _animateExpand();
+    AppState.instance.playListSavedScrollPosition =
+        scrollController.position.pixels;
   }
 
-  void _onEndScroll(ScrollMetrics metrics) async {
-    _isExpand =
-        _controller.size - _minChildSize < _maxChildSize - _controller.size
-        ? false
-        : true;
+  void _attachScrollController(ScrollController scrollController) {
+    if (_sheetScrollController == scrollController) {
+      return;
+    }
+
+    _sheetScrollController?.removeListener(_saveScrollPosition);
+    _sheetScrollController = scrollController;
+    _didRestoreScrollPosition = false;
+    scrollController.addListener(_saveScrollPosition);
+  }
+
+  void _restoreScrollPosition() {
+    final scrollController = _sheetScrollController;
+    if (_didRestoreScrollPosition ||
+        scrollController == null ||
+        !scrollController.hasClients) {
+      return;
+    }
+
+    _didRestoreScrollPosition = true;
+    final position = scrollController.position;
+    final savedPosition = AppState.instance.playListSavedScrollPosition.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    scrollController.jumpTo(savedPosition);
+  }
+
+  void _setExpanded(bool value) {
+    if (_isExpand == value) {
+      return;
+    }
+    _isExpand = value;
+    _expandController.add(_isExpand);
+  }
+
+  void _toggleSheetExpanding() async {
+    _setExpanded(_controller.size == _minChildSize);
     await _animateExpand();
   }
 
   Future<void> _animateExpand() async {
-    _expandController.add(_isExpand);
     await _controller.animateTo(
       !_isExpand ? _minChildSize : _maxChildSize,
       duration: const Duration(milliseconds: 500),
@@ -57,10 +91,12 @@ class _ListSheetState extends State<ListSheet> {
     _minChildSize = 50.0 / MediaQuery.of(context).size.height;
     _maxChildSize = 0.9;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollNotification) {
-        if (scrollNotification is ScrollEndNotification) {
-          _onEndScroll(scrollNotification.metrics);
+    return NotificationListener<DraggableScrollableNotification>(
+      onNotification: (notification) {
+        if (notification.extent == notification.minExtent) {
+          _setExpanded(false);
+        } else if (notification.extent == notification.maxExtent) {
+          _setExpanded(true);
         }
         return true;
       },
@@ -68,16 +104,14 @@ class _ListSheetState extends State<ListSheet> {
         initialChildSize: _minChildSize,
         minChildSize: _minChildSize,
         maxChildSize: _maxChildSize,
+        snap: true,
+        snapSizes: [_minChildSize, _maxChildSize],
+        snapAnimationDuration: const Duration(milliseconds: 250),
         controller: _controller,
         builder: (context, scrollController) {
-          scrollController.addListener(() {
-            AppState.instance.playListSavedScrollPosition =
-                scrollController.position.pixels;
-          });
+          _attachScrollController(scrollController);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            scrollController.jumpTo(
-              AppState.instance.playListSavedScrollPosition,
-            );
+            _restoreScrollPosition();
           });
           return AudioStreamBuilder.playList(
             (context, value) => Scaffold(
@@ -184,5 +218,12 @@ class _ListSheetState extends State<ListSheet> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _sheetScrollController?.removeListener(_saveScrollPosition);
+    _expandController.close();
+    super.dispose();
   }
 }
