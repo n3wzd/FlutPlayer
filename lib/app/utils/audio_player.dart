@@ -44,6 +44,7 @@ class AudioPlayer {
   Stream<Duration> get positionStream => _positionStreamController.stream;
   Stream<void> get playbackEventStream => _playbackEventStreamController.stream;
   AudioPlayerProcessingState get processingState => _processingState;
+  double get volume => _volume;
 
   Duration get position {
     final handle = _handle;
@@ -178,6 +179,20 @@ class AudioPlayer {
     if (handle != null && !handle.isError) {
       _soloud.setVolume(handle, vol);
     }
+  }
+
+  Future<void> fadeVolume(double target, Duration duration) async {
+    final start = _volume;
+    final stepCount = max(1, duration.inMilliseconds ~/ 10);
+    final stepDuration = Duration(
+      milliseconds: max(1, duration.inMilliseconds ~/ stepCount),
+    );
+
+    for (int step = 1; step <= stepCount; step++) {
+      setVolume(start + (target - start) * step / stepCount);
+      await Future<void>.delayed(stepDuration);
+    }
+    setVolume(target);
   }
 
   void setEnabledEqualizer() {

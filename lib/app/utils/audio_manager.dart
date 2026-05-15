@@ -26,6 +26,7 @@ class AudioManager {
     AudioPlayer(),
   ];
   final _allowedExtensions = ['mp3', 'wav', 'ogg'];
+  static const _trackSwitchFadeDuration = Duration(milliseconds: 80);
 
   PlayerLoopMode _loopMode = PlayerLoopMode.all;
   bool _mashupMode = false;
@@ -36,6 +37,7 @@ class AudioManager {
   final AudioMashupController _mashupController = AudioMashupController();
   final List<StreamSubscription<void>> _playbackSubscriptions = [];
   Map<String, CustomMixData> _customMixData = {};
+  Future<void>? _playListInitFuture;
   bool _initialized = false;
 
   AudioPlayer get audioPlayer => _audioPlayerList[_currentIndexAudioPlayerList];
@@ -117,7 +119,7 @@ class AudioManager {
     }
   }
 
-  void playListAddList(List<AudioTrack> newList) {
+  Future<void> playListAddList(List<AudioTrack> newList) async {
     PlayList.instance.addAll(newList);
     if (Preference.shuffleReload && playListLength > 0 && !_customMixMode) {
       PlayList.instance.currentIndex = Random().nextInt(playListLength);
@@ -125,28 +127,39 @@ class AudioManager {
       AudioStreamController.emitPlayListOrderChanged();
     }
     AudioStreamController.emitPlayListChanged();
-    initPlayListUpdated();
+    await initPlayListUpdated();
   }
 
-  void initPlayListUpdated() async {
-    if (isAudioPlayerEmpty) {
-      await audioPlayer.setAudioSource(PlayList.instance.audioTrack(0));
-      setCurrentByteData();
+  Future<void> initPlayListUpdated() async {
+    if (!isAudioPlayerEmpty) {
+      return;
+    }
+    _playListInitFuture ??= _initPlayListUpdated().whenComplete(() {
+      _playListInitFuture = null;
+    });
+    await _playListInitFuture;
+  }
 
-      PlayList.instance.updateTrack(
-        0,
-        await DatabaseManager.instance.importTrack(
-          PlayList.instance.audioTitle(0),
-        ),
-      );
-      AudioStreamController.emitTrackChanged();
-      AudioStreamController.emitVisualizerColorChanged();
-      AudioStreamController.emitBackgroundFileChanged();
-      if (Preference.instantlyPlay || _customMixMode) {
-        play();
-      } else {
-        pause();
-      }
+  Future<void> _initPlayListUpdated() async {
+    if (!isAudioPlayerEmpty || !PlayList.instance.isNotEmpty) {
+      return;
+    }
+    await audioPlayer.setAudioSource(PlayList.instance.audioTrack(0));
+    setCurrentByteData();
+
+    PlayList.instance.updateTrack(
+      0,
+      await DatabaseManager.instance.importTrack(
+        PlayList.instance.audioTitle(0),
+      ),
+    );
+    AudioStreamController.emitTrackChanged();
+    AudioStreamController.emitVisualizerColorChanged();
+    AudioStreamController.emitBackgroundFileChanged();
+    if (Preference.instantlyPlay || _customMixMode) {
+      play();
+    } else {
+      await pause();
     }
   }
 
@@ -213,11 +226,17 @@ class AudioManager {
         final previousAudioPlayer = audioPlayer;
         _currentIndexAudioPlayerList = (_currentIndexAudioPlayerList + 1) % 2;
         await audioPlayer.setAudioSource(PlayList.instance.audioTrack(index));
-        updateAudioPlayerVolume();
+        final targetVolume = Preference.volumeMasterRate;
+        audioPlayer.setVolume(wasPlaying ? 0 : targetVolume);
         if (wasPlaying) {
           audioPlayer.play();
+          await Future.wait([
+            audioPlayer.fadeVolume(targetVolume, _trackSwitchFadeDuration),
+            previousAudioPlayer.fadeVolume(0, _trackSwitchFadeDuration),
+          ]);
         }
         await previousAudioPlayer.clearAudioSource();
+        updateAudioPlayerVolume();
       }
       PlayList.instance.updateTrack(
         index,
@@ -318,7 +337,7 @@ class AudioManager {
           }
         }
       }
-      playListAddList(newList);
+      await playListAddList(newList);
     }
   }
 
@@ -410,7 +429,7 @@ class AudioManager {
         );
       }
     }
-    playListAddList(newList);
+    await playListAddList(newList);
   }
 
   void setEnabledEqualizer() {
@@ -473,7 +492,7 @@ class AudioManager {
 
       _customMixMode = true;
       AudioStreamController.emitMashupButtonChanged();
-      playListAddList(newList);
+      await playListAddList(newList);
       activeMashupMode();
     }
   }
