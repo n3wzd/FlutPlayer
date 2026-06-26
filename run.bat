@@ -1,3 +1,3 @@
 @echo off
-"%~dp0build\windows\x64\runner\Debug\my_windows_app.exe"
+flutter run -d windows
 pause

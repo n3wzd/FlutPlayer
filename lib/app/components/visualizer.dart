@@ -6,8 +6,20 @@ import 'dart:typed_data';
 
 import '../models/color.dart';
 import '../app_state.dart';
+import '../utils/audio_manager.dart';
 
-class _RepaintNotifier extends ChangeNotifier {
+/// Live, mutable animation state. The painter reads these fields directly so
+/// values stay current every tick without rebuilding the widget.
+class _VizModel extends ChangeNotifier {
+  List<double> bands = const [];
+  double rmsLevel = 0;
+  double bassLevel = 0;
+  double midLevel = 0;
+  double highLevel = 0;
+  double beatPulse = 0;
+  double time = 0;
+  double spin = 0;
+  Color color = const Color(0xFFFFFFFF);
   void notify() => notifyListeners();
 }
 
@@ -30,7 +42,7 @@ class _VisualizerControllerState extends State<VisualizerController>
 
   late final Ticker _ticker;
   AudioData? _audioData;
-  final _repaint = _RepaintNotifier();
+  final _model = _VizModel();
 
   final _smoothBands = List<double>.filled(_bandCount, 0.0);
   double _smoothBass = 0;
@@ -40,6 +52,7 @@ class _VisualizerControllerState extends State<VisualizerController>
   double _beatPulse = 0;
   double _prevBass = 0;
   double _time = 0;
+  double _spin = 0; // rotation phase; only advances while audio plays
   Duration _lastElapsed = Duration.zero;
 
   @override
@@ -61,7 +74,7 @@ class _VisualizerControllerState extends State<VisualizerController>
   @override
   void dispose() {
     _ticker.dispose();
-    _repaint.dispose();
+    _model.dispose();
     try {
       _audioData?.dispose();
     } catch (_) {}
@@ -73,18 +86,54 @@ class _VisualizerControllerState extends State<VisualizerController>
     _lastElapsed = elapsed;
     _time += dt;
 
-    if (!SoLoud.instance.isInitialized) return;
+    bool playing = false;
+    try {
+      playing = AudioManager.instance.isPlaying;
+    } catch (_) {}
 
-    if (_audioData == null) {
-      _tryInitAudioData();
-      return;
+    if (playing && SoLoud.instance.isInitialized) {
+      if (_audioData == null) {
+        _tryInitAudioData();
+      } else {
+        try {
+          _audioData!.updateSamples();
+          _processFFT(_audioData!.getAudioData());
+        } catch (_) {}
+      }
+    } else {
+      // Paused/stopped: decay everything to zero so the visual settles into a
+      // calm, motionless circle.
+      _decay();
     }
 
-    try {
-      _audioData!.updateSamples();
-      _processFFT(_audioData!.getAudioData());
-      _repaint.notify();
-    } catch (_) {}
+    // Rotation only progresses while actually playing → frozen when paused.
+    if (playing) _spin += dt * _smoothRms * 1.6;
+
+    // Push live values into the model and repaint every tick. Reading from a
+    // shared mutable object keeps the painter current without rebuilding.
+    _model
+      ..bands = _smoothBands
+      ..rmsLevel = _smoothRms
+      ..bassLevel = _smoothBass
+      ..midLevel = _smoothMid
+      ..highLevel = _smoothHigh
+      ..beatPulse = _beatPulse
+      ..time = _time
+      ..spin = _spin
+      ..color = stringToColor(AppState.instance.visualizerColor)
+      ..notify();
+  }
+
+  void _decay() {
+    const k = 0.80;
+    for (int b = 0; b < _bandCount; b++) {
+      _smoothBands[b] *= k;
+    }
+    _smoothBass *= k;
+    _smoothMid *= k;
+    _smoothHigh *= k;
+    _smoothRms *= k;
+    _beatPulse *= k;
   }
 
   void _processFFT(Float32List data) {
@@ -140,61 +189,41 @@ class _VisualizerControllerState extends State<VisualizerController>
     return RepaintBoundary(
       child: CustomPaint(
         size: Size(size, size),
-        painter: NcsVisualizerPainter(
-          repaint: _repaint,
-          bands: _smoothBands,
-          rmsLevel: _smoothRms,
-          bassLevel: _smoothBass,
-          midLevel: _smoothMid,
-          highLevel: _smoothHigh,
-          beatPulse: _beatPulse,
-          time: _time,
-          color: stringToColor(AppState.instance.visualizerColor),
-        ),
+        painter: NcsVisualizerPainter(_model),
       ),
     );
   }
 }
 
 class NcsVisualizerPainter extends CustomPainter {
-  NcsVisualizerPainter({
-    required super.repaint,
-    required this.bands,
-    required this.rmsLevel,
-    required this.bassLevel,
-    required this.midLevel,
-    required this.highLevel,
-    required this.beatPulse,
-    required this.time,
-    required this.color,
-  });
+  NcsVisualizerPainter(this.m) : super(repaint: m);
 
-  final List<double> bands;
-  final double rmsLevel;
-  final double bassLevel;
-  final double midLevel;
-  final double highLevel;
-  final double beatPulse;
-  final double time;
-  final Color color;
+  final _VizModel m;
 
-  static const int _ringPoints = 120;
-  static const int _particleCount = 280;
-  static const double _perspective = 2.2;
+  List<double> get bands => m.bands;
+  double get rmsLevel => m.rmsLevel;
+  double get bassLevel => m.bassLevel;
+  double get midLevel => m.midLevel;
+  double get highLevel => m.highLevel;
+  double get beatPulse => m.beatPulse;
+  double get time => m.time;
+  double get spin => m.spin;
+  Color get color => m.color;
 
-  final _rng = Random(42);
+  static const int _particleCount = 420;
+  static const double _perspective = 2.6;
 
-  // Pre-generated sphere point angles (stable across frames)
-  static final List<(double theta, double phi)> _spherePoints = _genSpherePoints();
+  // Pre-generated unit-sphere points via Fibonacci lattice (even, structured).
+  static final List<(double x, double y, double z)> _spherePoints = _genSpherePoints();
 
-  static List<(double theta, double phi)> _genSpherePoints() {
-    final rng = Random(1337);
-    final pts = <(double theta, double phi)>[];
+  static List<(double x, double y, double z)> _genSpherePoints() {
+    final pts = <(double x, double y, double z)>[];
+    const golden = pi * (3 - 1.4142135623730951); // golden angle approx
     for (int i = 0; i < _particleCount; i++) {
-      final theta = rng.nextDouble() * 2 * pi;
-      // Use arccos for uniform distribution on sphere
-      final phi = acos(2 * rng.nextDouble() - 1) - pi / 2;
-      pts.add((theta, phi));
+      final y = 1 - (i / (_particleCount - 1)) * 2; // 1 -> -1
+      final r = sqrt(max(0.0, 1 - y * y));
+      final theta = golden * i;
+      pts.add((cos(theta) * r, y, sin(theta) * r));
     }
     return pts;
   }
@@ -205,125 +234,93 @@ class NcsVisualizerPainter extends CustomPainter {
     final cy = size.height / 2;
     final maxR = min(cx, cy);
 
-    final baseRadius = maxR * (0.48 + rmsLevel * 0.08);
-    final rotY = time * 0.4; // Y-axis rotation
+    // Circle SIZE tracks the FFT energy (rmsLevel) smoothly — it grows and
+    // shrinks with the spectrum rather than jumping/pulsing on the beat.
+    final baseRadius = maxR * (0.6 + rmsLevel * 0.16);
+    final rotY = spin; // audio-driven Y-axis rotation (still when silent)
 
-    // Beat ripple
-    if (beatPulse > 0.01) {
-      final rippleR = baseRadius + maxR * 0.18 * beatPulse;
-      canvas.drawCircle(
-        Offset(cx, cy),
-        rippleR,
-        Paint()
-          ..color = color.withValues(alpha: beatPulse * 0.30)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
+    // Sphere particles (behind the ring)
+    _drawSphereParticles(canvas, cx, cy, baseRadius * 0.86, rotY);
 
-    // Glow behind ring
-    final glowRadius = baseRadius + beatPulse * maxR * 0.06;
-    canvas.drawCircle(
-      Offset(cx, cy),
-      glowRadius,
-      Paint()
-        ..color = color.withValues(alpha: 0.06 + rmsLevel * 0.08 + beatPulse * 0.12)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
-    );
-
-    // Sphere particles
-    _drawSphereParticles(canvas, cx, cy, baseRadius * 0.72, rotY);
-
-    // Deforming outer ring
-    _drawDeformingRing(canvas, cx, cy, baseRadius, maxR);
+    // Clean glowing outline (matches the reference look)
+    _drawRing(canvas, cx, cy, baseRadius, maxR);
   }
 
   void _drawSphereParticles(Canvas canvas, double cx, double cy, double sphereR, double rotY) {
-    final deformBass = 1.0 + bassLevel * 0.10;
-    final deformRms = 1.0 + rmsLevel * 0.08;
+    // Audio pushes the whole sphere outward (breathing).
+    final push = 1.0 + bassLevel * 0.14 + rmsLevel * 0.07 + beatPulse * 0.10;
+    final cosY = cos(rotY);
+    final sinY = sin(rotY);
+    // Fixed 3/4 view tilt (no idle motion).
+    const cosX = 0.9492312651760538; // cos(0.32)
+    const sinX = 0.31456656061611776; // sin(0.32)
 
     for (int i = 0; i < _particleCount; i++) {
-      final (theta, phi) = _spherePoints[i];
+      final (px, py, pz) = _spherePoints[i];
 
-      // Apply Y-axis rotation
-      final th = theta + rotY;
+      // Rotate around Y axis.
+      final rx = px * cosY + pz * sinY;
+      final rz = -px * sinY + pz * cosY;
+      // Rotate around X axis (fixed tilt) for a 3/4 view.
+      final ry = py * cosX - rz * sinX;
+      final rz2 = py * sinX + rz * cosX;
 
-      // Slight high-freq shimmer per particle
-      final shimmer = highLevel * 0.06 * sin(th * 3.7 + time * 6.0 + i * 0.31);
+      // High-freq shimmer nudges points radially.
+      final shimmer = 1.0 + highLevel * 0.05 * sin(time * 7.0 + i * 0.7);
 
-      final x3 = cos(phi) * cos(th);
-      final y3 = sin(phi) + shimmer;
-      final z3 = cos(phi) * sin(th);
+      // Perspective projection (front points spread wider).
+      final proj = _perspective / (_perspective - rz2);
+      final scale = sphereR * proj * push * shimmer;
+      final x2 = cx + rx * scale;
+      final y2 = cy + ry * scale;
 
-      // Perspective projection
-      final proj = _perspective / (_perspective - z3 * 0.5);
-      final x2 = cx + x3 * sphereR * proj * deformBass * deformRms;
-      final y2 = cy + y3 * sphereR * proj * deformBass * deformRms;
-
-      // Depth-based brightness: front = bright, back = dim
-      final depthT = (z3 + 1) / 2; // 0..1
-      final alpha = 0.12 + depthT * 0.55 + rmsLevel * 0.15;
-      final ptSize = (0.8 + depthT * 1.6) * (1.0 + bassLevel * 0.4);
+      // Depth: front (rz2 > 0) bright & large, back dim & small.
+      final depthT = ((rz2 + 1) / 2).clamp(0.0, 1.0); // 0..1
+      final alpha = (0.08 + pow(depthT, 1.7) * 0.85 + rmsLevel * 0.10).clamp(0.0, 1.0);
+      final ptSize = (0.9 + depthT * depthT * 2.6) * (1.0 + bassLevel * 0.35);
 
       canvas.drawCircle(
         Offset(x2, y2),
         ptSize,
-        Paint()..color = color.withValues(alpha: alpha.clamp(0.0, 0.9)),
+        Paint()..color = color.withValues(alpha: alpha.toDouble()),
       );
     }
   }
 
-  void _drawDeformingRing(Canvas canvas, double cx, double cy, double baseR, double maxR) {
-    final ringThickness = 3.0 + bassLevel * 6.0 + rmsLevel * 2.0;
-    final n = _ringPoints;
-    final path = Path();
+  void _drawRing(Canvas canvas, double cx, double cy, double baseR, double maxR) {
+    final c = Offset(cx, cy);
+    final thickness = maxR * 0.022 + rmsLevel * maxR * 0.018 + beatPulse * maxR * 0.012;
 
-    for (int i = 0; i <= n; i++) {
-      final angle = (2 * pi * i / n) - pi / 2;
-
-      // Band lookup: map angle to band index
-      final bandIdx = ((i / n) * bands.length).floor().clamp(0, bands.length - 1);
-      final bandVal = bands[bandIdx];
-
-      // Low freq = big deform, mid = medium, high = fine ripple
-      final deform =
-          bassLevel * 14.0 * cos(angle * 2 + time * 1.2) +
-          midLevel * 8.0 * cos(angle * 5 + time * 2.1) +
-          highLevel * 3.5 * sin(angle * 12 + time * 5.0) +
-          bandVal * 10.0 +
-          beatPulse * 8.0 +
-          sin(angle * 3 + time * 0.8) * 2.0; // idle gentle wave
-
-      final r = baseR + deform;
-      final x = cx + cos(angle) * r;
-      final y = cy + sin(angle) * r;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-
-    // Outer glow stroke
-    canvas.drawPath(
-      path,
+    // Soft outer halo.
+    canvas.drawCircle(
+      c,
+      baseR,
       Paint()
-        ..color = color.withValues(alpha: 0.25 + beatPulse * 0.15)
+        ..color = color.withValues(alpha: 0.18 + rmsLevel * 0.12 + beatPulse * 0.15)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = ringThickness + 8
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        ..strokeWidth = thickness + maxR * 0.10
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.06),
     );
 
-    // Core ring stroke
-    canvas.drawPath(
-      path,
+    // Inner glow.
+    canvas.drawCircle(
+      c,
+      baseR,
       Paint()
-        ..color = color.withValues(alpha: 0.85 + beatPulse * 0.15)
+        ..color = color.withValues(alpha: 0.45 + beatPulse * 0.15)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = ringThickness
-        ..strokeCap = StrokeCap.round,
+        ..strokeWidth = thickness + maxR * 0.025
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.02),
+    );
+
+    // Bright crisp core ring.
+    canvas.drawCircle(
+      c,
+      baseR,
+      Paint()
+        ..color = color.withValues(alpha: (0.9 + beatPulse * 0.1).clamp(0.0, 1.0))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = thickness,
     );
   }
 
