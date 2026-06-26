@@ -107,7 +107,13 @@ class _VisualizerControllerState extends State<VisualizerController>
     }
 
     // Rotation only progresses while actually playing → frozen when paused.
-    if (playing) _spin += dt * _smoothRms * 1.6;
+    // Speed is NOT constant and direction is NOT fixed: a slow sine flips the
+    // spin direction over time, while the magnitude surges on the beat and rides
+    // the FFT energy — so the sphere accelerates, eases, and reverses.
+    if (playing) {
+      final dir = sin(_time * 0.4); // smoothly swings between -1 and +1
+      _spin += dt * dir * (_smoothRms * 1.8 + _beatPulse * 6.0);
+    }
 
     // Push live values into the model and repaint every tick. Reading from a
     // shared mutable object keeps the painter current without rebuilding.
@@ -236,7 +242,7 @@ class NcsVisualizerPainter extends CustomPainter {
 
     // Circle SIZE tracks the FFT energy (rmsLevel) smoothly — it grows and
     // shrinks with the spectrum rather than jumping/pulsing on the beat.
-    final baseRadius = maxR * (0.6 + rmsLevel * 0.16);
+    final baseRadius = maxR * (0.55 + rmsLevel * 0.35);
     final rotY = spin; // audio-driven Y-axis rotation (still when silent)
 
     // Sphere particles (behind the ring)
@@ -277,7 +283,7 @@ class NcsVisualizerPainter extends CustomPainter {
       // Depth: front (rz2 > 0) bright & large, back dim & small.
       final depthT = ((rz2 + 1) / 2).clamp(0.0, 1.0); // 0..1
       final alpha = (0.08 + pow(depthT, 1.7) * 0.85 + rmsLevel * 0.10).clamp(0.0, 1.0);
-      final ptSize = (0.9 + depthT * depthT * 2.6) * (1.0 + bassLevel * 0.35);
+      final ptSize = (0.3 + depthT * depthT * 1.0) * (1.0 + bassLevel * 0.35 + beatPulse * 0.7);
 
       canvas.drawCircle(
         Offset(x2, y2),
