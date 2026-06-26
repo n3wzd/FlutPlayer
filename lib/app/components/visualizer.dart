@@ -185,11 +185,13 @@ class _VisualizerControllerState extends State<VisualizerController>
     _smoothRms = _lerp(_smoothRms, rms, rms > _smoothRms ? 0.7 : 0.4);
 
     // Bass-level envelope: fast attack so it snaps up on the kick, moderate
-    // release so it eases back down between hits. Driven by the bass level
-    // directly (full 0..1 range), so no gain and no saturation.
-    _pulse = bass > _pulse
-        ? _lerp(_pulse, bass, 0.5) // fast attack
-        : _lerp(_pulse, bass, 0.15); // moderate release
+    // release so it eases back down between hits. The pow(>1) curve compresses
+    // the top so only the strongest kicks approach 1.0 — mid/high bass sits
+    // lower, so the pulse isn't near max so often.
+    final target = pow(bass, 1.6).toDouble();
+    _pulse = target > _pulse
+        ? _lerp(_pulse, target, 0.5) // fast attack
+        : _lerp(_pulse, target, 0.28); // faster release
 
     // TEMP calibration: record live ranges of the raw features.
     _bassMin = min(_bassMin, bass);
