@@ -87,6 +87,7 @@ class AudioPlayer {
     _audioPlayerCode = audioPlayerCode;
     _nextEventWhenPlayerCompleted = nextEventWhenPlayerCompleted;
     await _ensureInitialized();
+    _soloud.setVisualizationEnabled(true);
     equalizer.loadPreferenceGains();
     _positionTimer ??= Timer.periodic(
       const Duration(milliseconds: 200),

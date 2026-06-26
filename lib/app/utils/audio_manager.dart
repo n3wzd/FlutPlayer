@@ -33,7 +33,6 @@ class AudioManager {
   bool _customMixMode = false;
   int _currentIndexAudioPlayerList = 0;
   double _volumeTransitionRate = 1.0;
-  List<int> _currentByteData = [];
   final AudioMashupController _mashupController = AudioMashupController();
   final List<StreamSubscription<void>> _playbackSubscriptions = [];
   Map<String, CustomMixData> _customMixData = {};
@@ -51,7 +50,6 @@ class AudioManager {
   Duration get duration => audioPlayer.duration;
   Duration get position => audioPlayer.position;
   bool get isAudioPlayerEmpty => audioPlayer.isAudioPlayerEmpty;
-  List<int> get currentByteData => _currentByteData;
 
   set masterVolume(double v) {
     Preference.volumeMasterRate = v < 0 ? 0 : (v > 1.0 ? 1.0 : v);
@@ -145,7 +143,6 @@ class AudioManager {
       return;
     }
     await audioPlayer.setAudioSource(PlayList.instance.audioTrack(0));
-    setCurrentByteData();
 
     PlayList.instance.updateTrack(
       0,
@@ -250,7 +247,6 @@ class AudioManager {
 
       play();
       PlayList.instance.currentIndex = index;
-      setCurrentByteData();
       BackgroundManager.instance.randomizeCurrentBackgroundList();
       AudioStreamController.emitBackgroundFileChanged();
       AppState.instance.updateVisualizerColor();
@@ -339,22 +335,6 @@ class AudioManager {
       }
       await playListAddList(newList);
     }
-  }
-
-  List<int> _readBytesFromFile(String filePath) {
-    File file = File(filePath);
-    if (file.existsSync()) {
-      RandomAccessFile accessFile = file.openSync();
-      int length = file.lengthSync();
-      List<int> bytes = accessFile.readSync(length);
-      accessFile.closeSync();
-      return bytes;
-    }
-    return [];
-  }
-
-  void setCurrentByteData() {
-    _currentByteData = _readBytesFromFile(PlayList.instance.currentAudioPath);
   }
 
   void togglePlayMode() async {

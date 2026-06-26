@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'dart:math';
+import 'dart:typed_data';
 
-import '../utils/audio_manager.dart';
 import '../models/color.dart';
 import '../app_state.dart';
+
+class _RepaintNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
 
 class VisualizerController extends StatefulWidget {
   const VisualizerController({
@@ -19,130 +25,208 @@ class VisualizerController extends StatefulWidget {
 }
 
 class _VisualizerControllerState extends State<VisualizerController>
-    with TickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: Duration(milliseconds: sampleLength),
-  )..forward();
-  late double maxSize;
-  late double minSize;
-  final double maxSampleDepth = 32768;
-  final int sampleLength = 100;
-  late Animation<double> _animation;
-  late double _currentSize = minSize;
-  late double _previousSize = minSize;
-  int _position = 0;
-  int _duration = 0;
+    with SingleTickerProviderStateMixin {
+  static const int _bandCount = 32;
+
+  late final Ticker _ticker;
+  AudioData? _audioData;
+  final _repaint = _RepaintNotifier();
+
+  final _smoothBands = List<double>.filled(_bandCount, 0.0);
+  double _smoothBass = 0;
+  double _smoothRms = 0;
+  double _beatPulse = 0;
+  double _prevBass = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller.addStatusListener((AnimationStatus status) {
-      if (status == AnimationStatus.completed) {
-        List<int> bytes = AudioManager.instance.currentByteData;
-        double sample = 0;
-        if (bytes.isNotEmpty) {
-          sample = extractRMS(bytes);
-        }
-        _previousSize = _currentSize;
-        _currentSize =
-            (1 - sample / maxSampleDepth) * (maxSize - minSize) + minSize;
-        setState(() {});
+    _tryInitAudioData();
+    _ticker = createTicker(_onTick)..start();
+  }
 
-        _controller.reset();
-        _controller.forward();
+  void _tryInitAudioData() {
+    try {
+      if (SoLoud.instance.isInitialized) {
+        SoLoud.instance.setVisualizationEnabled(true);
+        _audioData = AudioData(GetSamplesKind.linear);
       }
-    });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ticker.dispose();
+    _repaint.dispose();
+    try {
+      _audioData?.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
-  double extractRMS(List<int> bytes) {
-    double sample = 0;
-    int position = AudioManager.instance.position.inMilliseconds;
-    if (_position - position <= 300 &&
-        _position - position >= 0 &&
-        AudioManager.instance.isPlaying) {
-      _position += sampleLength;
+  void _onTick(Duration elapsed) {
+    if (!SoLoud.instance.isInitialized) return;
+
+    if (_audioData == null) {
+      _tryInitAudioData();
+      return;
+    }
+
+    try {
+      _audioData!.updateSamples();
+      _processFFT(_audioData!.getAudioData());
+      _repaint.notify();
+    } catch (_) {}
+  }
+
+  void _processFFT(Float32List data) {
+    if (data.length < 256) return;
+
+    // Compress FFT bins 1..127 into log-scaled bands (skip DC at 0)
+    for (int b = 0; b < _bandCount; b++) {
+      final startBin = (pow(127.0, b / _bandCount)).toInt().clamp(1, 126);
+      final endBin = (pow(127.0, (b + 1) / _bandCount)).toInt().clamp(1, 127);
+      double sum = 0;
+      int count = 0;
+      for (int i = startBin; i <= endBin; i++) {
+        sum += data[i];
+        count++;
+      }
+      final raw = count > 0 ? (sum / count).clamp(0.0, 1.0) : 0.0;
+      final alpha = raw > _smoothBands[b] ? 0.75 : 0.12;
+      _smoothBands[b] = _smoothBands[b] * (1 - alpha) + raw * alpha;
+    }
+
+    // Bass: bins 1-8
+    double bass = 0;
+    for (int i = 1; i <= 8; i++) {
+      bass += data[i];
+    }
+    bass = (bass / 8).clamp(0.0, 1.0);
+
+    // Mid: bins 9-40
+    double mid = 0;
+    for (int i = 9; i <= 40; i++) {
+      mid += data[i];
+    }
+    mid = (mid / 32).clamp(0.0, 1.0);
+
+    // High: bins 41-127
+    double high = 0;
+    for (int i = 41; i < 128; i++) {
+      high += data[i];
+    }
+    high = (high / 87).clamp(0.0, 1.0);
+
+    final rms = (bass * 0.5 + mid * 0.3 + high * 0.2).clamp(0.0, 1.0);
+
+    final bassAlpha = bass > _smoothBass ? 0.7 : 0.1;
+    _smoothBass = (_smoothBass * (1 - bassAlpha) + bass * bassAlpha).clamp(0.0, 1.0);
+
+    final rmsAlpha = rms > _smoothRms ? 0.6 : 0.12;
+    _smoothRms = (_smoothRms * (1 - rmsAlpha) + rms * rmsAlpha).clamp(0.0, 1.0);
+
+    final bassDelta = bass - _prevBass;
+    if (bassDelta > 0.12) {
+      _beatPulse = 1.0;
     } else {
-      _position = position;
+      _beatPulse = (_beatPulse - 0.04).clamp(0.0, 1.0);
     }
-    _duration = AudioManager.instance.duration.inMilliseconds;
-    if (_duration <= 0) _duration = 1;
-    if (_position > _duration) {
-      _position = _duration;
-    }
-
-    for (int p = _position; p > _position - sampleLength && p >= 0; p--) {
-      sample += pow(
-        extractSample(
-          bytes,
-          ((_position / _duration) * (bytes.length - 1)).toInt(),
-        ),
-        2,
-      );
-    }
-    return sqrt(sample / sampleLength);
-  }
-
-  int extractSample(List<int> bytes, int idx) {
-    idx = idx ~/ 2 * 2;
-    int sample = bytes[idx];
-    if (idx < bytes.length - 1) {
-      sample += (bytes[idx + 1] << 8); // little endian
-    }
-    if (sample & 0x8000 != 0) {
-      sample = (~sample & 0xFFFF) + 1;
-    }
-    return sample;
-  }
-
-  void setAnimation() {
-    _animation =
-        Tween<double>(
-          begin: _previousSize / minSize,
-          end: _currentSize / minSize,
-        ).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
-        );
-  }
-
-  void updateVisualizerSize() {
-    maxSize = min(widget.widgetWidth, widget.widgetHeight) * 0.75;
-    minSize = maxSize * 0.88;
+    _prevBass = bass;
   }
 
   @override
   Widget build(BuildContext context) {
-    updateVisualizerSize();
-    setAnimation();
-
-    return ScaleTransition(
-      scale: _animation,
-      child: CircleVisualizer(
-        size: _currentSize,
-        color: stringToColor(AppState.instance.visualizerColor),
+    final size = min(widget.widgetWidth, widget.widgetHeight);
+    return RepaintBoundary(
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: NcsVisualizerPainter(
+          repaint: _repaint,
+          bands: _smoothBands,
+          rmsLevel: _smoothRms,
+          bassLevel: _smoothBass,
+          beatPulse: _beatPulse,
+          color: stringToColor(AppState.instance.visualizerColor),
+        ),
       ),
     );
   }
 }
 
-class CircleVisualizer extends StatelessWidget {
-  const CircleVisualizer({super.key, required this.size, required this.color});
-  final double size;
+class NcsVisualizerPainter extends CustomPainter {
+  NcsVisualizerPainter({
+    required super.repaint,
+    required this.bands,
+    required this.rmsLevel,
+    required this.bassLevel,
+    required this.beatPulse,
+    required this.color,
+  });
+
+  final List<double> bands;
+  final double rmsLevel;
+  final double bassLevel;
+  final double beatPulse;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      border: Border.all(color: color, width: 5.0),
-    ),
-  );
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final maxR = min(cx, cy);
+
+    final baseRadius = maxR * (0.52 + rmsLevel * 0.08);
+    final borderWidth = 3.0 + rmsLevel * 4.0;
+
+    // Beat ripple behind everything
+    if (beatPulse > 0.01) {
+      final rippleR = baseRadius + maxR * 0.18 * beatPulse;
+      canvas.drawCircle(
+        Offset(cx, cy),
+        rippleR,
+        Paint()
+          ..color = color.withValues(alpha: beatPulse * 0.35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
+    }
+
+    // Radial bars
+    final barPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2.0;
+
+    final n = bands.length;
+    final innerEdge = baseRadius + borderWidth / 2 + 3;
+    final maxBarLen = maxR * 0.38;
+
+    for (int i = 0; i < n; i++) {
+      final barLen = maxBarLen * bands[i];
+      if (barLen < 1.0) continue;
+      final angle = (2 * pi * i / n) - pi / 2;
+      final cosA = cos(angle);
+      final sinA = sin(angle);
+      canvas.drawLine(
+        Offset(cx + cosA * innerEdge, cy + sinA * innerEdge),
+        Offset(cx + cosA * (innerEdge + barLen), cy + sinA * (innerEdge + barLen)),
+        barPaint,
+      );
+    }
+
+    // Circle border on top
+    canvas.drawCircle(
+      Offset(cx, cy),
+      baseRadius,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth,
+    );
+  }
+
+  @override
+  bool shouldRepaint(NcsVisualizerPainter old) => true;
 }
