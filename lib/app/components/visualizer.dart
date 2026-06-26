@@ -20,6 +20,7 @@ class _VizModel extends ChangeNotifier {
   double time = 0;
   double spin = 0;
   Color color = const Color(0xFFFFFFFF);
+  String debug = ''; // TEMP: live calibration readout
   void notify() => notifyListeners();
 }
 
@@ -49,10 +50,14 @@ class _VisualizerControllerState extends State<VisualizerController>
   double _smoothMid = 0;
   double _smoothHigh = 0;
   double _smoothRms = 0;
-  double _beatPulse = 0;
-  double _prevBass = 0;
-  double _beatCooldown = 0; // seconds remaining before another beat can fire
+  // NCS-style pulse: bass spans the full 0..1 range (measured), so the pulse is
+  // a plain bass-level envelope — fast attack on the kick, moderate release
+  // between hits. No gain (that only saturated and pinned it at max).
+  double _pulse = 0;
   double _time = 0;
+
+  // TEMP calibration stats — running min/max of the raw features while playing.
+  double _bassMin = 1, _bassMax = 0, _rmsMin = 1, _rmsMax = 0;
   double _spin = 0; // rotation phase; only advances while audio plays
   Duration _lastElapsed = Duration.zero;
 
@@ -98,7 +103,7 @@ class _VisualizerControllerState extends State<VisualizerController>
       } else {
         try {
           _audioData!.updateSamples();
-          _processFFT(_audioData!.getAudioData(), dt);
+          _processFFT(_audioData!.getAudioData());
         } catch (_) {}
       }
     } else {
@@ -113,7 +118,7 @@ class _VisualizerControllerState extends State<VisualizerController>
     // the FFT energy — so the sphere accelerates, eases, and reverses.
     if (playing) {
       final dir = sin(_time * 0.4); // smoothly swings between -1 and +1
-      _spin += dt * dir * (_smoothRms * 1.8 + _beatPulse * 11.0);
+      _spin += dt * dir * (_smoothRms * 1.8 + _pulse * 6.0);
     }
 
     // Push live values into the model and repaint every tick. Reading from a
@@ -124,7 +129,7 @@ class _VisualizerControllerState extends State<VisualizerController>
       ..bassLevel = _smoothBass
       ..midLevel = _smoothMid
       ..highLevel = _smoothHigh
-      ..beatPulse = _beatPulse
+      ..beatPulse = _pulse
       ..time = _time
       ..spin = _spin
       ..color = stringToColor(AppState.instance.visualizerColor)
@@ -140,10 +145,10 @@ class _VisualizerControllerState extends State<VisualizerController>
     _smoothMid *= k;
     _smoothHigh *= k;
     _smoothRms *= k;
-    _beatPulse *= k;
+    _pulse *= k;
   }
 
-  void _processFFT(Float32List data, double dt) {
+  void _processFFT(Float32List data) {
     if (data.length < 256) return;
 
     for (int b = 0; b < _bandCount; b++) {
@@ -179,20 +184,22 @@ class _VisualizerControllerState extends State<VisualizerController>
     _smoothHigh = _lerp(_smoothHigh, high, high > _smoothHigh ? 0.6 : 0.15);
     _smoothRms = _lerp(_smoothRms, rms, rms > _smoothRms ? 0.7 : 0.4);
 
-    // Beat detection: fire only on a strong bass jump, and only if we're past
-    // the refractory window — so the pulse spikes and then decays instead of
-    // being pinned at max on every loud frame. Strength scales with the jump.
-    _beatCooldown = (_beatCooldown - dt).clamp(0.0, 1.0);
-    final bassDelta = bass - _prevBass;
-    if (bassDelta > 0.18 && _beatCooldown <= 0) {
-      // Proportional with a punchy peak on real beats, but the cooldown keeps
-      // it from retriggering every frame so it still drops fully between hits.
-      _beatPulse = (bassDelta * 3.2).clamp(0.0, 1.0);
-      _beatCooldown = 0.25; // min ~0.25s between beats
-    } else {
-      _beatPulse = (_beatPulse - 0.07).clamp(0.0, 1.0);
-    }
-    _prevBass = bass;
+    // Bass-level envelope: fast attack so it snaps up on the kick, moderate
+    // release so it eases back down between hits. Driven by the bass level
+    // directly (full 0..1 range), so no gain and no saturation.
+    _pulse = bass > _pulse
+        ? _lerp(_pulse, bass, 0.5) // fast attack
+        : _lerp(_pulse, bass, 0.15); // moderate release
+
+    // TEMP calibration: record live ranges of the raw features.
+    _bassMin = min(_bassMin, bass);
+    _bassMax = max(_bassMax, bass);
+    _rmsMin = min(_rmsMin, rms);
+    _rmsMax = max(_rmsMax, rms);
+    _model.debug =
+        'bass ${bass.toStringAsFixed(2)} [${_bassMin.toStringAsFixed(2)}-${_bassMax.toStringAsFixed(2)}]\n'
+        'rms  ${rms.toStringAsFixed(2)} [${_rmsMin.toStringAsFixed(2)}-${_rmsMax.toStringAsFixed(2)}]\n'
+        'pulse ${_pulse.toStringAsFixed(2)}';
   }
 
   double _lerp(double a, double b, double t) => (a * (1 - t) + b * t).clamp(0.0, 1.0);
@@ -248,11 +255,9 @@ class NcsVisualizerPainter extends CustomPainter {
     final cy = size.height / 2;
     final maxR = min(cx, cy);
 
-    // Circle SIZE tracks the FFT energy (rmsLevel) smoothly — it grows and
-    // shrinks with the spectrum rather than jumping/pulsing on the beat. The
-    // curve (pow > 1) pulls mid/low energy toward the small end, so the circle
-    // spends more time small instead of hovering large.
-    final baseRadius = maxR * (0.5 + pow(rmsLevel, 2.0) * 0.4);
+    // Circle SIZE pumps with the bass pulse (NCS-style): small between kicks,
+    // expanding on the kick. beatPulse is the bass envelope follower.
+    final baseRadius = maxR * (0.66 + beatPulse * 0.26);
     final rotY = spin; // audio-driven Y-axis rotation (still when silent)
 
     // Sphere particles (behind the ring)
@@ -260,6 +265,18 @@ class NcsVisualizerPainter extends CustomPainter {
 
     // Clean glowing outline (matches the reference look)
     _drawRing(canvas, cx, cy, baseRadius, maxR);
+
+    // TEMP calibration overlay.
+    if (m.debug.isNotEmpty) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: m.debug,
+          style: const TextStyle(color: Color(0xFF00FF66), fontSize: 11, height: 1.3),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, const Offset(6, 6));
+    }
   }
 
   void _drawSphereParticles(Canvas canvas, double cx, double cy, double sphereR, double rotY) {
