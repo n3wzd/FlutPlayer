@@ -50,10 +50,15 @@ class _VisualizerControllerState extends State<VisualizerController>
   double _smoothMid = 0;
   double _smoothHigh = 0;
   double _smoothRms = 0;
-  // NCS-style pulse: bass spans the full 0..1 range (measured), so the pulse is
-  // a plain bass-level envelope — fast attack on the kick, moderate release
-  // between hits. No gain (that only saturated and pinned it at max).
+  // NCS-style pulse: instead of the absolute bass level (which on bass-heavy
+  // tracks sits near 1.0 the whole time and looks static), the pulse measures
+  // the bass *relative* to an adaptive window — a slow floor (the quiet level
+  // between kicks) and a slow peak (the loudest recent kick). The current bass
+  // is remapped into that window, so the pulse always swings the full 0..1 on
+  // every kick regardless of how loud the track is overall.
   double _pulse = 0;
+  double _bassFloor = 0; // adaptive quiet baseline (rises slowly, drops fast)
+  double _bassPeak = 0.2; // adaptive recent peak (snaps up, decays slowly)
   double _flow = 0; // ring-wave phase
   double _flowVel = 0; // ring-wave angular velocity; eases toward a pulse target
   double _time = 0;
@@ -170,15 +175,21 @@ class _VisualizerControllerState extends State<VisualizerController>
     }
 
     double bass = 0;
-    for (int i = 1; i <= 8; i++) bass += data[i];
+    for (int i = 1; i <= 8; i++) {
+      bass += data[i];
+    }
     bass = (bass / 8).clamp(0.0, 1.0);
 
     double mid = 0;
-    for (int i = 9; i <= 40; i++) mid += data[i];
+    for (int i = 9; i <= 40; i++) {
+      mid += data[i];
+    }
     mid = (mid / 32).clamp(0.0, 1.0);
 
     double high = 0;
-    for (int i = 41; i < 128; i++) high += data[i];
+    for (int i = 41; i < 128; i++) {
+      high += data[i];
+    }
     high = (high / 87).clamp(0.0, 1.0);
 
     final rms = (bass * 0.5 + mid * 0.3 + high * 0.2).clamp(0.0, 1.0);
@@ -188,14 +199,26 @@ class _VisualizerControllerState extends State<VisualizerController>
     _smoothHigh = _lerp(_smoothHigh, high, high > _smoothHigh ? 0.6 : 0.15);
     _smoothRms = _lerp(_smoothRms, rms, rms > _smoothRms ? 0.7 : 0.4);
 
+    // Adaptive window: track the quiet baseline (floor) and the recent loudest
+    // kick (peak). The floor drops instantly to new lows and rises slowly; the
+    // peak snaps up to new highs and decays slowly. This auto-calibrates to the
+    // track's loudness so the pulse stays dynamic instead of pinned near max.
+    _bassFloor = bass < _bassFloor ? bass : _lerp(_bassFloor, bass, 0.01);
+    _bassPeak = bass > _bassPeak ? bass : _lerp(_bassPeak, bass, 0.012);
+    final span = _bassPeak - _bassFloor;
+    // Remap current bass into [floor, peak]. The guard avoids amplifying noise
+    // when there's no real dynamic range (near-silence or steady tone).
+    final norm = span > 0.06
+        ? ((bass - _bassFloor) / span).clamp(0.0, 1.0)
+        : 0.0;
+
     // Bass-level envelope: fast attack so it snaps up on the kick, moderate
-    // release so it eases back down between hits. The pow(>1) curve compresses
-    // the top so only the strongest kicks approach 1.0 — mid/high bass sits
-    // lower, so the pulse isn't near max so often.
-    final target = pow(bass, 1.6).toDouble();
+    // release so it eases back down between hits. The pow curve keeps the pulse
+    // low between kicks so the kick itself reads as a sharp swell.
+    final target = pow(norm, 1.8).toDouble();
     _pulse = target > _pulse
-        ? _lerp(_pulse, target, 0.2) // less sensitive attack
-        : _lerp(_pulse, target, 0.45); // fast release
+        ? _lerp(_pulse, target, 0.3) // snappier attack on the kick
+        : _lerp(_pulse, target, 0.5); // fast release back to baseline
   }
 
   double _lerp(double a, double b, double t) => (a * (1 - t) + b * t).clamp(0.0, 1.0);
@@ -230,6 +253,17 @@ class NcsVisualizerPainter extends CustomPainter {
 
   static const int _particleCount = 420;
   static const double _perspective = 2.6;
+
+  // Ring tessellation. Per-angle values are precomputed into these reusable
+  // buffers each frame (once), then shared across all strands — the strands
+  // only do cheap arithmetic, not trig. Buffers are allocated once (steps is
+  // constant) to avoid per-frame garbage.
+  static const int _ringSteps = 160;
+  static const int _ringStrands = 44;
+  static final Float64List _rCos = Float64List(_ringSteps + 1); // cos(angle)
+  static final Float64List _rSin = Float64List(_ringSteps + 1); // sin(angle)
+  static final Float64List _rWid = Float64List(_ringSteps + 1); // band-width factor
+  static final Float64List _wave = Float64List(_ringSteps + 1); // traveling-crest height ∈ [0,1]
 
   // Pre-generated unit-sphere points via Fibonacci lattice (even, structured).
   static final List<(double x, double y, double z)> _spherePoints = _genSpherePoints();
@@ -270,6 +304,7 @@ class NcsVisualizerPainter extends CustomPainter {
     final push = 1.0 + bassLevel * 0.14 + rmsLevel * 0.07 + beatPulse * 0.18;
     // Keep every particle strictly inside the ring.
     final limit = ringR * 0.95;
+    final limitSq = limit * limit;
     final cosY = cos(rotY);
     final sinY = sin(rotY);
     // Fixed 3/4 view tilt (no idle motion).
@@ -295,9 +330,10 @@ class NcsVisualizerPainter extends CustomPainter {
       double ox = rx * scale;
       double oy = ry * scale;
       // Clamp the projected offset so particles never spill outside the ring.
-      final d = sqrt(ox * ox + oy * oy);
-      if (d > limit) {
-        final k = limit / d;
+      // Compare squared distances so sqrt only runs for the few that exceed it.
+      final d2 = ox * ox + oy * oy;
+      if (d2 > limitSq) {
+        final k = limit / sqrt(d2);
         ox *= k;
         oy *= k;
       }
@@ -325,28 +361,12 @@ class NcsVisualizerPainter extends CustomPainter {
     // driven by `spin` (a pure audio accumulator), so it streams with the music
     // and speeds up with the pulse. Strand brightness varies → non-uniform.
     final bandW = maxR * (0.045 + rmsLevel * 0.02 + beatPulse * 0.025);
-    final amp = maxR * (0.014 + rmsLevel * 0.02 + beatPulse * 0.024); // much taller ripple
-    final fl = flow; // pulse-driven phase
-    const strands = 44;
-    const steps = 160;
-
-    // Band THICKNESS varies around the ring and travels with the flow, so the
-    // band is fatter in some places, thinner in others (non-uniform width). Two
-    // mismatched frequencies make the variation irregular/organic rather than a
-    // tidy repeating pattern.
-    double widthAt(double a) {
-      // Non-harmonic frequencies moving at different speeds → irregular,
-      // non-repeating thickness that never looks evenly spread.
-      // Several integer harmonics (seamless loop) with mismatched speeds AND
-      // phase offsets so peaks never line up → gentle but very irregular humps.
-      final v = sin(a * 2 - fl + 0.0) * 0.62 +
-          sin(a * 3 + fl * 0.8 + 1.7) * 0.26 +
-          sin(a * 5 - fl * 1.2 + 0.6) * 0.12; // -1..1
-      // Clamp the base: pow() of a negative number with a fractional exponent is
-      // NaN, which would corrupt the path and make the ring flicker/vanish.
-      final base = (0.5 + 0.5 * v).clamp(0.0, 1.0);
-      return 0.28 + 0.72 * pow(base, 1.4).toDouble();
-    }
+    final fl = flow; // pulse-driven phase — moves the whole wave coherently
+    // Max inward reach of the wave. The idle term keeps a gentle living ripple;
+    // the beat term lets the strongest kicks drive a crest all the way to — and
+    // past — the centre. baseR is the distance to the centre, so a depth ≥ baseR
+    // means that crest crosses it and emerges on the far side (a "sphere").
+    final waveDepth = baseR * (0.10 + beatPulse * 1.05) + rmsLevel * maxR * 0.08;
 
     // Soft outer bloom (one fat blurred stroke) — the neon glow.
     canvas.drawCircle(
@@ -359,24 +379,53 @@ class NcsVisualizerPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.05),
     );
 
-    for (int s = 0; s < strands; s++) {
-      final t = s / (strands - 1.0); // 0 = outer (at baseR) .. 1 = inner
-      final phase = s * 0.16; // SMALL spread → fibers stay parallel (coherent band)
+    // Precompute per-angle values once per frame: cos/sin, the band-width
+    // factor, and the traveling-crest HEIGHT FIELD. The wave is a few swells
+    // that all circulate at the same angular speed, so the pattern keeps its
+    // shape as it travels — a coherent flow, not spikes popping at random
+    // positions. Sharpening localises each crest: one side lifts and its
+    // neighbours tremble, while the troughs stay calm.
+    for (int i = 0; i <= _ringSteps; i++) {
+      final a = (i / _ringSteps) * 2 * pi;
+      _rCos[i] = cos(a);
+      _rSin[i] = sin(a);
+      // Band-width modulation (gentle), all terms drifting the same way so the
+      // band breathes with the flow instead of churning. Clamp pow base ≥ 0.
+      final v = sin(a * 2 - fl) * 0.62 +
+          sin(a * 3 - fl * 1.5 + 1.7) * 0.26 +
+          sin(a * 5 - fl * 2.5 + 0.6) * 0.12;
+      final base = (0.5 + 0.5 * v).clamp(0.0, 1.0);
+      _rWid[i] = 0.28 + 0.72 * pow(base, 1.4).toDouble();
+      // Height field ∈ [0,1]: two swells travel around together (cos(2a - fl));
+      // the cube sharpens them into localised crests so the lift is concentrated
+      // and falls away smoothly to either side. A fine ripple rides the crest
+      // for surface trembling.
+      final g = (cos(a * 2 - fl) + 1) * 0.5;
+      final crest = g * g * g;
+      final tremble = sin(a * 9 - fl * 3 + 1.1) * 0.12 * crest;
+      _wave[i] = (crest + tremble).clamp(0.0, 1.0);
+    }
+
+    for (int s = 0; s < _ringStrands; s++) {
+      final t = s / (_ringStrands - 1.0); // 0 = outer (at baseR) .. 1 = inner
+      final bwt = bandW * t; // band-width contribution for this strand
+      // Inner strands ride the crest far more than outer ones, so at a crest the
+      // band fans inward into a spike pointing at the centre; outer strands barely
+      // move, holding the ring's outer edge steady.
+      final rip = waveDepth * (0.08 + 0.92 * t);
       final path = Path();
-      for (int i = 0; i <= steps; i++) {
-        final a = (i / steps) * 2 * pi;
-        // Per-angle band width (flowing) pushes the inner strands in/out, and a
-        // small shared ripple adds fiber texture.
-        final w = sin(a * 2 - fl + phase + 0.0) * 0.62 +
-            sin(a * 3 + fl * 1.2 - phase + 2.1) * 0.26 +
-            sin(a * 5 - fl * 0.6 + 1.1) * 0.12;
-        // Inner strands (t→1) ripple far more violently; outer strands barely.
-        final r = baseR - bandW * t * widthAt(a) + amp * w * (0.2 + 1.6 * t);
-        final p = Offset(cx + cos(a) * r, cy + sin(a) * r);
+      for (int i = 0; i <= _ringSteps; i++) {
+        // The wave only ever pushes INWARD (toward the centre); on a strong beat
+        // the crest can pass the centre and surface on the opposite side. Clamp at
+        // -baseR so it never pokes back outside the circle on that far side.
+        var r = baseR - bwt * _rWid[i] - rip * _wave[i];
+        if (r < -baseR) r = -baseR;
+        final x = cx + _rCos[i] * r;
+        final y = cy + _rSin[i] * r;
         if (i == 0) {
-          path.moveTo(p.dx, p.dy);
+          path.moveTo(x, y);
         } else {
-          path.lineTo(p.dx, p.dy);
+          path.lineTo(x, y);
         }
       }
       // Brightest mid-band, fading to both edges; plus a little audio lift.
