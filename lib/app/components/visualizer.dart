@@ -54,7 +54,8 @@ class _VisualizerControllerState extends State<VisualizerController>
   // a plain bass-level envelope — fast attack on the kick, moderate release
   // between hits. No gain (that only saturated and pinned it at max).
   double _pulse = 0;
-  double _flow = 0; // ring-wave phase; advances mostly with the pulse
+  double _flow = 0; // ring-wave phase
+  double _flowVel = 0; // ring-wave angular velocity; eases toward a pulse target
   double _time = 0;
   double _spin = 0; // rotation phase; only advances while audio plays
   Duration _lastElapsed = Duration.zero;
@@ -115,9 +116,12 @@ class _VisualizerControllerState extends State<VisualizerController>
     // the kick. No time-based oscillation — every change reflects the data.
     if (playing) {
       _spin += dt * (_smoothRms * 2.2 + _pulse * 5.0);
-      // Ring flow is pulse-dominated: it rushes on the kick and nearly stalls
-      // between hits, so the outline visibly streams with the pulse.
-      _flow += dt * (0.3 + _pulse * 7.0);
+      // Ring flow uses an eased VELOCITY rather than a speed set straight from
+      // the pulse: the velocity ramps toward a pulse-driven target, so the wave
+      // accelerates and decelerates instead of sliding at a constant speed.
+      final targetVel = _pulse * 7.0; // slightly slower than before
+      _flowVel += (targetVel - _flowVel) * 0.05; // inertia → accel/decel
+      _flow += dt * _flowVel;
     }
 
     // Push live values into the model and repaint every tick. Reading from a
@@ -190,7 +194,7 @@ class _VisualizerControllerState extends State<VisualizerController>
     // lower, so the pulse isn't near max so often.
     final target = pow(bass, 1.6).toDouble();
     _pulse = target > _pulse
-        ? _lerp(_pulse, target, 0.5) // fast attack
+        ? _lerp(_pulse, target, 0.2) // less sensitive attack
         : _lerp(_pulse, target, 0.45); // fast release
   }
 
@@ -321,15 +325,28 @@ class NcsVisualizerPainter extends CustomPainter {
     // driven by `spin` (a pure audio accumulator), so it streams with the music
     // and speeds up with the pulse. Strand brightness varies → non-uniform.
     final bandW = maxR * (0.045 + rmsLevel * 0.02 + beatPulse * 0.025);
-    final amp = maxR * (0.006 + rmsLevel * 0.01 + beatPulse * 0.012); // gentle fiber ripple
+    final amp = maxR * (0.014 + rmsLevel * 0.02 + beatPulse * 0.024); // much taller ripple
     final fl = flow; // pulse-driven phase
     const strands = 44;
     const steps = 160;
 
     // Band THICKNESS varies around the ring and travels with the flow, so the
-    // band is fatter in some places, thinner in others (non-uniform width).
-    double widthAt(double a) =>
-        0.35 + 0.65 * pow(0.5 + 0.5 * sin(a * 3 - fl), 1.4).toDouble();
+    // band is fatter in some places, thinner in others (non-uniform width). Two
+    // mismatched frequencies make the variation irregular/organic rather than a
+    // tidy repeating pattern.
+    double widthAt(double a) {
+      // Non-harmonic frequencies moving at different speeds → irregular,
+      // non-repeating thickness that never looks evenly spread.
+      // Several integer harmonics (seamless loop) with mismatched speeds AND
+      // phase offsets so peaks never line up → gentle but very irregular humps.
+      final v = sin(a * 2 - fl + 0.0) * 0.62 +
+          sin(a * 3 + fl * 0.8 + 1.7) * 0.26 +
+          sin(a * 5 - fl * 1.2 + 0.6) * 0.12; // -1..1
+      // Clamp the base: pow() of a negative number with a fractional exponent is
+      // NaN, which would corrupt the path and make the ring flicker/vanish.
+      final base = (0.5 + 0.5 * v).clamp(0.0, 1.0);
+      return 0.28 + 0.72 * pow(base, 1.4).toDouble();
+    }
 
     // Soft outer bloom (one fat blurred stroke) — the neon glow.
     canvas.drawCircle(
@@ -350,8 +367,11 @@ class NcsVisualizerPainter extends CustomPainter {
         final a = (i / steps) * 2 * pi;
         // Per-angle band width (flowing) pushes the inner strands in/out, and a
         // small shared ripple adds fiber texture.
-        final w = sin(a * 4 - fl + phase) * 0.6 + sin(a * 7 + fl * 1.2 - phase) * 0.4;
-        final r = baseR - bandW * t * widthAt(a) + amp * w * (0.5 + 0.5 * t);
+        final w = sin(a * 2 - fl + phase + 0.0) * 0.62 +
+            sin(a * 3 + fl * 1.2 - phase + 2.1) * 0.26 +
+            sin(a * 5 - fl * 0.6 + 1.1) * 0.12;
+        // Inner strands (t→1) ripple far more violently; outer strands barely.
+        final r = baseR - bandW * t * widthAt(a) + amp * w * (0.2 + 1.6 * t);
         final p = Offset(cx + cos(a) * r, cy + sin(a) * r);
         if (i == 0) {
           path.moveTo(p.dx, p.dy);
@@ -362,12 +382,13 @@ class NcsVisualizerPainter extends CustomPainter {
       // Brightest mid-band, fading to both edges; plus a little audio lift.
       final core = (1.0 - (t - 0.4).abs() * 1.6).clamp(0.0, 1.0);
       final alpha = (0.08 + core * 0.5 + beatPulse * 0.1).clamp(0.0, 0.9);
+      // Outer strands are thicker, inner strands thinner.
       canvas.drawPath(
         path,
         Paint()
           ..color = color.withValues(alpha: alpha)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = maxR * 0.004,
+          ..strokeWidth = maxR * (0.0035 + (1 - t) * 0.016),
       );
     }
   }
