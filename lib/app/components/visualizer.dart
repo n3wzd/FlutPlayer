@@ -217,8 +217,8 @@ class _VisualizerControllerState extends State<VisualizerController>
     // low between kicks so the kick itself reads as a sharp swell.
     final target = pow(norm, 1.8).toDouble();
     _pulse = target > _pulse
-        ? _lerp(_pulse, target, 0.3) // snappier attack on the kick
-        : _lerp(_pulse, target, 0.5); // fast release back to baseline
+        ? _lerp(_pulse, target, 0.22) // attack on the kick (slightly eased)
+        : _lerp(_pulse, target, 0.35); // release back to baseline (slightly eased)
   }
 
   double _lerp(double a, double b, double t) => (a * (1 - t) + b * t).clamp(0.0, 1.0);
@@ -261,11 +261,26 @@ class NcsVisualizerPainter extends CustomPainter {
   // Dense ALONG each meridian (rows), sparse BETWEEN meridians (cols): the rows
   // of close dots read as flowing lines, the gaps between columns keep the lines
   // distinct. This is what makes the wave lines visible (vs a uniform dot grid).
-  static const int _sphereRows = 56; // latitude divisions (dots along a meridian)
-  static const int _sphereCols = 30; // longitude divisions (meridian lines)
+  static const int _sphereRows = 40; // latitude divisions (dots along a meridian)
+  static const int _sphereCols = 22; // longitude divisions (meridian lines)
   static const int _parallelStride = 5; // draw a latitude (grid) line every Nth row
-  static final Float64List _latSin = _fill(_sphereRows + 1, pi, true);
-  static final Float64List _latCos = _fill(_sphereRows + 1, pi, false);
+  // Keep the dots OFF the exact poles. At a true pole sin(theta)=0, so every
+  // meridian collapses onto a single point — all _sphereCols dots stack there
+  // into one bright pinch. Pulling the latitude range in by this margin removes
+  // that singular convergence point.
+  static const double _poleMargin = 0.22;
+  // The top/bottom rows still form a small cap ring that the meridian lines
+  // funnel toward. Skip this many rows at each pole when drawing the meridian
+  // lines so the lines stop short of the cap (no visible funnel), and fade the
+  // dots toward the poles so the residual cap thins out instead of reading as a
+  // bright knot.
+  static const int _capSkip = 4;
+  static final Float64List _latSin = _fillLat(_sphereRows + 1, true);
+  static final Float64List _latCos = _fillLat(_sphereRows + 1, false);
+  // Per-row pole fade: 1 at the equator, easing toward `_capFadeMin` at the
+  // caps. Applied to dot/line alpha so any leftover polar crowding dims away.
+  static const double _capFadeMin = 0.18;
+  static final Float64List _latFade = _fillLatFade(_sphereRows + 1);
   static final Float64List _lonSin = _fill(_sphereCols, 2 * pi, true);
   static final Float64List _lonCos = _fill(_sphereCols, 2 * pi, false);
   // Reusable full-grid projected-point buffers: one pass fills them, then the
@@ -278,10 +293,37 @@ class NcsVisualizerPainter extends CustomPainter {
   // Fill `n` samples of sin/cos spanning [0, span). `wantSin` picks the function.
   static Float64List _fill(int n, double span, bool wantSin) {
     final out = Float64List(n);
-    final denom = span == pi ? (n - 1) : n; // latitude includes both poles
+    final denom = n; // longitude wraps → no shared endpoint
     for (int i = 0; i < n; i++) {
       final a = (i / denom) * span;
       out[i] = wantSin ? sin(a) : cos(a);
+    }
+    return out;
+  }
+
+  // Latitude samples, spaced EQUAL-AREA (uniform in cos θ) and pulled in from
+  // the exact poles by `_poleMargin`. Equal-area spacing keeps the dot density
+  // even across the sphere instead of crowding the poles, and the margin keeps
+  // the top/bottom rows off the singular pole point so the meridians never
+  // funnel into one bright pinch.
+  static Float64List _fillLat(int n, bool wantSin) {
+    final out = Float64List(n);
+    for (int i = 0; i < n; i++) {
+      // cos θ runs linearly from +(1-margin) (north) to -(1-margin) (south).
+      final c = (1 - _poleMargin) * (1 - 2 * i / (n - 1));
+      out[i] = wantSin ? sqrt(1 - c * c) : c;
+    }
+    return out;
+  }
+
+  // Per-row alpha weight that fades from 1 at the equator to `_capFadeMin` at
+  // the poles, so dots/lines near the caps don't read as a bright convergence.
+  static Float64List _fillLatFade(int n) {
+    final out = Float64List(n);
+    for (int i = 0; i < n; i++) {
+      // |cos θ| normalised to 0 (equator) .. 1 (cap).
+      final ratio = (1 - 2 * i / (n - 1)).abs();
+      out[i] = _capFadeMin + (1 - _capFadeMin) * (1 - ratio * ratio);
     }
     return out;
   }
@@ -455,20 +497,23 @@ class NcsVisualizerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // 2) Meridian lines (down each column) — the flowing wave lines.
+    // 2) Meridian lines (down each column) — the flowing wave lines. Stop short
+    // of the caps (_capSkip rows) so the lines don't funnel into the pole.
+    final mFirst = _capSkip;
+    final mLast = _sphereRows - _capSkip;
     for (int c = 0; c < _sphereCols; c++) {
       final path = Path();
       double depthSum = 0;
-      for (int r = 0; r <= _sphereRows; r++) {
+      for (int r = mFirst; r <= mLast; r++) {
         final idx = r * _sphereCols + c;
-        if (r == 0) {
+        if (r == mFirst) {
           path.moveTo(_gx[idx], _gy[idx]);
         } else {
           path.lineTo(_gx[idx], _gy[idx]);
         }
         depthSum += _gd[idx];
       }
-      final avg = depthSum / (_sphereRows + 1);
+      final avg = depthSum / (mLast - mFirst + 1);
       linePaint.color = color.withValues(
           alpha: ((0.05 + avg * avg * 0.30) * dim).clamp(0.0, 1.0));
       linePaint.strokeWidth = maxR * 0.0015;
@@ -491,7 +536,7 @@ class NcsVisualizerPainter extends CustomPainter {
       }
       final avg = depthSum / _sphereCols;
       linePaint.color = color.withValues(
-          alpha: ((0.04 + avg * avg * 0.22) * dim).clamp(0.0, 1.0));
+          alpha: ((0.04 + avg * avg * 0.22) * dim * _latFade[r]).clamp(0.0, 1.0));
       linePaint.strokeWidth = maxR * 0.0013;
       canvas.drawPath(path, linePaint);
     }
@@ -501,10 +546,11 @@ class NcsVisualizerPainter extends CustomPainter {
     final n = (_sphereRows + 1) * _sphereCols;
     for (int idx = 0; idx < n; idx++) {
       final depth = _gd[idx];
+      final fade = _latFade[idx ~/ _sphereCols]; // dim dots toward the poles
       final dotR =
           maxR * (0.0010 + depth * depth * 0.0024) * (1.0 + beatPulse * 0.4);
       dotPaint.color = color.withValues(
-          alpha: ((0.10 + pow(depth, 1.6).toDouble() * 0.8) * dim)
+          alpha: ((0.10 + pow(depth, 1.6).toDouble() * 0.8) * dim * fade)
               .clamp(0.0, 1.0));
       canvas.drawCircle(Offset(_gx[idx], _gy[idx]), dotR, dotPaint);
     }
