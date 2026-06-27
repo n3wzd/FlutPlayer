@@ -19,8 +19,8 @@ class _VizModel extends ChangeNotifier {
   double beatPulse = 0;
   double time = 0;
   double spin = 0;
+  double flow = 0; // ring-wave phase (pulse-driven)
   Color color = const Color(0xFFFFFFFF);
-  String debug = ''; // TEMP: live calibration readout
   void notify() => notifyListeners();
 }
 
@@ -54,10 +54,8 @@ class _VisualizerControllerState extends State<VisualizerController>
   // a plain bass-level envelope — fast attack on the kick, moderate release
   // between hits. No gain (that only saturated and pinned it at max).
   double _pulse = 0;
+  double _flow = 0; // ring-wave phase; advances mostly with the pulse
   double _time = 0;
-
-  // TEMP calibration stats — running min/max of the raw features while playing.
-  double _bassMin = 1, _bassMax = 0, _rmsMin = 1, _rmsMax = 0;
   double _spin = 0; // rotation phase; only advances while audio plays
   Duration _lastElapsed = Duration.zero;
 
@@ -115,7 +113,12 @@ class _VisualizerControllerState extends State<VisualizerController>
     // Rotation only progresses while actually playing → frozen when paused.
     // Speed is driven PURELY by the audio: it rides the FFT energy and surges on
     // the kick. No time-based oscillation — every change reflects the data.
-    if (playing) _spin += dt * (_smoothRms * 2.2 + _pulse * 5.0);
+    if (playing) {
+      _spin += dt * (_smoothRms * 2.2 + _pulse * 5.0);
+      // Ring flow is pulse-dominated: it rushes on the kick and nearly stalls
+      // between hits, so the outline visibly streams with the pulse.
+      _flow += dt * (0.3 + _pulse * 7.0);
+    }
 
     // Push live values into the model and repaint every tick. Reading from a
     // shared mutable object keeps the painter current without rebuilding.
@@ -128,6 +131,7 @@ class _VisualizerControllerState extends State<VisualizerController>
       ..beatPulse = _pulse
       ..time = _time
       ..spin = _spin
+      ..flow = _flow
       ..color = stringToColor(AppState.instance.visualizerColor)
       ..notify();
   }
@@ -187,17 +191,7 @@ class _VisualizerControllerState extends State<VisualizerController>
     final target = pow(bass, 1.6).toDouble();
     _pulse = target > _pulse
         ? _lerp(_pulse, target, 0.5) // fast attack
-        : _lerp(_pulse, target, 0.28); // faster release
-
-    // TEMP calibration: record live ranges of the raw features.
-    _bassMin = min(_bassMin, bass);
-    _bassMax = max(_bassMax, bass);
-    _rmsMin = min(_rmsMin, rms);
-    _rmsMax = max(_rmsMax, rms);
-    _model.debug =
-        'bass ${bass.toStringAsFixed(2)} [${_bassMin.toStringAsFixed(2)}-${_bassMax.toStringAsFixed(2)}]\n'
-        'rms  ${rms.toStringAsFixed(2)} [${_rmsMin.toStringAsFixed(2)}-${_rmsMax.toStringAsFixed(2)}]\n'
-        'pulse ${_pulse.toStringAsFixed(2)}';
+        : _lerp(_pulse, target, 0.45); // fast release
   }
 
   double _lerp(double a, double b, double t) => (a * (1 - t) + b * t).clamp(0.0, 1.0);
@@ -227,6 +221,7 @@ class NcsVisualizerPainter extends CustomPainter {
   double get beatPulse => m.beatPulse;
   double get time => m.time;
   double get spin => m.spin;
+  double get flow => m.flow;
   Color get color => m.color;
 
   static const int _particleCount = 420;
@@ -263,18 +258,6 @@ class NcsVisualizerPainter extends CustomPainter {
 
     // Clean glowing outline (matches the reference look)
     _drawRing(canvas, cx, cy, baseRadius, maxR);
-
-    // TEMP calibration overlay.
-    if (m.debug.isNotEmpty) {
-      final tp = TextPainter(
-        text: TextSpan(
-          text: m.debug,
-          style: const TextStyle(color: Color(0xFF00FF66), fontSize: 11, height: 1.3),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, const Offset(6, 6));
-    }
   }
 
   void _drawSphereParticles(
@@ -337,11 +320,16 @@ class NcsVisualizerPainter extends CustomPainter {
     // the band they form a glowing ring whose inner edge ripples. The flow is
     // driven by `spin` (a pure audio accumulator), so it streams with the music
     // and speeds up with the pulse. Strand brightness varies → non-uniform.
-    final bandW = maxR * (0.04 + rmsLevel * 0.02 + beatPulse * 0.02);
-    final amp = maxR * (0.008 + rmsLevel * 0.012 + beatPulse * 0.014); // gentle ripple
-    final flow = spin * 2.5;
+    final bandW = maxR * (0.045 + rmsLevel * 0.02 + beatPulse * 0.025);
+    final amp = maxR * (0.006 + rmsLevel * 0.01 + beatPulse * 0.012); // gentle fiber ripple
+    final fl = flow; // pulse-driven phase
     const strands = 44;
     const steps = 160;
+
+    // Band THICKNESS varies around the ring and travels with the flow, so the
+    // band is fatter in some places, thinner in others (non-uniform width).
+    double widthAt(double a) =>
+        0.35 + 0.65 * pow(0.5 + 0.5 * sin(a * 3 - fl), 1.4).toDouble();
 
     // Soft outer bloom (one fat blurred stroke) — the neon glow.
     canvas.drawCircle(
@@ -356,15 +344,14 @@ class NcsVisualizerPainter extends CustomPainter {
 
     for (int s = 0; s < strands; s++) {
       final t = s / (strands - 1.0); // 0 = outer (at baseR) .. 1 = inner
-      final rMid = baseR - bandW * t;
       final phase = s * 0.16; // SMALL spread → fibers stay parallel (coherent band)
       final path = Path();
       for (int i = 0; i <= steps; i++) {
         final a = (i / steps) * 2 * pi;
-        // Two traveling sine components → a gentle flowing ripple the whole band
-        // shares (low frequency, low amplitude — no tangling).
-        final w = sin(a * 4 - flow + phase) * 0.6 + sin(a * 7 + flow * 1.2 - phase) * 0.4;
-        final r = rMid + amp * w * (0.5 + 0.5 * t);
+        // Per-angle band width (flowing) pushes the inner strands in/out, and a
+        // small shared ripple adds fiber texture.
+        final w = sin(a * 4 - fl + phase) * 0.6 + sin(a * 7 + fl * 1.2 - phase) * 0.4;
+        final r = baseR - bandW * t * widthAt(a) + amp * w * (0.5 + 0.5 * t);
         final p = Offset(cx + cos(a) * r, cy + sin(a) * r);
         if (i == 0) {
           path.moveTo(p.dx, p.dy);
