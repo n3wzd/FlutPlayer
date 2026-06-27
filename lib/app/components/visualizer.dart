@@ -251,33 +251,39 @@ class NcsVisualizerPainter extends CustomPainter {
   double get flow => m.flow;
   Color get color => m.color;
 
-  static const int _particleCount = 420;
   static const double _perspective = 2.6;
 
-  // Ring tessellation. Per-angle values are precomputed into these reusable
-  // buffers each frame (once), then shared across all strands — the strands
-  // only do cheap arithmetic, not trig. Buffers are allocated once (steps is
-  // constant) to avoid per-frame garbage.
-  static const int _ringSteps = 160;
-  static const int _ringStrands = 44;
-  static final Float64List _rCos = Float64List(_ringSteps + 1); // cos(angle)
-  static final Float64List _rSin = Float64List(_ringSteps + 1); // sin(angle)
-  static final Float64List _rWid = Float64List(_ringSteps + 1); // band-width factor
-  static final Float64List _wave = Float64List(_ringSteps + 1); // traveling-crest height ∈ [0,1]
+  // Dotted mesh sphere: a lat/lon grid of points on a sphere, wave-deformed so
+  // the surface drapes and flows. Projected as small glowing DOTS — the rows
+  // read as the flowing mesh of the reference graphic. cos/sin of each latitude
+  // (rows, pole-to-pole) and longitude (columns, around) are constant, so they
+  // are precomputed once.
+  // Dense ALONG each meridian (rows), sparse BETWEEN meridians (cols): the rows
+  // of close dots read as flowing lines, the gaps between columns keep the lines
+  // distinct. This is what makes the wave lines visible (vs a uniform dot grid).
+  static const int _sphereRows = 56; // latitude divisions (dots along a meridian)
+  static const int _sphereCols = 30; // longitude divisions (meridian lines)
+  static const int _parallelStride = 5; // draw a latitude (grid) line every Nth row
+  static final Float64List _latSin = _fill(_sphereRows + 1, pi, true);
+  static final Float64List _latCos = _fill(_sphereRows + 1, pi, false);
+  static final Float64List _lonSin = _fill(_sphereCols, 2 * pi, true);
+  static final Float64List _lonCos = _fill(_sphereCols, 2 * pi, false);
+  // Reusable full-grid projected-point buffers: one pass fills them, then the
+  // meridian lines, the latitude lines and the dots are all drawn from them
+  // (no recompute). Indexed [row * cols + col].
+  static final Float64List _gx = Float64List((_sphereRows + 1) * _sphereCols);
+  static final Float64List _gy = Float64List((_sphereRows + 1) * _sphereCols);
+  static final Float64List _gd = Float64List((_sphereRows + 1) * _sphereCols);
 
-  // Pre-generated unit-sphere points via Fibonacci lattice (even, structured).
-  static final List<(double x, double y, double z)> _spherePoints = _genSpherePoints();
-
-  static List<(double x, double y, double z)> _genSpherePoints() {
-    final pts = <(double x, double y, double z)>[];
-    const golden = pi * (3 - 1.4142135623730951); // golden angle approx
-    for (int i = 0; i < _particleCount; i++) {
-      final y = 1 - (i / (_particleCount - 1)) * 2; // 1 -> -1
-      final r = sqrt(max(0.0, 1 - y * y));
-      final theta = golden * i;
-      pts.add((cos(theta) * r, y, sin(theta) * r));
+  // Fill `n` samples of sin/cos spanning [0, span). `wantSin` picks the function.
+  static Float64List _fill(int n, double span, bool wantSin) {
+    final out = Float64List(n);
+    final denom = span == pi ? (n - 1) : n; // latitude includes both poles
+    for (int i = 0; i < n; i++) {
+      final a = (i / denom) * span;
+      out[i] = wantSin ? sin(a) : cos(a);
     }
-    return pts;
+    return out;
   }
 
   @override
@@ -289,157 +295,259 @@ class NcsVisualizerPainter extends CustomPainter {
     // Circle SIZE pumps with the bass pulse (NCS-style): small between kicks,
     // expanding on the kick. beatPulse is the bass envelope follower.
     final baseRadius = maxR * (0.66 + beatPulse * 0.26);
-    final rotY = spin; // audio-driven Y-axis rotation (still when silent)
 
-    // Sphere particles (behind the ring), kept clamped inside it.
-    _drawSphereParticles(canvas, cx, cy, baseRadius * 0.66, rotY, baseRadius);
-
-    // Clean glowing outline (matches the reference look)
+    // The dotted mesh sphere + glowing ring (matches the reference look).
     _drawRing(canvas, cx, cy, baseRadius, maxR);
   }
 
-  void _drawSphereParticles(
-      Canvas canvas, double cx, double cy, double sphereR, double rotY, double ringR) {
-    // Audio pushes the whole sphere outward (breathing).
-    final push = 1.0 + bassLevel * 0.14 + rmsLevel * 0.07 + beatPulse * 0.18;
-    // Keep every particle strictly inside the ring.
-    final limit = ringR * 0.95;
+  void _drawRing(Canvas canvas, double cx, double cy, double baseR, double maxR) {
+    final fl = flow; // pulse-driven phase — drives the surface wave
+
+    // --- Dotted mesh-grid spheres ---------------------------------------------
+    // THREE wave-draped lat/lon grids, each with its pole pointing a DIFFERENT
+    // way (and precessing on its own phase), overlaid. The convergence points
+    // land in different places, so the lines weave from several axes instead of
+    // all funnelling into one pole. Each is clamped inside the ring; later ones
+    // are dimmer so they layer rather than fight.
+    final sphereR = baseR * 0.97; // silhouette reaches the ring → dense rim
+    final cosY = cos(spin);
+    final sinY = sin(spin);
+    final limit = baseR * 0.99;
+    _drawDotSphere(canvas, cx, cy, sphereR, maxR, fl, cosY, sinY, limit,
+        0.0, 0.0, 0.0, 1.0);
+    _drawDotSphere(canvas, cx, cy, sphereR * 0.99, maxR, fl + 2.1, cosY, sinY,
+        limit, 1.1, 0.8, 2.1, 0.78);
+    _drawDotSphere(canvas, cx, cy, sphereR * 0.98, maxR, fl + 4.0, cosY, sinY,
+        limit, -0.9, 2.0, 4.0, 0.58);
+
+    // --- Inner wave contours --------------------------------------------------
+    // A couple of rippling lines that hug the INSIDE of the ring and undulate
+    // with the flow — the wavy band that rims the circle in the reference.
+    _drawWaveContour(canvas, cx, cy, baseR * 0.9, maxR, fl, 1.0);
+    _drawWaveContour(canvas, cx, cy, baseR * 0.84, maxR, fl * 1.2 + 1.6, 0.6);
+
+    // --- Bright neon ring -----------------------------------------------------
+    // Layered neon tube: a wide soft halo, a mid bloom, a saturated band, and a
+    // white-hot core. Stacking the glows (not one flat stroke) gives the ring
+    // the feathered, lit-from-within look of real neon instead of a plain circle.
+    final hot = Color.lerp(color, const Color(0xFFFFFFFF), 0.3)!;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      baseR,
+      Paint()
+        ..color = color.withValues(alpha: 0.22 + beatPulse * 0.16)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * (0.08 + beatPulse * 0.03)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.06),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      baseR,
+      Paint()
+        ..color = color.withValues(alpha: 0.5 + beatPulse * 0.2)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * (0.03 + beatPulse * 0.012)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.02),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      baseR,
+      Paint()
+        ..color = color.withValues(alpha: 0.95)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * (0.014 + beatPulse * 0.005),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      baseR,
+      Paint()
+        ..color = hot.withValues(alpha: 0.9 + beatPulse * 0.1)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * 0.004,
+    );
+  }
+
+  // Draws the sphere as a wave-draped lat/lon GRID of dots: meridian lines down
+  // the columns, latitude lines across the rows, and a dot at every node. Every
+  // projected point is clamped within `limit` of the centre so nothing spills
+  // outside the ring.
+  void _drawDotSphere(
+      Canvas canvas,
+      double cx,
+      double cy,
+      double sphereR,
+      double maxR,
+      double fl,
+      double cosY,
+      double sinY,
+      double limit,
+      double baseA, // base pole tilt (rotate local around X) — per-mesh axis
+      double baseB, // base pole swing (rotate local around Y) — per-mesh axis
+      double phase, // precession phase offset — each mesh wanders differently
+      double dim) {
+    // Per-mesh base orientation: points the pole a different way for each mesh.
+    final cosA = cos(baseA);
+    final sinA = sin(baseA);
+    final cosB = cos(baseB);
+    final sinB = sin(baseB);
+    // The tilt axis is NOT fixed vertical: it slowly precesses (own phase). A
+    // time-varying X tilt nods the pole, and an in-plane Z rotation swings it off
+    // vertical, so each mesh's spin axis wanders on its own path.
+    final tiltX = 0.32 + 0.20 * sin(time * 0.23 + phase);
+    final tiltZ = 0.28 * sin(time * 0.17 + phase * 1.3);
+    final cosX = cos(tiltX);
+    final sinX = sin(tiltX);
+    final cosZ = cos(tiltZ);
+    final sinZ = sin(tiltZ);
+    final waveAmp = 0.08 + rmsLevel * 0.06 + beatPulse * 0.16; // smooth drape
     final limitSq = limit * limit;
-    final cosY = cos(rotY);
-    final sinY = sin(rotY);
-    // Fixed 3/4 view tilt (no idle motion).
-    const cosX = 0.9492312651760538; // cos(0.32)
-    const sinX = 0.31456656061611776; // sin(0.32)
 
-    for (int i = 0; i < _particleCount; i++) {
-      final (px, py, pz) = _spherePoints[i];
-
-      // Rotate around Y axis.
-      final rx = px * cosY + pz * sinY;
-      final rz = -px * sinY + pz * cosY;
-      // Rotate around X axis (fixed tilt) for a 3/4 view.
-      final ry = py * cosX - rz * sinX;
-      final rz2 = py * sinX + rz * cosX;
-
-      // High-freq shimmer nudges points radially.
-      final shimmer = 1.0 + highLevel * 0.05 * sin(time * 7.0 + i * 0.7);
-
-      // Perspective projection (front points spread wider).
-      final proj = _perspective / (_perspective - rz2);
-      final scale = sphereR * proj * push * shimmer;
-      double ox = rx * scale;
-      double oy = ry * scale;
-      // Clamp the projected offset so particles never spill outside the ring.
-      // Compare squared distances so sqrt only runs for the few that exceed it.
-      final d2 = ox * ox + oy * oy;
-      if (d2 > limitSq) {
-        final k = limit / sqrt(d2);
-        ox *= k;
-        oy *= k;
+    // 1) Project the whole grid once into the shared buffers.
+    for (int r = 0; r <= _sphereRows; r++) {
+      final latS = _latSin[r]; // sin(theta) = ring radius at this latitude
+      final latC = _latCos[r]; // cos(theta) = height (pole axis)
+      final rowBase = r * _sphereCols;
+      for (int c = 0; c < _sphereCols; c++) {
+        final lonC = _lonCos[c];
+        final lonS = _lonSin[c];
+        // Slow large-scale drape: low spatial frequency so the surface folds
+        // smoothly across the whole sphere instead of fine ripples.
+        final w = sin(latC * 1.8 - fl * 0.6 + lonS * 1.2) * 0.6 +
+            sin(latS * 1.4 + lonC - fl * 0.4) * 0.4;
+        final disp = 1.0 + waveAmp * w;
+        final lx = latS * lonC * disp;
+        final ly = latC * disp;
+        final lz = latS * lonS * disp;
+        // Base orientation: rotate the local point around X (baseA) then Y
+        // (baseB) so this mesh's pole points its own way.
+        final ax = lx;
+        final ay = ly * cosA - lz * sinA;
+        final az = ly * sinA + lz * cosA;
+        final ux = ax * cosB + az * sinB;
+        final uy = ay;
+        final uz = -ax * sinB + az * cosB;
+        // Rotate around Y (the spin), then the precessing X tilt, then an
+        // in-plane Z rotation that swings the whole axis off vertical.
+        final rx = ux * cosY + uz * sinY;
+        final rz = -ux * sinY + uz * cosY;
+        final ry = uy * cosX - rz * sinX;
+        final rz2 = uy * sinX + rz * cosX;
+        final fx = rx * cosZ - ry * sinZ;
+        final fy = rx * sinZ + ry * cosZ;
+        final proj = _perspective / (_perspective - rz2);
+        final scale = sphereR * proj;
+        double ox = fx * scale;
+        double oy = fy * scale;
+        final d2 = ox * ox + oy * oy; // clamp inside the ring
+        if (d2 > limitSq) {
+          final k = limit / sqrt(d2);
+          ox *= k;
+          oy *= k;
+        }
+        final idx = rowBase + c;
+        _gx[idx] = cx + ox;
+        _gy[idx] = cy + oy;
+        _gd[idx] = (rz2 + 1) * 0.5; // 0 = back, 1 = front
       }
-      final x2 = cx + ox;
-      final y2 = cy + oy;
+    }
 
-      // Depth: front (rz2 > 0) bright & large, back dim & small.
-      final depthT = ((rz2 + 1) / 2).clamp(0.0, 1.0); // 0..1
-      final alpha = (0.08 + pow(depthT, 1.7) * 0.85 + rmsLevel * 0.10).clamp(0.0, 1.0);
-      final ptSize = (0.18 + depthT * depthT * 0.6) * (1.0 + bassLevel * 0.25 + beatPulse * 0.7);
+    final linePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-      canvas.drawCircle(
-        Offset(x2, y2),
-        ptSize,
-        Paint()..color = color.withValues(alpha: alpha.toDouble()),
-      );
+    // 2) Meridian lines (down each column) — the flowing wave lines.
+    for (int c = 0; c < _sphereCols; c++) {
+      final path = Path();
+      double depthSum = 0;
+      for (int r = 0; r <= _sphereRows; r++) {
+        final idx = r * _sphereCols + c;
+        if (r == 0) {
+          path.moveTo(_gx[idx], _gy[idx]);
+        } else {
+          path.lineTo(_gx[idx], _gy[idx]);
+        }
+        depthSum += _gd[idx];
+      }
+      final avg = depthSum / (_sphereRows + 1);
+      linePaint.color = color.withValues(
+          alpha: ((0.05 + avg * avg * 0.30) * dim).clamp(0.0, 1.0));
+      linePaint.strokeWidth = maxR * 0.0015;
+      canvas.drawPath(path, linePaint);
+    }
+
+    // 3) Latitude lines (across each Nth row) — the crossing grid lines.
+    for (int r = _parallelStride; r < _sphereRows; r += _parallelStride) {
+      final path = Path();
+      double depthSum = 0;
+      final rowBase = r * _sphereCols;
+      for (int c = 0; c <= _sphereCols; c++) {
+        final idx = rowBase + (c % _sphereCols);
+        if (c == 0) {
+          path.moveTo(_gx[idx], _gy[idx]);
+        } else {
+          path.lineTo(_gx[idx], _gy[idx]);
+        }
+        if (c < _sphereCols) depthSum += _gd[idx];
+      }
+      final avg = depthSum / _sphereCols;
+      linePaint.color = color.withValues(
+          alpha: ((0.04 + avg * avg * 0.22) * dim).clamp(0.0, 1.0));
+      linePaint.strokeWidth = maxR * 0.0013;
+      canvas.drawPath(path, linePaint);
+    }
+
+    // 4) Small glowing dots at every node, depth-shaded.
+    final dotPaint = Paint()..style = PaintingStyle.fill;
+    final n = (_sphereRows + 1) * _sphereCols;
+    for (int idx = 0; idx < n; idx++) {
+      final depth = _gd[idx];
+      final dotR =
+          maxR * (0.0010 + depth * depth * 0.0024) * (1.0 + beatPulse * 0.4);
+      dotPaint.color = color.withValues(
+          alpha: ((0.10 + pow(depth, 1.6).toDouble() * 0.8) * dim)
+              .clamp(0.0, 1.0));
+      canvas.drawCircle(Offset(_gx[idx], _gy[idx]), dotR, dotPaint);
     }
   }
 
-  void _drawRing(Canvas canvas, double cx, double cy, double baseR, double maxR) {
-    // The ring is a thick band of fine light STRANDS flowing around the circle —
-    // this is what gives the reference its fibrous, liquid-flowing look (most
-    // visible on the left edge). Each strand is a wavy circle; stacked across
-    // the band they form a glowing ring whose inner edge ripples. The flow is
-    // driven by `spin` (a pure audio accumulator), so it streams with the music
-    // and speeds up with the pulse. Strand brightness varies → non-uniform.
-    final bandW = maxR * (0.045 + rmsLevel * 0.02 + beatPulse * 0.025);
-    final fl = flow; // pulse-driven phase — moves the whole wave coherently
-    // Max inward reach of the wave. The idle term keeps a gentle living ripple;
-    // the beat term lets the strongest kicks drive a crest all the way to — and
-    // past — the centre. baseR is the distance to the centre, so a depth ≥ baseR
-    // means that crest crosses it and emerges on the far side (a "sphere").
-    final waveDepth = baseR * (0.10 + beatPulse * 1.05) + rmsLevel * maxR * 0.08;
-
-    // Soft outer bloom (one fat blurred stroke) — the neon glow.
-    canvas.drawCircle(
-      Offset(cx, cy),
-      baseR - bandW * 0.5,
-      Paint()
-        ..color = color.withValues(alpha: 0.22 + beatPulse * 0.12)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = bandW * 2.2
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.05),
-    );
-
-    // Precompute per-angle values once per frame: cos/sin, the band-width
-    // factor, and the traveling-crest HEIGHT FIELD. The wave is a few swells
-    // that all circulate at the same angular speed, so the pattern keeps its
-    // shape as it travels — a coherent flow, not spikes popping at random
-    // positions. Sharpening localises each crest: one side lifts and its
-    // neighbours tremble, while the troughs stay calm.
-    for (int i = 0; i <= _ringSteps; i++) {
-      final a = (i / _ringSteps) * 2 * pi;
-      _rCos[i] = cos(a);
-      _rSin[i] = sin(a);
-      // Band-width modulation (gentle), all terms drifting the same way so the
-      // band breathes with the flow instead of churning. Clamp pow base ≥ 0.
-      final v = sin(a * 2 - fl) * 0.62 +
-          sin(a * 3 - fl * 1.5 + 1.7) * 0.26 +
-          sin(a * 5 - fl * 2.5 + 0.6) * 0.12;
-      final base = (0.5 + 0.5 * v).clamp(0.0, 1.0);
-      _rWid[i] = 0.28 + 0.72 * pow(base, 1.4).toDouble();
-      // Height field ∈ [0,1]: two swells travel around together (cos(2a - fl));
-      // the cube sharpens them into localised crests so the lift is concentrated
-      // and falls away smoothly to either side. A fine ripple rides the crest
-      // for surface trembling.
-      final g = (cos(a * 2 - fl) + 1) * 0.5;
-      final crest = g * g * g;
-      final tremble = sin(a * 9 - fl * 3 + 1.1) * 0.12 * crest;
-      _wave[i] = (crest + tremble).clamp(0.0, 1.0);
-    }
-
-    for (int s = 0; s < _ringStrands; s++) {
-      final t = s / (_ringStrands - 1.0); // 0 = outer (at baseR) .. 1 = inner
-      final bwt = bandW * t; // band-width contribution for this strand
-      // Inner strands ride the crest far more than outer ones, so at a crest the
-      // band fans inward into a spike pointing at the centre; outer strands barely
-      // move, holding the ring's outer edge steady.
-      final rip = waveDepth * (0.08 + 0.92 * t);
-      final path = Path();
-      for (int i = 0; i <= _ringSteps; i++) {
-        // The wave only ever pushes INWARD (toward the centre); on a strong beat
-        // the crest can pass the centre and surface on the opposite side. Clamp at
-        // -baseR so it never pokes back outside the circle on that far side.
-        var r = baseR - bwt * _rWid[i] - rip * _wave[i];
-        if (r < -baseR) r = -baseR;
-        final x = cx + _rCos[i] * r;
-        final y = cy + _rSin[i] * r;
-        if (i == 0) {
-          path.moveTo(x, y);
-        } else {
-          path.lineTo(x, y);
-        }
+  // A closed rippling contour that hugs the inside of the ring. Its radius
+  // wobbles with an irregular traveling wave (incommensurate speeds), so it
+  // undulates around the circle as the flow advances. Drawn with a soft glow
+  // pass + a crisp pass for the neon look.
+  void _drawWaveContour(Canvas canvas, double cx, double cy, double r0,
+      double maxR, double fl, double bright) {
+    final amp = maxR * (0.018 + rmsLevel * 0.02 + beatPulse * 0.03);
+    final path = Path();
+    const steps = 128;
+    for (int i = 0; i <= steps; i++) {
+      final a = (i / steps) * 2 * pi;
+      final w = sin(a * 3 - fl) * 0.5 +
+          sin(a * 5 - fl * 1.3 + 1.1) * 0.3 +
+          sin(a * 2 + fl * 0.7 + 2.4) * 0.2;
+      final rr = r0 + amp * w;
+      final x = cx + cos(a) * rr;
+      final y = cy + sin(a) * rr;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
       }
-      // Brightest mid-band, fading to both edges; plus a little audio lift.
-      final core = (1.0 - (t - 0.4).abs() * 1.6).clamp(0.0, 1.0);
-      final alpha = (0.08 + core * 0.5 + beatPulse * 0.1).clamp(0.0, 0.9);
-      // Outer strands are thicker, inner strands thinner.
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = color.withValues(alpha: alpha)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = maxR * (0.0035 + (1 - t) * 0.016),
-      );
     }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color.withValues(alpha: (0.18 + beatPulse * 0.12) * bright)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * 0.01
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.012),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color.withValues(alpha: (0.55 + beatPulse * 0.25) * bright)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = maxR * 0.0035,
+    );
   }
 
   @override
