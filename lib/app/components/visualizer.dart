@@ -113,13 +113,9 @@ class _VisualizerControllerState extends State<VisualizerController>
     }
 
     // Rotation only progresses while actually playing → frozen when paused.
-    // Speed is NOT constant and direction is NOT fixed: a slow sine flips the
-    // spin direction over time, while the magnitude surges on the beat and rides
-    // the FFT energy — so the sphere accelerates, eases, and reverses.
-    if (playing) {
-      final dir = sin(_time * 0.4); // smoothly swings between -1 and +1
-      _spin += dt * dir * (_smoothRms * 1.8 + _pulse * 6.0);
-    }
+    // Speed is driven PURELY by the audio: it rides the FFT energy and surges on
+    // the kick. No time-based oscillation — every change reflects the data.
+    if (playing) _spin += dt * (_smoothRms * 2.2 + _pulse * 5.0);
 
     // Push live values into the model and repaint every tick. Reading from a
     // shared mutable object keeps the painter current without rebuilding.
@@ -262,8 +258,8 @@ class NcsVisualizerPainter extends CustomPainter {
     final baseRadius = maxR * (0.66 + beatPulse * 0.26);
     final rotY = spin; // audio-driven Y-axis rotation (still when silent)
 
-    // Sphere particles (behind the ring)
-    _drawSphereParticles(canvas, cx, cy, baseRadius * 0.86, rotY);
+    // Sphere particles (behind the ring), kept clamped inside it.
+    _drawSphereParticles(canvas, cx, cy, baseRadius * 0.66, rotY, baseRadius);
 
     // Clean glowing outline (matches the reference look)
     _drawRing(canvas, cx, cy, baseRadius, maxR);
@@ -281,9 +277,12 @@ class NcsVisualizerPainter extends CustomPainter {
     }
   }
 
-  void _drawSphereParticles(Canvas canvas, double cx, double cy, double sphereR, double rotY) {
+  void _drawSphereParticles(
+      Canvas canvas, double cx, double cy, double sphereR, double rotY, double ringR) {
     // Audio pushes the whole sphere outward (breathing).
-    final push = 1.0 + bassLevel * 0.14 + rmsLevel * 0.07 + beatPulse * 0.28;
+    final push = 1.0 + bassLevel * 0.14 + rmsLevel * 0.07 + beatPulse * 0.18;
+    // Keep every particle strictly inside the ring.
+    final limit = ringR * 0.95;
     final cosY = cos(rotY);
     final sinY = sin(rotY);
     // Fixed 3/4 view tilt (no idle motion).
@@ -306,13 +305,22 @@ class NcsVisualizerPainter extends CustomPainter {
       // Perspective projection (front points spread wider).
       final proj = _perspective / (_perspective - rz2);
       final scale = sphereR * proj * push * shimmer;
-      final x2 = cx + rx * scale;
-      final y2 = cy + ry * scale;
+      double ox = rx * scale;
+      double oy = ry * scale;
+      // Clamp the projected offset so particles never spill outside the ring.
+      final d = sqrt(ox * ox + oy * oy);
+      if (d > limit) {
+        final k = limit / d;
+        ox *= k;
+        oy *= k;
+      }
+      final x2 = cx + ox;
+      final y2 = cy + oy;
 
       // Depth: front (rz2 > 0) bright & large, back dim & small.
       final depthT = ((rz2 + 1) / 2).clamp(0.0, 1.0); // 0..1
       final alpha = (0.08 + pow(depthT, 1.7) * 0.85 + rmsLevel * 0.10).clamp(0.0, 1.0);
-      final ptSize = (0.3 + depthT * depthT * 1.0) * (1.0 + bassLevel * 0.35 + beatPulse * 2.6);
+      final ptSize = (0.18 + depthT * depthT * 0.6) * (1.0 + bassLevel * 0.25 + beatPulse * 0.7);
 
       canvas.drawCircle(
         Offset(x2, y2),
@@ -323,40 +331,58 @@ class NcsVisualizerPainter extends CustomPainter {
   }
 
   void _drawRing(Canvas canvas, double cx, double cy, double baseR, double maxR) {
-    final c = Offset(cx, cy);
-    final thickness = maxR * 0.022 + rmsLevel * maxR * 0.018 + beatPulse * maxR * 0.012;
+    // The ring is a thick band of fine light STRANDS flowing around the circle —
+    // this is what gives the reference its fibrous, liquid-flowing look (most
+    // visible on the left edge). Each strand is a wavy circle; stacked across
+    // the band they form a glowing ring whose inner edge ripples. The flow is
+    // driven by `spin` (a pure audio accumulator), so it streams with the music
+    // and speeds up with the pulse. Strand brightness varies → non-uniform.
+    final bandW = maxR * (0.04 + rmsLevel * 0.02 + beatPulse * 0.02);
+    final amp = maxR * (0.008 + rmsLevel * 0.012 + beatPulse * 0.014); // gentle ripple
+    final flow = spin * 2.5;
+    const strands = 44;
+    const steps = 160;
 
-    // Soft outer halo.
+    // Soft outer bloom (one fat blurred stroke) — the neon glow.
     canvas.drawCircle(
-      c,
-      baseR,
+      Offset(cx, cy),
+      baseR - bandW * 0.5,
       Paint()
-        ..color = color.withValues(alpha: 0.18 + rmsLevel * 0.12 + beatPulse * 0.15)
+        ..color = color.withValues(alpha: 0.22 + beatPulse * 0.12)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness + maxR * 0.10
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.06),
+        ..strokeWidth = bandW * 2.2
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.05),
     );
 
-    // Inner glow.
-    canvas.drawCircle(
-      c,
-      baseR,
-      Paint()
-        ..color = color.withValues(alpha: 0.45 + beatPulse * 0.15)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness + maxR * 0.025
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, maxR * 0.02),
-    );
-
-    // Bright crisp core ring.
-    canvas.drawCircle(
-      c,
-      baseR,
-      Paint()
-        ..color = color.withValues(alpha: (0.9 + beatPulse * 0.1).clamp(0.0, 1.0))
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = thickness,
-    );
+    for (int s = 0; s < strands; s++) {
+      final t = s / (strands - 1.0); // 0 = outer (at baseR) .. 1 = inner
+      final rMid = baseR - bandW * t;
+      final phase = s * 0.16; // SMALL spread → fibers stay parallel (coherent band)
+      final path = Path();
+      for (int i = 0; i <= steps; i++) {
+        final a = (i / steps) * 2 * pi;
+        // Two traveling sine components → a gentle flowing ripple the whole band
+        // shares (low frequency, low amplitude — no tangling).
+        final w = sin(a * 4 - flow + phase) * 0.6 + sin(a * 7 + flow * 1.2 - phase) * 0.4;
+        final r = rMid + amp * w * (0.5 + 0.5 * t);
+        final p = Offset(cx + cos(a) * r, cy + sin(a) * r);
+        if (i == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      // Brightest mid-band, fading to both edges; plus a little audio lift.
+      final core = (1.0 - (t - 0.4).abs() * 1.6).clamp(0.0, 1.0);
+      final alpha = (0.08 + core * 0.5 + beatPulse * 0.1).clamp(0.0, 0.9);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color.withValues(alpha: alpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = maxR * 0.004,
+      );
+    }
   }
 
   @override
