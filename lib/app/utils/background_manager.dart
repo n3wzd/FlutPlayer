@@ -1,5 +1,5 @@
 import 'dart:io';
-import './database_manager.dart';
+import './background_store.dart';
 import '../models/data.dart';
 
 const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
@@ -10,9 +10,11 @@ class BackgroundManager {
   static BackgroundManager get instance => _instance;
 
   List<BackgroundData> _backgroundList = [];
-  final Map<String, BackgroundGroup> _backgroundGroupMap = {};
+  List<BackgroundGroupData> _groups = [];
   int currentBackgroundListIndex = 0;
   bool _initialized = false;
+
+  List<BackgroundGroupData> get groups => _groups;
 
   bool get isListNotEmpty => _backgroundList.isNotEmpty;
   int get nextBackgroundListIndex => isListNotEmpty
@@ -25,55 +27,82 @@ class BackgroundManager {
       ? _backgroundList[nextBackgroundListIndex]
       : BackgroundData(path: "");
 
+  /// Override for the currently shown background, or null to inherit the global
+  /// setting (also null when no background is active).
+  bool? get currentNcsLogoOverride => currentBackgroundData.ncsLogo;
+  bool? get currentVisualizerOverride => currentBackgroundData.visualizer;
+
   Future<void> init() async {
     if (_initialized) {
       return;
     }
-    _backgroundGroupMap.clear();
-    List<Map> dirList = await DatabaseManager.instance
-        .selectAllBackgroundGroup();
-    for (int i = 0; i < dirList.length; i++) {
-      String path = dirList[i]['path'];
-      BackgroundData data = BackgroundData(
-        path: path,
-        rotate: dirList[i]['rotate'] == 1 ? true : false,
-        scale: dirList[i]['scale'] == 1 ? true : false,
-        color: dirList[i]['color'] == 1 ? true : false,
-        value: dirList[i]['value'],
-      );
-      addBackgroundGroup(path, data, dirList[i]['active'] == 1 ? true : false);
-    }
+    _groups = await BackgroundStore.instance.load();
     updateBackgroundList();
     _initialized = true;
   }
 
-  void addBackgroundGroup(String path, BackgroundData data, bool active) {
-    var group = BackgroundGroup(
-      dirPath: path,
-      dirBackgroundData: data,
-      active: active,
+  bool hasLabel(String label) => _groups.any((group) => group.label == label);
+
+  Future<void> addGroup(BackgroundGroupData group) async {
+    _groups.add(group);
+    await _save();
+  }
+
+  Future<void> updateGroup(
+    String originalLabel,
+    BackgroundGroupData group,
+  ) async {
+    final index = _groups.indexWhere((g) => g.label == originalLabel);
+    if (index == -1) {
+      return;
+    }
+    _groups[index] = group;
+    await _save();
+  }
+
+  Future<void> setGroupActive(String label, bool active) async {
+    final group = _groups.firstWhere(
+      (g) => g.label == label,
+      orElse: () => BackgroundGroupData(label: ''),
     );
-    group.init();
-    _backgroundGroupMap[path] = group;
+    if (group.label.isEmpty) {
+      return;
+    }
+    group.active = active;
+    await _save();
   }
 
-  void updateBackgroundGroup(String path, BackgroundData data) {
-    _backgroundGroupMap[path]?.dirBackgroundData = data;
+  Future<void> deleteGroup(String label) async {
+    _groups.removeWhere((group) => group.label == label);
+    await _save();
   }
 
-  void updateBackgroundGroupActive(String path, bool active) {
-    _backgroundGroupMap[path]?.active = active;
-  }
-
-  void deleteBackgroundGroup(String path) {
-    _backgroundGroupMap.remove(path);
+  Future<void> _save() async {
+    await BackgroundStore.instance.save(_groups);
   }
 
   void updateBackgroundList() {
     _backgroundList = [];
-    for (var entry in _backgroundGroupMap.entries) {
-      if (entry.value.active) {
-        _backgroundList.addAll(entry.value.makeGroupList());
+    final seen = <String>{};
+    for (final group in _groups) {
+      if (!group.active) {
+        continue;
+      }
+      for (final folder in group.folders) {
+        for (final filePath in _scanFolder(folder)) {
+          // Runtime dedupe: the same file from overlapping folders/groups is
+          // only shown once. First occurrence wins (keeps its group brightness).
+          if (seen.add(filePath)) {
+            _backgroundList.add(
+              BackgroundData(
+                path: filePath,
+                brightness: group.brightness,
+                ncsLogo: group.ncsLogo,
+                visualizer: group.visualizer,
+              ),
+            );
+          }
+        }
       }
     }
     currentBackgroundListIndex = 0;
@@ -86,51 +115,23 @@ class BackgroundManager {
       currentBackgroundListIndex = nextBackgroundListIndex;
     }
   }
-}
 
-class BackgroundGroup {
-  BackgroundGroup({
-    required this.dirPath,
-    required this.dirBackgroundData,
-    required this.active,
-  });
-
-  final String dirPath;
-  BackgroundData dirBackgroundData;
-  List<String> filePathList = [];
-  bool active;
-
-  void init() {
-    if (dirPath != '') {
-      Directory selectedDirectory = Directory(dirPath);
-      if (selectedDirectory.existsSync()) {
-        List<FileSystemEntity> selectedDirectoryFile = selectedDirectory
-            .listSync(recursive: true);
-        for (FileSystemEntity file in selectedDirectoryFile) {
-          String path = file.path;
-          if (!FileSystemEntity.isDirectorySync(path)) {
-            if (backgroundAllowedExtensions.contains(path.split('.').last)) {
-              filePathList.add(path);
-            }
-          }
-        }
+  List<String> _scanFolder(String dirPath) {
+    final result = <String>[];
+    if (dirPath.isEmpty) {
+      return result;
+    }
+    final directory = Directory(dirPath);
+    if (!directory.existsSync()) {
+      return result;
+    }
+    for (final file in directory.listSync(recursive: true)) {
+      final path = file.path;
+      if (!FileSystemEntity.isDirectorySync(path) &&
+          backgroundAllowedExtensions.contains(path.split('.').last)) {
+        result.add(path);
       }
     }
-  }
-
-  List<BackgroundData> makeGroupList() {
-    List<BackgroundData> list = [];
-    for (String path in filePathList) {
-      list.add(
-        BackgroundData(
-          path: path,
-          rotate: dirBackgroundData.rotate,
-          scale: dirBackgroundData.scale,
-          color: dirBackgroundData.color,
-          value: dirBackgroundData.value,
-        ),
-      );
-    }
-    return list;
+    return result;
   }
 }

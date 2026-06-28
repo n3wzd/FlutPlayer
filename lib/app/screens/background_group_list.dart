@@ -1,15 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../utils/background_manager.dart';
-import '../utils/database_manager.dart';
 import '../utils/stream_controller.dart';
 import '../widgets/listtile.dart';
 import '../widgets/button.dart';
 import '../widgets/switch.dart';
 import '../widgets/text.dart';
+import '../widgets/text_field.dart';
 import '../widgets/dialog.dart';
 import '../models/color.dart';
 import '../models/data.dart';
+
+/// Tri-state for a per-group override: inherit the global setting, or force it.
+enum _OverrideOption { inherit, show, hide }
+
+_OverrideOption _toOption(bool? value) =>
+    value == null ? _OverrideOption.inherit : (value ? _OverrideOption.show : _OverrideOption.hide);
+
+bool? _fromOption(_OverrideOption option) => switch (option) {
+  _OverrideOption.inherit => null,
+  _OverrideOption.show => true,
+  _OverrideOption.hide => false,
+};
+
+const List<Map> _overrideValueList = [
+  {'value': _OverrideOption.inherit, 'label': 'Default'},
+  {'value': _OverrideOption.show, 'label': 'Show'},
+  {'value': _OverrideOption.hide, 'label': 'Hide'},
+];
 
 class BackgroundGroupPage extends StatefulWidget {
   const BackgroundGroupPage({super.key});
@@ -19,39 +37,22 @@ class BackgroundGroupPage extends StatefulWidget {
 }
 
 class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
-  List<Map> _groupList = [];
+  List<BackgroundGroupData> get _groups => BackgroundManager.instance.groups;
   List<bool> _selectedList = [];
-  final List<bool> _activeList = [];
   int _selectedItemCount = 0;
 
   @override
   void initState() {
     super.initState();
-    setList();
+    _resetSelection();
   }
 
-  Future<void> setList() async {
-    _groupList = await DatabaseManager.instance.selectAllBackgroundGroup();
-    _selectedList = List<bool>.filled(_groupList.length, false, growable: true);
-    for (int i = 0; i < _groupList.length; i++) {
-      _activeList.add(_groupList[i]['active'] == 1 ? true : false);
-    }
-    setState(() {});
+  void _resetSelection() {
+    _selectedList = List<bool>.filled(_groups.length, false, growable: true);
+    _selectedItemCount = 0;
   }
 
-  void addListItem(String path, bool active) {
-    _groupList.add({'path': path});
-    _selectedList.add(false);
-    _activeList.add(active);
-  }
-
-  void deleteListItem(int index) {
-    _groupList.removeAt(index);
-    _selectedList.removeAt(index);
-    _selectedItemCount--;
-  }
-
-  int getUniqueItemIndex() {
+  int _uniqueSelectedIndex() {
     for (int i = 0; i < _selectedList.length; i++) {
       if (_selectedList[i]) {
         return i;
@@ -60,8 +61,8 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
     return 0;
   }
 
-  List<int> getSelectedItemIndex() {
-    List<int> selected = [];
+  List<int> _selectedIndexes() {
+    final selected = <int>[];
     for (int i = 0; i < _selectedList.length; i++) {
       if (_selectedList[i]) {
         selected.add(i);
@@ -70,9 +71,20 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
     return selected;
   }
 
+  Future<void> _openDetail({String? originalLabel}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            BackgroundGroupDetailPage(originalLabel: originalLabel),
+      ),
+    );
+    setState(_resetSelection);
+  }
+
   @override
   Widget build(BuildContext context) {
-    int length = _groupList.length;
+    final length = _groups.length;
     return Scaffold(
       backgroundColor: ColorPalette.black,
       appBar: AppBar(
@@ -82,65 +94,41 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
           ButtonFactory.iconButton(
             icon: const Icon(Icons.add_circle),
             iconColor: ColorPalette.lightGrey,
-            onPressed: () async {
-              String? path = await FilePicker.getDirectoryPath();
-              if (path != null) {
-                bool defaultActiveValue = true;
-                await DatabaseManager.instance.insertBackgroundGroup(
-                  BackgroundData(path: path),
-                  defaultActiveValue,
-                );
-                BackgroundManager.instance.addBackgroundGroup(
-                  path,
-                  BackgroundData(path: path),
-                  defaultActiveValue,
-                );
-                addListItem(path, defaultActiveValue);
-                setState(() {});
-              }
-            },
+            onPressed: () => _openDetail(),
             outline: false,
           ),
           ButtonFactory.iconButton(
             icon: const Icon(Icons.change_circle),
             iconColor: ColorPalette.lightGrey,
             onPressed: _selectedItemCount == 1
-                ? () async {
-                    String path = _groupList[getUniqueItemIndex()]['path'];
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (BuildContext context) {
-                          return BackgroundGroupSelectPage(path: path);
-                        },
-                      ),
-                    );
-                  }
+                ? () => _openDetail(
+                    originalLabel: _groups[_uniqueSelectedIndex()].label,
+                  )
                 : null,
             outline: false,
           ),
           ButtonFactory.iconButton(
             icon: const Icon(Icons.delete),
             iconColor: ColorPalette.lightGrey,
-            onPressed: () {
-              DialogFactory.choiceDialog(
-                context: context,
-                onOkPressed: () {
-                  List<int> selected = getSelectedItemIndex();
-                  for (int i = selected.length - 1; i >= 0; i--) {
-                    int selectedItemIndex = selected[i];
-                    String path = _groupList[selectedItemIndex]['path'];
-                    DatabaseManager.instance.deleteBackgroundGroup(path);
-                    BackgroundManager.instance.deleteBackgroundGroup(path);
-                    deleteListItem(selectedItemIndex);
+            onPressed: _selectedItemCount > 0
+                ? () {
+                    DialogFactory.choiceDialog(
+                      context: context,
+                      onOkPressed: () async {
+                        final selected = _selectedIndexes();
+                        for (int i = selected.length - 1; i >= 0; i--) {
+                          await BackgroundManager.instance.deleteGroup(
+                            _groups[selected[i]].label,
+                          );
+                        }
+                        BackgroundManager.instance.updateBackgroundList();
+                        setState(_resetSelection);
+                      },
+                      onCancelPressed: () {},
+                      content: TextFactory.text('delete?'),
+                    );
                   }
-                  BackgroundManager.instance.updateBackgroundList();
-                  setState(() {});
-                },
-                onCancelPressed: () {},
-                content: TextFactory.text('delete?'),
-              );
-            },
+                : null,
             outline: false,
           ),
         ],
@@ -153,33 +141,25 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                 itemCount: length,
                 itemBuilder: (context, index) => ListTileFactory.multiItem(
                   index: index,
-                  text: _groupList[index]['path'],
-                  onTap: () async {
-                    _selectedList[index] = !_selectedList[index];
-                    _selectedList[index]
-                        ? _selectedItemCount++
-                        : _selectedItemCount--;
-                    setState(() {});
+                  text: _groups[index].label,
+                  onTap: () {
+                    setState(() {
+                      _selectedList[index] = !_selectedList[index];
+                      _selectedList[index]
+                          ? _selectedItemCount++
+                          : _selectedItemCount--;
+                    });
                   },
                   selected: _selectedList[index],
-                  trailing: StatefulBuilder(
-                    builder: (context, setState) => SwitchFactory.normal(
-                      value: _activeList[index],
-                      onChanged: (bool value) {
-                        setState(() {
-                          DatabaseManager.instance.toggleBackgroundGroupActive(
-                            _groupList[index]['path'],
-                            value,
-                          );
-                          BackgroundManager.instance
-                              .updateBackgroundGroupActive(
-                                _groupList[index]['path'],
-                                value,
-                              );
-                          _activeList[index] = value;
-                        });
-                      },
-                    ),
+                  trailing: SwitchFactory.normal(
+                    value: _groups[index].active,
+                    onChanged: (bool value) async {
+                      await BackgroundManager.instance.setGroupActive(
+                        _groups[index].label,
+                        value,
+                      );
+                      setState(() {});
+                    },
                   ),
                 ),
               ),
@@ -208,50 +188,98 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
   }
 }
 
-class BackgroundGroupSelectPage extends StatefulWidget {
-  const BackgroundGroupSelectPage({super.key, required this.path});
-  final String path;
+class BackgroundGroupDetailPage extends StatefulWidget {
+  const BackgroundGroupDetailPage({super.key, this.originalLabel});
+
+  /// null = create a new group, otherwise edit the group with this label.
+  final String? originalLabel;
 
   @override
-  State<BackgroundGroupSelectPage> createState() =>
-      _BackgroundGroupSelectPageState();
+  State<BackgroundGroupDetailPage> createState() =>
+      _BackgroundGroupDetailPageState();
 }
 
-class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
-  bool rotateSwitchValue = false;
-  bool scaleSwitchValue = false;
-  bool tintSwitchValue = false;
+class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
+  final TextEditingController _labelController = TextEditingController();
+  double _brightness = backgroundDefaultBrightness.toDouble();
+  bool? _ncsLogo;
+  bool? _visualizer;
+  bool _active = true;
+  List<String> _folders = [];
+
+  bool get _isEdit => widget.originalLabel != null;
 
   @override
   void initState() {
     super.initState();
-    loadSetting();
+    if (_isEdit) {
+      final group = BackgroundManager.instance.groups.firstWhere(
+        (g) => g.label == widget.originalLabel,
+        orElse: () => BackgroundGroupData(label: widget.originalLabel ?? ''),
+      );
+      _labelController.text = group.label;
+      _brightness = group.brightness.toDouble();
+      _ncsLogo = group.ncsLogo;
+      _visualizer = group.visualizer;
+      _active = group.active;
+      _folders = List<String>.from(group.folders);
+    }
   }
 
-  void loadSetting() async {
-    BackgroundData data = await DatabaseManager.instance.selectBackgroundGroup(
-      widget.path,
-    );
-    rotateSwitchValue = data.rotate;
-    scaleSwitchValue = data.scale;
-    tintSwitchValue = data.color;
-    setState(() {});
+  @override
+  void dispose() {
+    _labelController.dispose();
+    super.dispose();
   }
 
-  void applySetting() async {
-    BackgroundData background = BackgroundData(
-      path: widget.path,
-      rotate: rotateSwitchValue,
-      scale: scaleSwitchValue,
-      color: tintSwitchValue,
+  Future<void> _addFolder() async {
+    final path = await FilePicker.getDirectoryPath();
+    if (path != null && !_folders.contains(path)) {
+      setState(() => _folders.add(path));
+    }
+  }
+
+  Future<void> _save() async {
+    final label = _labelController.text.trim();
+    if (label.isEmpty) {
+      await _showError('Label is empty.');
+      return;
+    }
+    // Block duplicate labels (ignore self when editing).
+    final duplicate = BackgroundManager.instance.groups.any(
+      (g) => g.label == label && g.label != widget.originalLabel,
     );
-    await DatabaseManager.instance.updateBackgroundGroup(
-      widget.path,
-      background,
+    if (duplicate) {
+      await _showError('Label already exists.');
+      return;
+    }
+
+    final group = BackgroundGroupData(
+      label: label,
+      active: _active,
+      brightness: _brightness.round(),
+      ncsLogo: _ncsLogo,
+      visualizer: _visualizer,
+      folders: _folders,
     );
-    BackgroundManager.instance.updateBackgroundGroup(widget.path, background);
+
+    if (_isEdit) {
+      await BackgroundManager.instance.updateGroup(widget.originalLabel!, group);
+    } else {
+      await BackgroundManager.instance.addGroup(group);
+    }
+    BackgroundManager.instance.updateBackgroundList();
     AudioStreamController.emitBackgroundFileChanged();
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
+
+  Future<void> _showError(String message) => DialogFactory.alertDialog(
+    context: context,
+    onPressed: () async => true,
+    content: TextFactory.text(message),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -263,57 +291,71 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
           icon: const Icon(Icons.arrow_back),
           iconColor: ColorPalette.lightGrey,
           outline: false,
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFactory.text('Label', fontSize: 18),
+                  const SizedBox(height: 8),
+                  TextFieldFactory.textField(controller: _labelController),
+                ],
+              ),
+            ),
+            ListTileFactory.contentSlider(
+              title: 'Brightness',
+              initialValue: _brightness,
+              sliderMax: 100,
+              sliderDivisions: 10,
+              sliderShowLabel: true,
+              onChanged: (value) => _brightness = value,
+            ),
+            ListTileFactory.contentDropDownMenu<_OverrideOption>(
+              title: 'NCS Logo',
+              initialSelection: _toOption(_ncsLogo),
+              valueList: _overrideValueList,
+              onSelected: (value) => _ncsLogo = _fromOption(value!),
+            ),
+            ListTileFactory.contentDropDownMenu<_OverrideOption>(
+              title: 'Visualizer',
+              initialSelection: _toOption(_visualizer),
+              valueList: _overrideValueList,
+              onSelected: (value) => _visualizer = _fromOption(value!),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFactory.text('Folders', fontSize: 18),
+                  ),
+                  ButtonFactory.iconButton(
+                    icon: const Icon(Icons.create_new_folder),
+                    iconColor: ColorPalette.lightGrey,
+                    onPressed: _addFolder,
+                    outline: false,
+                  ),
+                ],
+              ),
+            ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 64, child: TextFactory.text('Rotate')),
-                        SwitchFactory.normal(
-                          value: rotateSwitchValue,
-                          onChanged: (newValue) {
-                            rotateSwitchValue = newValue;
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 64, child: TextFactory.text('Scale')),
-                        SwitchFactory.normal(
-                          value: scaleSwitchValue,
-                          onChanged: (newValue) {
-                            scaleSwitchValue = newValue;
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: <Widget>[
-                        SizedBox(width: 64, child: TextFactory.text('Tint')),
-                        SwitchFactory.normal(
-                          value: tintSwitchValue,
-                          onChanged: (newValue) {
-                            tintSwitchValue = newValue;
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+              child: ListView.builder(
+                itemCount: _folders.length,
+                itemBuilder: (context, index) => ListTileFactory.multiItem(
+                  index: index,
+                  text: _folders[index],
+                  trailing: ButtonFactory.iconButton(
+                    icon: const Icon(Icons.delete),
+                    iconColor: ColorPalette.lightGrey,
+                    onPressed: () => setState(() => _folders.removeAt(index)),
+                    outline: false,
+                  ),
                 ),
               ),
             ),
@@ -321,10 +363,7 @@ class _BackgroundGroupSelectPageState extends State<BackgroundGroupSelectPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ButtonFactory.textButton(
-                  onPressed: () {
-                    applySetting();
-                    Navigator.pop(context);
-                  },
+                  onPressed: _save,
                   text: 'ok',
                   fontSize: 24,
                 ),

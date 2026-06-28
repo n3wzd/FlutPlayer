@@ -15,19 +15,48 @@ class AudioTrack {
   String? color;
 }
 
+const int backgroundDefaultBrightness = 100;
+
+/// A single background file (image/video) with the brightness inherited from
+/// its group.
 class BackgroundData {
   BackgroundData({
     required this.path,
-    this.rotate = false,
-    this.scale = false,
-    this.color = false,
-    this.value = 75,
+    this.brightness = backgroundDefaultBrightness,
+    this.ncsLogo,
+    this.visualizer,
   });
   final String path;
-  bool rotate;
-  bool scale;
-  bool color;
-  int value;
+
+  /// 0 = fully dark, 100 = original. Applied as a black overlay.
+  final int brightness;
+
+  /// Per-group overrides for the global setting. null = inherit default.
+  final bool? ncsLogo;
+  final bool? visualizer;
+}
+
+/// A labelled group of folders controlled by a single switch. One group maps to
+/// one row in the background list UI and one entry in the JSON store.
+class BackgroundGroupData {
+  BackgroundGroupData({
+    required this.label,
+    this.active = true,
+    this.brightness = backgroundDefaultBrightness,
+    this.ncsLogo,
+    this.visualizer,
+    List<String>? folders,
+  }) : folders = folders ?? [];
+
+  /// Unique identifier shown on the switch row.
+  String label;
+  bool active;
+  int brightness;
+
+  /// Per-group overrides for the global setting. null = inherit default.
+  bool? ncsLogo;
+  bool? visualizer;
+  List<String> folders;
 }
 
 String dateTimeToString(DateTime data) => data.toString().substring(0, 19);

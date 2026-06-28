@@ -22,7 +22,13 @@ class AudioStreamController {
   static void emitLoopModeChanged() => loopMode.add(null);
   static void emitPlayListOrderChanged() => playListOrderState.add(null);
   static void emitVisualizerColorChanged() => visualizerColor.add(null);
-  static void emitBackgroundFileChanged() => backgroundFile.add(null);
+  static void emitBackgroundFileChanged() {
+    backgroundFile.add(null);
+    // The shown background may belong to a group that overrides NCS logo /
+    // visualizer visibility, so re-evaluate those when the background changes.
+    enabledNCSLogo.add(null);
+    enabledVisualizer.add(null);
+  }
   static void emitImageBackgroundAnimationChanged() =>
       imageBackgroundAnimation.add(null);
   static void emitMashupButtonChanged() => mashupButton.add(null);

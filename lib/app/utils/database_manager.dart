@@ -14,7 +14,6 @@ class DatabaseManager {
 
   final String databaseFileName = 'audio_track.db';
   final String mainDBTableName = '_main';
-  final String backgroundGroupDBTableName = '_background_group';
   final String mixDBTableName = '_mix';
   String databasesPath = '';
   bool _initialized = false;
@@ -33,10 +32,10 @@ class DatabaseManager {
       'CREATE TABLE IF NOT EXISTS $mainDBTableName (title TEXT PRIMARY KEY, path TEXT NOT NULL, modified_time TEXT, color TEXT);',
     );
     await DatabaseInterface.instance.execute(
-      'CREATE TABLE IF NOT EXISTS $backgroundGroupDBTableName (path TEXT PRIMARY KEY, active BOOL NOT NULL DEFAULT FALSE, rotate BOOL NOT NULL DEFAULT FALSE, scale INTEGER NOT NULL DEFAULT 0, color INTEGER NOT NULL DEFAULT 0, value INTEGER NOT NULL DEFAULT 75);',
+      'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);',
     );
     await DatabaseInterface.instance.execute(
-      'CREATE TABLE IF NOT EXISTS $mixDBTableName (path TEXT PRIMARY KEY);',
+      'DROP TABLE IF EXISTS _background_group;',
     );
     await _dropTagTable();
     _initialized = true;
@@ -97,68 +96,6 @@ class DatabaseManager {
       );
     }
     return null;
-  }
-
-  Future<void> insertBackgroundGroup(BackgroundData data, bool active) async {
-    await DatabaseInterface.instance.rawInsert(
-      'INSERT OR IGNORE INTO $backgroundGroupDBTableName(path, active, rotate, scale, color, value) VALUES(?, ?, ?, ?, ?, ?);',
-      [
-        data.path,
-        active ? 1 : 0,
-        data.rotate ? 1 : 0,
-        data.scale ? 1 : 0,
-        data.color ? 1 : 0,
-        data.value,
-      ],
-    );
-  }
-
-  Future<List<Map>> selectAllBackgroundGroup() async {
-    var list = await DatabaseInterface.instance.rawQuery(
-      'SELECT * FROM $backgroundGroupDBTableName ORDER BY path ASC;',
-    );
-    return List<Map>.from(list);
-  }
-
-  Future<BackgroundData> selectBackgroundGroup(String path) async {
-    var data = await DatabaseInterface.instance.rawQuery(
-      'SELECT * FROM $backgroundGroupDBTableName WHERE path=?;',
-      [path],
-    );
-    return BackgroundData(
-      path: path,
-      rotate: data[0]['rotate'] == 1 ? true : false,
-      scale: data[0]['scale'] == 1 ? true : false,
-      color: data[0]['color'] == 1 ? true : false,
-      value: data[0]['value'],
-    );
-  }
-
-  Future<void> updateBackgroundGroup(String path, BackgroundData data) async {
-    await DatabaseInterface.instance.execute(
-      'UPDATE $backgroundGroupDBTableName SET rotate=?, scale=?, color=?, value=? WHERE path=?;',
-      [
-        data.rotate ? 1 : 0,
-        data.scale ? 1 : 0,
-        data.color ? 1 : 0,
-        data.value,
-        path,
-      ],
-    );
-  }
-
-  Future<void> deleteBackgroundGroup(String path) async {
-    await DatabaseInterface.instance.execute(
-      'DELETE FROM $backgroundGroupDBTableName WHERE path=?;',
-      [path],
-    );
-  }
-
-  Future<void> toggleBackgroundGroupActive(String path, bool value) async {
-    await DatabaseInterface.instance.execute(
-      'UPDATE $backgroundGroupDBTableName SET active=? WHERE path=?;',
-      [value ? 1 : 0, path],
-    );
   }
 
   Future<void> insertMix(String path) async {

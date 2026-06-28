@@ -6,8 +6,6 @@ import 'dart:io';
 import 'dart:async';
 import '../app_state.dart';
 import '../utils/background_manager.dart';
-import '../utils/playlist.dart';
-import '../utils/stream_controller.dart';
 import '../components/stream_builder.dart';
 import '../models/color.dart';
 import '../models/data.dart';
@@ -23,6 +21,13 @@ class Background extends StatelessWidget {
     final BackgroundData? background = BackgroundManager.instance.isListNotEmpty
         ? BackgroundManager.instance.currentBackgroundData
         : null;
+    if (background == null) {
+      debugPrint(
+        '[Background] fallback to default: background pool is empty '
+        '(groups=${BackgroundManager.instance.groups.length}, '
+        'active=${BackgroundManager.instance.groups.where((g) => g.active).length}).',
+      );
+    }
     if (background != null) {
       File backgroundFile = File(background.path);
       if (backgroundFile.existsSync()) {
@@ -54,6 +59,9 @@ class Background extends StatelessWidget {
           ),
         );
       }
+      debugPrint(
+        '[Background] fallback to default: file not found -> "${background.path}".',
+      );
     }
     return const DefaultBackground();
   });
@@ -144,7 +152,7 @@ class ImageBackgroundManager {
   }
 }
 
-class ImageBackground extends StatefulWidget {
+class ImageBackground extends StatelessWidget {
   const ImageBackground({
     super.key,
     required this.background,
@@ -154,124 +162,23 @@ class ImageBackground extends StatefulWidget {
   final FileImage? imageFile;
 
   @override
-  State<ImageBackground> createState() => _ImageBackgroundState();
-}
-
-class _ImageBackgroundState extends State<ImageBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late StreamSubscription<void> _triggerRotation;
-  late StreamSubscription<void> _triggerScale;
-  double _rotateSpeed = 1;
-  double _rotateDirection = 1;
-  double _angle = 0;
-  double _scale = 1;
-  final double _scaleSpeed = 1.5;
-  double _prevControllerValue = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 60),
-    )..repeat();
-
-    _controller.addListener(() {
-      var value = _controller.value - _prevControllerValue;
-      _prevControllerValue = _controller.value;
-      value = (value < 0) ? value + 1 : value;
-      if (widget.background.rotate) {
-        _angle += value * _rotateSpeed * _rotateDirection;
-        _angle = _angle % 1;
-        setState(() {});
-      }
-      if (widget.background.scale) {
-        _scale += value * _scaleSpeed;
-        setState(() {});
-      }
-    });
-
-    _triggerRotation = setRotationTrigger();
-    _triggerScale = setScaleTrigger();
-
-    AudioStreamController.imageBackgroundAnimation.stream.listen((data) {
-      reset();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _triggerRotation.cancel();
-    _triggerScale.cancel();
-    super.dispose();
-  }
-
-  StreamSubscription<void> setRotationTrigger() {
-    return Stream<void>.fromFuture(
-      Future<void>.delayed(Duration(seconds: 15 + Random().nextInt(15)), () {}),
-    ).listen((x) {
-      if (widget.background.rotate) {
-        _rotateSpeed = 0.25 + Random().nextDouble() * 1.5;
-        _rotateDirection *= -1;
-      }
-      _triggerRotation = setRotationTrigger();
-    });
-  }
-
-  StreamSubscription<void> setScaleTrigger() {
-    return Stream<void>.fromFuture(
-      Future<void>.delayed(const Duration(seconds: 10), () {}),
-    ).listen((x) {
-      if (widget.background.scale) {
-        _scale = 1;
-      }
-      _triggerScale = setScaleTrigger();
-    });
-  }
-
-  void reset() async {
-    await _triggerRotation.cancel();
-    await _triggerScale.cancel();
-    _angle = 0;
-    _scale = 1;
-    _triggerRotation = setRotationTrigger();
-    _triggerScale = setScaleTrigger();
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.imageFile != null) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          double rotationScale = 1;
-          if (widget.background.rotate) {
-            double a = min(constraints.maxWidth, constraints.maxHeight);
-            double b = max(constraints.maxWidth, constraints.maxHeight);
-            rotationScale = (a > 0) ? sqrt(a * a + b * b) / a : 1;
-          }
-          return Transform.scale(
-            scale: widget.background.scale
-                ? _scale * rotationScale
-                : rotationScale,
-            child: Transform.rotate(
-              angle: widget.background.rotate ? _angle * 2 * pi : 0,
-              child: SizedBox.expand(
-                child: Image(
-                  image: widget.imageFile!,
-                  gaplessPlayback: true,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    } else {
+    if (imageFile == null) {
       return const SizedBox(height: 0, width: 0);
     }
+    // Decode at screen resolution instead of the image's native resolution to
+    // cap memory: a high-res wallpaper would otherwise decode to tens of MB.
+    // longestSide keeps it sharp under BoxFit.cover regardless of orientation.
+    final media = MediaQuery.of(context);
+    final decodeSize = (media.size.longestSide * media.devicePixelRatio)
+        .round();
+    return SizedBox.expand(
+      child: Image(
+        image: ResizeImage.resizeIfNeeded(decodeSize, null, imageFile!),
+        gaplessPlayback: true,
+        fit: BoxFit.cover,
+      ),
+    );
   }
 }
 
@@ -363,12 +270,6 @@ class FileBackground extends StatelessWidget {
   final Widget child;
   final BackgroundData background;
 
-  static Color getColor() {
-    String color = PlayList.instance.currentAudioColor ?? 'ffffff';
-    color = (color != 'null') ? color : 'ffffff';
-    return stringToColor(color);
-  }
-
   @override
   Widget build(BuildContext context) => Container(
     key: ValueKey<String>(background.path),
@@ -376,8 +277,8 @@ class FileBackground extends StatelessWidget {
       children: [
         child,
         Opacity(
-          opacity: background.color ? 0.4 : 0,
-          child: Container(color: getColor()),
+          opacity: (100 - background.brightness).clamp(0, 100) / 100,
+          child: Container(color: ColorPalette.black),
         ),
       ],
     ),

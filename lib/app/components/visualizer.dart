@@ -11,11 +11,7 @@ import '../utils/audio_manager.dart';
 /// Live, mutable animation state. The painter reads these fields directly so
 /// values stay current every tick without rebuilding the widget.
 class _VizModel extends ChangeNotifier {
-  List<double> bands = const [];
   double rmsLevel = 0;
-  double bassLevel = 0;
-  double midLevel = 0;
-  double highLevel = 0;
   double beatPulse = 0;
   double time = 0;
   double spin = 0;
@@ -39,17 +35,16 @@ class VisualizerController extends StatefulWidget {
 
 class _VisualizerControllerState extends State<VisualizerController>
     with SingleTickerProviderStateMixin {
-  static const int _bandCount = 32;
-
   late final Ticker _ticker;
   AudioData? _audioData;
   final _model = _VizModel();
 
-  final _smoothBands = List<double>.filled(_bandCount, 0.0);
-  double _smoothBass = 0;
-  double _smoothMid = 0;
-  double _smoothHigh = 0;
   double _smoothRms = 0;
+  // Cache the parsed visualizer color so the string isn't re-parsed (int.parse
+  // + Color allocation) on every tick — it only changes when the user picks a
+  // new color.
+  String _lastColorString = '';
+  Color _color = const Color(0xFFFFFFFF);
   // NCS-style pulse: instead of the absolute bass level (which on bass-heavy
   // tracks sits near 1.0 the whole time and looks static), the pulse measures
   // the bass *relative* to an adaptive window — a slow floor (the quiet level
@@ -129,50 +124,33 @@ class _VisualizerControllerState extends State<VisualizerController>
       _flow += dt * _flowVel;
     }
 
+    // Re-parse the color only when the user actually changed it.
+    final colorString = AppState.instance.visualizerColor;
+    if (colorString != _lastColorString) {
+      _lastColorString = colorString;
+      _color = stringToColor(colorString);
+    }
+
     // Push live values into the model and repaint every tick. Reading from a
     // shared mutable object keeps the painter current without rebuilding.
     _model
-      ..bands = _smoothBands
       ..rmsLevel = _smoothRms
-      ..bassLevel = _smoothBass
-      ..midLevel = _smoothMid
-      ..highLevel = _smoothHigh
       ..beatPulse = _pulse
       ..time = _time
       ..spin = _spin
       ..flow = _flow
-      ..color = stringToColor(AppState.instance.visualizerColor)
+      ..color = _color
       ..notify();
   }
 
   void _decay() {
     const k = 0.80;
-    for (int b = 0; b < _bandCount; b++) {
-      _smoothBands[b] *= k;
-    }
-    _smoothBass *= k;
-    _smoothMid *= k;
-    _smoothHigh *= k;
     _smoothRms *= k;
     _pulse *= k;
   }
 
   void _processFFT(Float32List data) {
     if (data.length < 256) return;
-
-    for (int b = 0; b < _bandCount; b++) {
-      final startBin = (pow(127.0, b / _bandCount)).toInt().clamp(1, 126);
-      final endBin = (pow(127.0, (b + 1) / _bandCount)).toInt().clamp(1, 127);
-      double sum = 0;
-      int count = 0;
-      for (int i = startBin; i <= endBin; i++) {
-        sum += data[i];
-        count++;
-      }
-      final raw = count > 0 ? (sum / count).clamp(0.0, 1.0) : 0.0;
-      final alpha = raw > _smoothBands[b] ? 0.75 : 0.12;
-      _smoothBands[b] = _smoothBands[b] * (1 - alpha) + raw * alpha;
-    }
 
     double bass = 0;
     for (int i = 1; i <= 8; i++) {
@@ -193,10 +171,6 @@ class _VisualizerControllerState extends State<VisualizerController>
     high = (high / 87).clamp(0.0, 1.0);
 
     final rms = (bass * 0.5 + mid * 0.3 + high * 0.2).clamp(0.0, 1.0);
-
-    _smoothBass = _lerp(_smoothBass, bass, bass > _smoothBass ? 0.7 : 0.1);
-    _smoothMid = _lerp(_smoothMid, mid, mid > _smoothMid ? 0.6 : 0.12);
-    _smoothHigh = _lerp(_smoothHigh, high, high > _smoothHigh ? 0.6 : 0.15);
     _smoothRms = _lerp(_smoothRms, rms, rms > _smoothRms ? 0.7 : 0.4);
 
     // Adaptive window: track the quiet baseline (floor) and the recent loudest
@@ -240,11 +214,7 @@ class NcsVisualizerPainter extends CustomPainter {
 
   final _VizModel m;
 
-  List<double> get bands => m.bands;
   double get rmsLevel => m.rmsLevel;
-  double get bassLevel => m.bassLevel;
-  double get midLevel => m.midLevel;
-  double get highLevel => m.highLevel;
   double get beatPulse => m.beatPulse;
   double get time => m.time;
   double get spin => m.spin;
