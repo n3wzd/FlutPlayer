@@ -1,5 +1,6 @@
 import 'dart:io';
 import './background_store.dart';
+import './emergency_food_background_source.dart';
 import '../models/data.dart';
 
 const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
@@ -17,6 +18,8 @@ class BackgroundManager {
   List<BackgroundGroupData> get groups => _groups;
 
   bool get isListNotEmpty => _backgroundList.isNotEmpty;
+  bool isManagedGroup(String label) =>
+      EmergencyFoodBackgroundSource.instance.isManagedLabel(label);
   int get nextBackgroundListIndex => isListNotEmpty
       ? (currentBackgroundListIndex + 1) % _backgroundList.length
       : 0;
@@ -27,8 +30,6 @@ class BackgroundManager {
       ? _backgroundList[nextBackgroundListIndex]
       : BackgroundData(path: "");
 
-  /// Override for the currently shown background, or null to inherit the global
-  /// setting (also null when no background is active).
   bool? get currentNcsLogoOverride => currentBackgroundData.ncsLogo;
   bool? get currentVisualizerOverride => currentBackgroundData.visualizer;
 
@@ -36,9 +37,14 @@ class BackgroundManager {
     if (_initialized) {
       return;
     }
-    _groups = await BackgroundStore.instance.load();
-    updateBackgroundList();
+    await reload();
     _initialized = true;
+  }
+
+  Future<void> reload() async {
+    _groups = await BackgroundStore.instance.load();
+    await EmergencyFoodBackgroundSource.instance.sync(_groups);
+    updateBackgroundList();
   }
 
   bool hasLabel(String label) => _groups.any((group) => group.label == label);
@@ -90,8 +96,6 @@ class BackgroundManager {
       }
       for (final folder in group.folders) {
         for (final filePath in _scanFolder(folder)) {
-          // Runtime dedupe: the same file from overlapping folders/groups is
-          // only shown once. First occurrence wins (keeps its group brightness).
           if (seen.add(filePath)) {
             _backgroundList.add(
               BackgroundData(

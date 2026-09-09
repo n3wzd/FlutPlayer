@@ -11,11 +11,11 @@ import '../widgets/dialog.dart';
 import '../models/color.dart';
 import '../models/data.dart';
 
-/// Tri-state for a per-group override: inherit the global setting, or force it.
 enum _OverrideOption { inherit, show, hide }
 
-_OverrideOption _toOption(bool? value) =>
-    value == null ? _OverrideOption.inherit : (value ? _OverrideOption.show : _OverrideOption.hide);
+_OverrideOption _toOption(bool? value) => value == null
+    ? _OverrideOption.inherit
+    : (value ? _OverrideOption.show : _OverrideOption.hide);
 
 bool? _fromOption(_OverrideOption option) => switch (option) {
   _OverrideOption.inherit => null,
@@ -71,6 +71,10 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
     return selected;
   }
 
+  bool _hasManagedSelection() => _selectedIndexes().any(
+    (index) => BackgroundManager.instance.isManagedGroup(_groups[index].label),
+  );
+
   Future<void> _openDetail({String? originalLabel}) async {
     await Navigator.push(
       context,
@@ -110,7 +114,7 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
           ButtonFactory.iconButton(
             icon: const Icon(Icons.delete),
             iconColor: ColorPalette.lightGrey,
-            onPressed: _selectedItemCount > 0
+            onPressed: _selectedItemCount > 0 && !_hasManagedSelection()
                 ? () {
                     DialogFactory.choiceDialog(
                       context: context,
@@ -170,10 +174,12 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ButtonFactory.textButton(
-                    onPressed: () {
-                      BackgroundManager.instance.updateBackgroundList();
+                    onPressed: () async {
+                      await BackgroundManager.instance.reload();
                       AudioStreamController.emitBackgroundFileChanged();
-                      Navigator.pop(context);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
                     },
                     text: 'close',
                     fontSize: 24,
@@ -191,7 +197,6 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
 class BackgroundGroupDetailPage extends StatefulWidget {
   const BackgroundGroupDetailPage({super.key, this.originalLabel});
 
-  /// null = create a new group, otherwise edit the group with this label.
   final String? originalLabel;
 
   @override
@@ -208,6 +213,9 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
   List<String> _folders = [];
 
   bool get _isEdit => widget.originalLabel != null;
+  bool get _isManaged =>
+      _isEdit &&
+      BackgroundManager.instance.isManagedGroup(widget.originalLabel!);
 
   @override
   void initState() {
@@ -245,7 +253,6 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
       await _showError('Label is empty.');
       return;
     }
-    // Block duplicate labels (ignore self when editing).
     final duplicate = BackgroundManager.instance.groups.any(
       (g) => g.label == label && g.label != widget.originalLabel,
     );
@@ -264,7 +271,10 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
     );
 
     if (_isEdit) {
-      await BackgroundManager.instance.updateGroup(widget.originalLabel!, group);
+      await BackgroundManager.instance.updateGroup(
+        widget.originalLabel!,
+        group,
+      );
     } else {
       await BackgroundManager.instance.addGroup(group);
     }
@@ -304,7 +314,11 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
                 children: [
                   TextFactory.text('Label', fontSize: 18),
                   const SizedBox(height: 8),
-                  TextFieldFactory.textField(controller: _labelController),
+                  _isManaged
+                      ? TextFactory.text(_labelController.text, fontSize: 18)
+                      : TextFieldFactory.textField(
+                          controller: _labelController,
+                        ),
                 ],
               ),
             ),
@@ -332,15 +346,14 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
                 children: [
-                  Expanded(
-                    child: TextFactory.text('Folders', fontSize: 18),
-                  ),
-                  ButtonFactory.iconButton(
-                    icon: const Icon(Icons.create_new_folder),
-                    iconColor: ColorPalette.lightGrey,
-                    onPressed: _addFolder,
-                    outline: false,
-                  ),
+                  Expanded(child: TextFactory.text('Folders', fontSize: 18)),
+                  if (!_isManaged)
+                    ButtonFactory.iconButton(
+                      icon: const Icon(Icons.create_new_folder),
+                      iconColor: ColorPalette.lightGrey,
+                      onPressed: _addFolder,
+                      outline: false,
+                    ),
                 ],
               ),
             ),
@@ -350,12 +363,15 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
                 itemBuilder: (context, index) => ListTileFactory.multiItem(
                   index: index,
                   text: _folders[index],
-                  trailing: ButtonFactory.iconButton(
-                    icon: const Icon(Icons.delete),
-                    iconColor: ColorPalette.lightGrey,
-                    onPressed: () => setState(() => _folders.removeAt(index)),
-                    outline: false,
-                  ),
+                  trailing: _isManaged
+                      ? const SizedBox.shrink()
+                      : ButtonFactory.iconButton(
+                          icon: const Icon(Icons.delete),
+                          iconColor: ColorPalette.lightGrey,
+                          onPressed: () =>
+                              setState(() => _folders.removeAt(index)),
+                          outline: false,
+                        ),
                 ),
               ),
             ),
