@@ -15,6 +15,7 @@ class EmergencyFoodBackgroundSource {
     r'D:\비상식량(미공유)',
   };
   static const Set<String> _categories = {'Uncaged', 'Instinct'};
+  static const int _structuredBackgroundStartYear = 2021;
   static final RegExp _managedLabel = RegExp(
     r'^비상식량-(Uncaged|Instinct) (\d{4})$',
   );
@@ -48,6 +49,9 @@ class EmergencyFoodBackgroundSource {
     }
     final years = await _loadYears();
     for (final year in years) {
+      if (int.parse(year) < _structuredBackgroundStartYear) {
+        continue;
+      }
       final assignments = await _loadAssignments(year);
       if (assignments == null) {
         continue;
@@ -150,12 +154,22 @@ class EmergencyFoodBackgroundSource {
     }
 
     final attempted = <String>[];
-    final candidates = <String>[];
+    final candidates = <String>{};
     for (final root in roots) {
-      final candidate = '$root\\$year\\$game';
-      attempted.add(candidate);
-      if (Directory(candidate).existsSync()) {
-        candidates.add(candidate);
+      final yearDirectory = Directory('$root\\$year');
+      final exact = '${yearDirectory.path}\\$game';
+      attempted.add(exact);
+      if (Directory(exact).existsSync()) {
+        candidates.add(exact);
+        continue;
+      }
+      if (!yearDirectory.existsSync()) {
+        continue;
+      }
+      for (final entity in yearDirectory.listSync()) {
+        if (entity is Directory && _matchesGameFolder(entity.path, game)) {
+          candidates.add(entity.path);
+        }
       }
     }
     if (candidates.length != 1) {
@@ -165,6 +179,39 @@ class EmergencyFoodBackgroundSource {
       );
     }
     return candidates.single;
+  }
+
+  bool _matchesGameFolder(String folder, String game) {
+    final folderName = _basename(folder);
+    if (_normalizeName(folderName) == _normalizeName(game)) {
+      return true;
+    }
+
+    final folderRange = RegExp(r'^(.*) (\d+)-(\d+)$').firstMatch(folderName);
+    final gameNumber = RegExp(r'^(.*) (\d+)$').firstMatch(game);
+    if (folderRange == null || gameNumber == null) {
+      return false;
+    }
+    if (_normalizeName(folderRange.group(1)!) !=
+        _normalizeName(gameNumber.group(1)!)) {
+      return false;
+    }
+    final value = int.parse(gameNumber.group(2)!);
+    final start = int.parse(folderRange.group(2)!);
+    final end = int.parse(folderRange.group(3)!);
+    return value >= start && value <= end;
+  }
+
+  String _normalizeName(String value) {
+    final withoutYear = value.replaceFirst(RegExp(r'\s*\(\d{4}\)$'), '');
+    final withoutVersion = withoutYear.replaceFirst(
+      RegExp(r'\s+\d+(?:\.\d+)+$'),
+      '',
+    );
+    return withoutVersion.toLowerCase().replaceAll(
+      RegExp(r'''[\s_\-().,!]'''),
+      '',
+    );
   }
 
   void _replaceGroupFolders(
