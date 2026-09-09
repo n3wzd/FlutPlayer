@@ -52,6 +52,16 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
     _selectedItemCount = 0;
   }
 
+  Future<void> _openSourceSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => const EmergencyFoodSourcePage(),
+      ),
+    );
+    setState(_resetSelection);
+  }
+
   int _uniqueSelectedIndex() {
     for (int i = 0; i < _selectedList.length; i++) {
       if (_selectedList[i]) {
@@ -95,6 +105,12 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
         backgroundColor: ColorPalette.darkWine,
         automaticallyImplyLeading: false,
         actions: [
+          ButtonFactory.iconButton(
+            icon: const Icon(Icons.link),
+            iconColor: ColorPalette.lightGrey,
+            onPressed: _openSourceSettings,
+            outline: false,
+          ),
           ButtonFactory.iconButton(
             icon: const Icon(Icons.add_circle),
             iconColor: ColorPalette.lightGrey,
@@ -194,6 +210,156 @@ class _BackgroundGroupPageState extends State<BackgroundGroupPage> {
   }
 }
 
+class EmergencyFoodSourcePage extends StatefulWidget {
+  const EmergencyFoodSourcePage({super.key});
+
+  @override
+  State<EmergencyFoodSourcePage> createState() =>
+      _EmergencyFoodSourcePageState();
+}
+
+class _EmergencyFoodSourcePageState extends State<EmergencyFoodSourcePage> {
+  String _dataRoot = BackgroundManager.instance.emergencyFoodDataRoot;
+  final List<String> _backgroundRoots = List.from(
+    BackgroundManager.instance.emergencyFoodBackgroundRoots,
+  );
+
+  Future<void> _pickDataRoot() async {
+    final path = await FilePicker.getDirectoryPath();
+    if (path != null) {
+      setState(() => _dataRoot = path);
+    }
+  }
+
+  Future<void> _addBackgroundRoot() async {
+    final path = await FilePicker.getDirectoryPath();
+    if (path != null && !_backgroundRoots.contains(path)) {
+      setState(() => _backgroundRoots.add(path));
+    }
+  }
+
+  Future<void> _save() async {
+    if (_dataRoot.isNotEmpty && _backgroundRoots.isEmpty) {
+      await _showError('Background root is required.');
+      return;
+    }
+    try {
+      await BackgroundManager.instance.updateEmergencyFoodPaths(
+        dataRoot: _dataRoot,
+        backgroundRoots: _backgroundRoots,
+      );
+      AudioStreamController.emitBackgroundFileChanged();
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (error) {
+      if (mounted) {
+        await _showError(error.toString());
+      }
+    }
+  }
+
+  Future<void> _showError(String message) => DialogFactory.alertDialog(
+    context: context,
+    onPressed: () async => true,
+    content: TextFactory.text(message, allowLineBreak: true),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ColorPalette.black,
+      appBar: AppBar(
+        backgroundColor: ColorPalette.darkWine,
+        leading: ButtonFactory.iconButton(
+          icon: const Icon(Icons.arrow_back),
+          iconColor: ColorPalette.lightGrey,
+          outline: false,
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFactory.text('Emergency-food data root'),
+                      ),
+                      ButtonFactory.iconButton(
+                        icon: const Icon(Icons.folder_open),
+                        iconColor: ColorPalette.lightGrey,
+                        onPressed: _pickDataRoot,
+                        outline: false,
+                      ),
+                      ButtonFactory.iconButton(
+                        icon: const Icon(Icons.clear),
+                        iconColor: ColorPalette.lightGrey,
+                        onPressed: _dataRoot.isEmpty
+                            ? null
+                            : () => setState(() => _dataRoot = ''),
+                        outline: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFactory.text(
+                    _dataRoot.isEmpty ? 'Not configured' : _dataRoot,
+                    allowLineBreak: true,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(child: TextFactory.text('Background roots')),
+                      ButtonFactory.iconButton(
+                        icon: const Icon(Icons.create_new_folder),
+                        iconColor: ColorPalette.lightGrey,
+                        onPressed: _addBackgroundRoot,
+                        outline: false,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _backgroundRoots.length,
+                itemBuilder: (context, index) => ListTileFactory.multiItem(
+                  index: index,
+                  text: _backgroundRoots[index],
+                  trailing: ButtonFactory.iconButton(
+                    icon: const Icon(Icons.delete),
+                    iconColor: ColorPalette.lightGrey,
+                    onPressed: () =>
+                        setState(() => _backgroundRoots.removeAt(index)),
+                    outline: false,
+                  ),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ButtonFactory.textButton(
+                  onPressed: _save,
+                  text: 'ok',
+                  fontSize: 24,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class BackgroundGroupDetailPage extends StatefulWidget {
   const BackgroundGroupDetailPage({super.key, this.originalLabel});
 
@@ -267,6 +433,7 @@ class _BackgroundGroupDetailPageState extends State<BackgroundGroupDetailPage> {
       brightness: _brightness.round(),
       ncsLogo: _ncsLogo,
       visualizer: _visualizer,
+      managed: _isManaged,
       folders: _folders,
     );
 

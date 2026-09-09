@@ -9,50 +9,33 @@ class EmergencyFoodBackgroundSource {
   static final EmergencyFoodBackgroundSource instance =
       EmergencyFoodBackgroundSource._();
 
-  static const String _rootPath = r'C:\Users\zewxe\Desktop\신송\비상식량';
-  static const Set<String> _backgroundRoots = {
-    r'C:\Users\zewxe\Desktop\비상식량',
-    r'D:\비상식량(미공유)',
-  };
   static const Set<String> _categories = {'Uncaged', 'Instinct'};
   static const int _structuredBackgroundStartYear = 2021;
   static final RegExp _managedLabel = RegExp(
     r'^비상식량-(Uncaged|Instinct) (\d{4})$',
   );
 
-  bool isManagedLabel(String label) => _managedLabel.hasMatch(label);
-
-  Future<void> sync(List<BackgroundGroupData> groups) async {
-    if (!Platform.isWindows) {
+  Future<void> sync({
+    required List<BackgroundGroupData> groups,
+    required String dataRoot,
+    required List<String> backgroundRoots,
+  }) async {
+    if (!Platform.isWindows || dataRoot.isEmpty) {
       return;
     }
-
-    final roots = <String>{..._backgroundRoots};
-    final existingFolders = <String, String>{};
-    for (final group in groups) {
-      final match = _managedLabel.firstMatch(group.label);
-      if (match == null) {
-        continue;
-      }
-      final year = match.group(2)!;
-      for (final folder in group.folders) {
-        final yearDirectory = Directory(folder).parent;
-        if (_basename(yearDirectory.path) != year) {
-          continue;
-        }
-        roots.add(yearDirectory.parent.path);
-        existingFolders.putIfAbsent(
-          '$year\u0000${_basename(folder)}',
-          () => folder,
-        );
-      }
+    if (backgroundRoots.isEmpty) {
+      throw StateError(
+        'Emergency-food data root is configured without background roots: $dataRoot',
+      );
     }
-    final years = await _loadYears();
+
+    final roots = <String>{...backgroundRoots};
+    final years = await _loadYears(dataRoot);
     for (final year in years) {
       if (int.parse(year) < _structuredBackgroundStartYear) {
         continue;
       }
-      final assignments = await _loadAssignments(year);
+      final assignments = await _loadAssignments(dataRoot, year);
       if (assignments == null) {
         continue;
       }
@@ -62,7 +45,6 @@ class EmergencyFoodBackgroundSource {
           folders.add(
             _resolveFolder(
               roots: roots,
-              existingFolders: existingFolders,
               year: year,
               game: game,
               category: category,
@@ -74,8 +56,8 @@ class EmergencyFoodBackgroundSource {
     }
   }
 
-  Future<List<String>> _loadYears() async {
-    final path = '$_rootPath\\emergency-food-meta.json';
+  Future<List<String>> _loadYears(String dataRoot) async {
+    final path = '$dataRoot\\emergency-food-meta.json';
     final decoded = await _decode(File(path));
     if (decoded is! Map || decoded['years'] is! List) {
       throw FormatException('Invalid emergency-food metadata: $path');
@@ -90,8 +72,11 @@ class EmergencyFoodBackgroundSource {
     return years;
   }
 
-  Future<Map<String, List<String>>?> _loadAssignments(String year) async {
-    final path = '$_rootPath\\data\\$year.json';
+  Future<Map<String, List<String>>?> _loadAssignments(
+    String dataRoot,
+    String year,
+  ) async {
+    final path = '$dataRoot\\data\\$year.json';
     final decoded = await _decode(File(path));
     if (decoded is! List) {
       throw FormatException('Invalid emergency-food data: $path');
@@ -142,17 +127,10 @@ class EmergencyFoodBackgroundSource {
 
   String _resolveFolder({
     required Set<String> roots,
-    required Map<String, String> existingFolders,
     required String year,
     required String game,
     required String category,
   }) {
-    final key = '$year\u0000$game';
-    final existing = existingFolders[key];
-    if (existing != null && Directory(existing).existsSync()) {
-      return existing;
-    }
-
     final attempted = <String>[];
     final candidates = <String>{};
     for (final root in roots) {
@@ -224,6 +202,7 @@ class EmergencyFoodBackgroundSource {
     final index = groups.indexWhere((group) => group.label == label);
     if (index >= 0) {
       groups[index].folders = folders;
+      groups[index].managed = true;
       return;
     }
 
@@ -235,6 +214,7 @@ class EmergencyFoodBackgroundSource {
         brightness: template?.brightness ?? backgroundDefaultBrightness,
         ncsLogo: template?.ncsLogo,
         visualizer: template?.visualizer,
+        managed: true,
         folders: folders,
       ),
     );

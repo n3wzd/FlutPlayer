@@ -11,15 +11,19 @@ class BackgroundManager {
   static BackgroundManager get instance => _instance;
 
   List<BackgroundData> _backgroundList = [];
-  List<BackgroundGroupData> _groups = [];
+  BackgroundStoreData _settings = BackgroundStoreData();
   int currentBackgroundListIndex = 0;
   bool _initialized = false;
 
-  List<BackgroundGroupData> get groups => _groups;
+  List<BackgroundGroupData> get _groups => _settings.groups;
+  List<BackgroundGroupData> get groups => _settings.groups;
+  String get emergencyFoodDataRoot => _settings.emergencyFoodDataRoot;
+  List<String> get emergencyFoodBackgroundRoots =>
+      List.unmodifiable(_settings.emergencyFoodBackgroundRoots);
 
   bool get isListNotEmpty => _backgroundList.isNotEmpty;
   bool isManagedGroup(String label) =>
-      EmergencyFoodBackgroundSource.instance.isManagedLabel(label);
+      _groups.any((group) => group.label == label && group.managed);
   int get nextBackgroundListIndex => isListNotEmpty
       ? (currentBackgroundListIndex + 1) % _backgroundList.length
       : 0;
@@ -42,9 +46,39 @@ class BackgroundManager {
   }
 
   Future<void> reload() async {
-    _groups = await BackgroundStore.instance.load();
-    await EmergencyFoodBackgroundSource.instance.sync(_groups);
+    _settings = await BackgroundStore.instance.load();
+    await EmergencyFoodBackgroundSource.instance.sync(
+      groups: _groups,
+      dataRoot: _settings.emergencyFoodDataRoot,
+      backgroundRoots: _settings.emergencyFoodBackgroundRoots,
+    );
     updateBackgroundList();
+  }
+
+  Future<void> updateEmergencyFoodPaths({
+    required String dataRoot,
+    required List<String> backgroundRoots,
+  }) async {
+    _settings.emergencyFoodDataRoot = dataRoot;
+    _settings.emergencyFoodBackgroundRoots = List.from(backgroundRoots);
+    try {
+      await EmergencyFoodBackgroundSource.instance.sync(
+        groups: _groups,
+        dataRoot: dataRoot,
+        backgroundRoots: backgroundRoots,
+      );
+      await _save();
+      updateBackgroundList();
+    } catch (_) {
+      _settings = await BackgroundStore.instance.load();
+      await EmergencyFoodBackgroundSource.instance.sync(
+        groups: _groups,
+        dataRoot: _settings.emergencyFoodDataRoot,
+        backgroundRoots: _settings.emergencyFoodBackgroundRoots,
+      );
+      updateBackgroundList();
+      rethrow;
+    }
   }
 
   bool hasLabel(String label) => _groups.any((group) => group.label == label);
@@ -84,7 +118,7 @@ class BackgroundManager {
   }
 
   Future<void> _save() async {
-    await BackgroundStore.instance.save(_groups);
+    await BackgroundStore.instance.save(_settings);
   }
 
   void updateBackgroundList() {

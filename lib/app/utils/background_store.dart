@@ -3,19 +3,19 @@ import 'dart:io';
 import './database_interface.dart';
 import '../models/data.dart';
 
-/// Persists background groups to a single JSON file next to the database.
-///
-/// Schema:
-/// ```json
-/// {
-///   "groups": [
-///     { "label": "dark set", "active": true, "brightness": 40,
-///       "folders": ["C:/wallpapers/dark", "C:/wallpapers/night"] }
-///   ]
-/// }
-/// ```
-/// Parsing is tolerant: invalid entries/fields are skipped rather than failing
-/// the whole load, so a malformed file never crashes the app.
+class BackgroundStoreData {
+  BackgroundStoreData({
+    this.emergencyFoodDataRoot = '',
+    List<String>? emergencyFoodBackgroundRoots,
+    List<BackgroundGroupData>? groups,
+  }) : emergencyFoodBackgroundRoots = emergencyFoodBackgroundRoots ?? [],
+       groups = groups ?? [];
+
+  String emergencyFoodDataRoot;
+  List<String> emergencyFoodBackgroundRoots;
+  List<BackgroundGroupData> groups;
+}
+
 class BackgroundStore {
   BackgroundStore._();
   static final BackgroundStore _instance = BackgroundStore._();
@@ -28,66 +28,90 @@ class BackgroundStore {
     return '$dir/$fileName';
   }
 
-  Future<List<BackgroundGroupData>> load() async {
-    try {
-      final file = File(await _filePath());
-      if (!await file.exists()) {
-        return [];
-      }
-      final decoded = jsonDecode(await file.readAsString());
-      if (decoded is! Map || decoded['groups'] is! List) {
-        return [];
-      }
-      final groups = <BackgroundGroupData>[];
-      for (final entry in decoded['groups'] as List) {
-        if (entry is! Map) {
-          continue;
-        }
-        final label = entry['label'];
-        if (label is! String || label.isEmpty) {
-          continue;
-        }
-        final folders = <String>[];
-        final rawFolders = entry['folders'];
-        if (rawFolders is List) {
-          for (final folder in rawFolders) {
-            if (folder is String && folder.isNotEmpty) {
-              folders.add(folder);
-            }
-          }
-        }
-        groups.add(
-          BackgroundGroupData(
-            label: label,
-            active: entry['active'] is bool ? entry['active'] as bool : true,
-            brightness: _asBrightness(entry['brightness']),
-            ncsLogo: entry['ncsLogo'] is bool ? entry['ncsLogo'] as bool : null,
-            visualizer: entry['visualizer'] is bool
-                ? entry['visualizer'] as bool
-                : null,
-            folders: folders,
-          ),
-        );
-      }
-      return groups;
-    } catch (_) {
-      return [];
+  Future<BackgroundStoreData> load() async {
+    final file = File(await _filePath());
+    if (!await file.exists()) {
+      return BackgroundStoreData();
     }
+    final decoded = jsonDecode(await file.readAsString());
+    if (decoded is! Map || decoded['groups'] is! List) {
+      throw FormatException('Invalid background settings: ${file.path}');
+    }
+    final groups = <BackgroundGroupData>[];
+    for (final entry in decoded['groups'] as List) {
+      if (entry is! Map) {
+        throw FormatException('Invalid background group in ${file.path}');
+      }
+      final label = entry['label'];
+      if (label is! String || label.isEmpty) {
+        throw FormatException('Invalid background group label in ${file.path}');
+      }
+      final folders = <String>[];
+      final rawFolders = entry['folders'];
+      if (rawFolders is! List) {
+        throw FormatException('Invalid folders for $label in ${file.path}');
+      }
+      for (final folder in rawFolders) {
+        if (folder is! String || folder.isEmpty) {
+          throw FormatException('Invalid folder for $label in ${file.path}');
+        }
+        folders.add(folder);
+      }
+      groups.add(
+        BackgroundGroupData(
+          label: label,
+          active: entry['active'] is bool ? entry['active'] as bool : true,
+          brightness: _asBrightness(entry['brightness']),
+          ncsLogo: entry['ncsLogo'] is bool ? entry['ncsLogo'] as bool : null,
+          visualizer: entry['visualizer'] is bool
+              ? entry['visualizer'] as bool
+              : null,
+          folders: folders,
+        ),
+      );
+    }
+    final emergencyFood = decoded['emergencyFood'];
+    if (emergencyFood == null) {
+      return BackgroundStoreData(groups: groups);
+    }
+    if (emergencyFood is! Map) {
+      throw FormatException('Invalid emergency-food settings: ${file.path}');
+    }
+    final dataRoot = emergencyFood['dataRoot'];
+    final rawBackgroundRoots = emergencyFood['backgroundRoots'];
+    if (dataRoot is! String || rawBackgroundRoots is! List) {
+      throw FormatException('Invalid emergency-food paths: ${file.path}');
+    }
+    final backgroundRoots = <String>[];
+    for (final root in rawBackgroundRoots) {
+      if (root is! String || root.isEmpty) {
+        throw FormatException('Invalid emergency-food root in ${file.path}');
+      }
+      backgroundRoots.add(root);
+    }
+    return BackgroundStoreData(
+      emergencyFoodDataRoot: dataRoot,
+      emergencyFoodBackgroundRoots: backgroundRoots,
+      groups: groups,
+    );
   }
 
-  Future<void> save(List<BackgroundGroupData> groups) async {
+  Future<void> save(BackgroundStoreData settings) async {
     final file = File(await _filePath());
     final data = {
+      'emergencyFood': {
+        'dataRoot': settings.emergencyFoodDataRoot,
+        'backgroundRoots': settings.emergencyFoodBackgroundRoots,
+      },
       'groups': [
-        for (final group in groups)
+        for (final group in settings.groups)
           {
             'label': group.label,
             'active': group.active,
             'brightness': group.brightness,
-            // Omit overrides when null so absence keeps "inherit default".
             if (group.ncsLogo != null) 'ncsLogo': group.ncsLogo,
             if (group.visualizer != null) 'visualizer': group.visualizer,
-            'folders': group.folders,
+            'folders': group.managed ? <String>[] : group.folders,
           },
       ],
     };
