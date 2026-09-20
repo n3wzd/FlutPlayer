@@ -201,6 +201,21 @@ class _PageDrawerState extends State<PageDrawer> {
         AudioStreamController.emitEnabledBackgroundChanged();
       },
     ),
+    ListTileFactory.contentSlider(
+      title: 'Latest Background Weight',
+      subtitle:
+          'prioritizes recently dated backgrounds and reuses them sooner.',
+      initialValue: Preference.latestBackgroundWeight * 100,
+      sliderMax: 100,
+      sliderDivisions: 10,
+      sliderShowLabel: true,
+      onChanged: (double value) {
+        Preference.latestBackgroundWeight = value / 100;
+      },
+      onChangeEnd: (double value) {
+        Preference.save(PreferenceKey.latestBackgroundWeight);
+      },
+    ),
     ListTileFactory.content(
       title: 'Directory Path',
       subtitle: 'open background directory page.',

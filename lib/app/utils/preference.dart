@@ -61,6 +61,9 @@ class Preference {
       case PreferenceKey.enableBackground:
         await prefs.setBool(target, enableBackground);
         break;
+      case PreferenceKey.latestBackgroundWeight:
+        await prefs.setDouble(target, latestBackgroundWeight);
+        break;
 
       case PreferenceKey.enableVisualizer:
         await prefs.setBool(target, enableVisualizer);
@@ -134,6 +137,11 @@ class Preference {
 
     enableBackground =
         prefs.getBool(PreferenceKey.enableBackground) ?? enableBackground;
+    latestBackgroundWeight =
+        (prefs.getDouble(PreferenceKey.latestBackgroundWeight) ??
+                latestBackgroundWeight)
+            .clamp(0.0, 1.0)
+            .toDouble();
 
     enableVisualizer =
         prefs.getBool(PreferenceKey.enableVisualizer) ?? enableVisualizer;
@@ -153,20 +161,16 @@ class Preference {
         prefs.getString(PreferenceKey.resourceRootPath) ?? resourceRootPath;
   }
 
-  // Volume
   static double volumeMasterRate = 1.0;
 
-  // Sort
   static bool showPlayListOrderButton = true;
   static PlayListOrderMethod playListOrderMethod =
       PlayListOrderMethod.modifiedDateTime;
 
-  // Mashup
   static int mashupTransitionTime = 5;
   static int mashupNextTriggerMinTime = 20;
   static int mashupNextTriggerMaxTime = 40;
 
-  // Equalizer
   static const int equalizerBandsLength = 10;
   static const double equalizerMinGain = 0.0;
   static const double equalizerMaxGain = 4.0;
@@ -178,15 +182,13 @@ class Preference {
     equalizerDefaultGain,
   );
 
-  // Background
   static bool enableBackground = true;
+  static double latestBackgroundWeight = 0.0;
 
-  // Visualizer
   static bool enableVisualizer = true;
   static bool randomColorVisualizer = true;
   static bool enableNCSLogo = true;
 
-  // Other
   static bool instantlyPlay = true;
   static bool shuffleReload = true;
   static bool showPlayListDeleteButton = true;
@@ -205,6 +207,7 @@ class PreferenceKey {
   static const smoothSliderEqualizer = 'smoothSliderEqualizer';
   static const equalizerGains = 'equalizerGains';
   static const enableBackground = 'enableBackground';
+  static const latestBackgroundWeight = 'latestBackgroundWeight';
   static const enableVisualizer = 'enableVisualizer';
   static const randomColorVisualizer = 'randomColorVisualizer';
   static const enableNCSLogo = 'enableNCSLogo';

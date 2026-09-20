@@ -1,6 +1,9 @@
 import 'dart:io';
 import './background_store.dart';
 import './emergency_food_background_source.dart';
+import './file_recency_resolver.dart';
+import './preference.dart';
+import './recency_weighted_selector.dart';
 import '../models/data.dart';
 
 const List<String> backgroundAllowedExtensions = ['png', 'jpg', 'gif', 'mp4'];
@@ -10,9 +13,10 @@ class BackgroundManager {
   static final BackgroundManager _instance = BackgroundManager._();
   static BackgroundManager get instance => _instance;
 
-  List<BackgroundData> _backgroundList = [];
   BackgroundStoreData _settings = BackgroundStoreData();
-  int currentBackgroundListIndex = 0;
+  final RecencyWeightedSelector<BackgroundData> _selector =
+      RecencyWeightedSelector();
+  BackgroundData? _currentBackgroundData;
   bool _initialized = false;
 
   List<BackgroundGroupData> get _groups => _settings.groups;
@@ -21,18 +25,11 @@ class BackgroundManager {
   List<String> get emergencyFoodBackgroundRoots =>
       List.unmodifiable(_settings.emergencyFoodBackgroundRoots);
 
-  bool get isListNotEmpty => _backgroundList.isNotEmpty;
+  bool get isListNotEmpty => _selector.isNotEmpty;
   bool isManagedGroup(String label) =>
       _groups.any((group) => group.label == label && group.managed);
-  int get nextBackgroundListIndex => isListNotEmpty
-      ? (currentBackgroundListIndex + 1) % _backgroundList.length
-      : 0;
-  BackgroundData get currentBackgroundData => isListNotEmpty
-      ? _backgroundList[currentBackgroundListIndex]
-      : BackgroundData(path: "");
-  BackgroundData get nextBackgroundData => isListNotEmpty
-      ? _backgroundList[nextBackgroundListIndex]
-      : BackgroundData(path: "");
+  BackgroundData get currentBackgroundData =>
+      _currentBackgroundData ?? BackgroundData(path: '');
 
   bool? get currentNcsLogoOverride => currentBackgroundData.ncsLogo;
   bool? get currentVisualizerOverride => currentBackgroundData.visualizer;
@@ -122,40 +119,45 @@ class BackgroundManager {
   }
 
   void updateBackgroundList() {
-    _backgroundList = [];
+    final candidates = <RecencyWeightedCandidate<BackgroundData>>[];
     final seen = <String>{};
     for (final group in _groups) {
       if (!group.active) {
         continue;
       }
       for (final folder in group.folders) {
-        for (final filePath in _scanFolder(folder)) {
-          if (seen.add(filePath)) {
-            _backgroundList.add(
-              BackgroundData(
-                path: filePath,
-                brightness: group.brightness,
-                ncsLogo: group.ncsLogo,
-                visualizer: group.visualizer,
+        for (final file in _scanFolder(folder)) {
+          if (seen.add(file.path)) {
+            final background = BackgroundData(
+              path: file.path,
+              brightness: group.brightness,
+              ncsLogo: group.ncsLogo,
+              visualizer: group.visualizer,
+            );
+            candidates.add(
+              RecencyWeightedCandidate(
+                key: file.path,
+                value: background,
+                recency: file.recency,
               ),
             );
           }
         }
       }
     }
-    currentBackgroundListIndex = 0;
-    _backgroundList.shuffle();
+    _selector.replace(candidates);
+    _currentBackgroundData = null;
     randomizeCurrentBackgroundList();
   }
 
   void randomizeCurrentBackgroundList() {
-    if (isListNotEmpty) {
-      currentBackgroundListIndex = nextBackgroundListIndex;
-    }
+    _currentBackgroundData = _selector.next(
+      recencyWeight: Preference.latestBackgroundWeight,
+    );
   }
 
-  List<String> _scanFolder(String dirPath) {
-    final result = <String>[];
+  List<_BackgroundFile> _scanFolder(String dirPath) {
+    final result = <_BackgroundFile>[];
     if (dirPath.isEmpty) {
       return result;
     }
@@ -163,13 +165,26 @@ class BackgroundManager {
     if (!directory.existsSync()) {
       return result;
     }
-    for (final file in directory.listSync(recursive: true)) {
-      final path = file.path;
+    for (final entity in directory.listSync(recursive: true)) {
+      final path = entity.path;
       if (!FileSystemEntity.isDirectorySync(path) &&
           backgroundAllowedExtensions.contains(path.split('.').last)) {
-        result.add(path);
+        final file = File(path);
+        result.add(
+          _BackgroundFile(
+            path: path,
+            recency: FileRecencyResolver.resolve(file),
+          ),
+        );
       }
     }
     return result;
   }
+}
+
+class _BackgroundFile {
+  const _BackgroundFile({required this.path, required this.recency});
+
+  final String path;
+  final DateTime recency;
 }
